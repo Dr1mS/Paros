@@ -83,3 +83,7 @@ To run without Godot, build a standalone binary with `./build.sh` (see [Developm
 ```
 
 76 unit tests, run without a display in a few seconds.
+
+## License
+
+[MIT](LICENSE). The license covers the code of this repository. The character drawn by Paros is modeled on the Claude Code mascot, which belongs to Anthropic.

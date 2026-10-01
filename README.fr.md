@@ -81,3 +81,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 ```
 
 76 tests unitaires, sans affichage, en quelques secondes.
+
+## Licence
+
+[MIT](LICENSE). La licence couvre le code de ce dépôt. Le personnage dessiné par Paros reprend la mascotte de Claude Code, qui appartient à Anthropic.

@@ -1,17 +1,19 @@
 extends Node
 ## Follows the Claude Code sessions running on this machine.
 ## Posts, each with {session}:
-##   session_opened, session_changed {name, color, cwd, branch, last_prompt, pid},
+##   session_opened, session_changed {name, color, cwd, last_prompt, pid, context},
+##     context: tokens in the context window of the session,
 ##   session_closed,
 ##   session_phase {phase: &"idle" | &"working" | &"waiting", since: Unix time},
 ##   session_activity {tool, detail}, session_subagents {count},
+##   session_stalled {stalled}: working, but silent for a while,
 ##   session_needs_you {detail}, session_finished,
 ##   session_tool_failed {tool, detail, kind}, session_tests_passed.
 ##
 ## Reads three kinds of local files:
 ## - <claude dir>/sessions/<pid>.json: one per live session, with its name and
 ##   status. Internal Claude Code format, not documented: may change.
-## - the session transcript: color (/color) and last prompt.
+## - the session transcript: color (/color), last prompt, token use.
 ## - the log written by hooks/claude-hook.sh, one line per hook event.
 
 ## Fields of a hook log line, separated by tabs.
@@ -22,15 +24,24 @@ const POLL_SECONDS := 0.5
 const ASKING: Array[String] = ["permission_prompt", "elicitation_dialog"]
 const COLOR_LINE := '{"type":"agent-color"'
 const PROMPT_LINE := '{"type":"last-prompt"'
+## In the transcript line of each answer of the model.
+const USAGE_MARK := '"usage":{'
+## Tokens are posted rounded to this step, to post less often.
+const TOKEN_STEP := 10000
+## A working session with no hook event for this long is stalled: long
+## thinking or slow network, the two look the same from here.
+const STALL_SECONDS := 20.0
 ## Session fields that the pet shows: a change posts session_changed.
-const SHOWN: Array[String] = ["name", "color", "cwd", "branch", "last_prompt", "pid"]
+const SHOWN: Array[String] = ["name", "color", "cwd", "last_prompt", "pid", "context"]
 
 var _claude_dir := _home().path_join(".claude")
 var _log_path := "/tmp/paros/claude-events.log"
 var _log_offset := 0
 ## Session id -> the SHOWN fields, plus phase, asking, subagents, transcript,
-## transcript_offset.
+## transcript_offset, heard (time of the last hook event), stalled.
 var _sessions := {}
+## Input token counts of an answer: fresh, written to cache, read from cache.
+var _token_counts := RegEx.create_from_string('"(?:input_tokens|cache_creation_input_tokens|cache_read_input_tokens)":(\\d+)')
 
 
 func _ready() -> void:
@@ -90,15 +101,15 @@ func _update(id: String, entry: Dictionary) -> void:
 	var opened := not _sessions.has(id)
 	if opened:
 		_sessions[id] = {
-			"name": "", "color": "", "cwd": "", "branch": "", "last_prompt": "", "pid": 0,
+			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0,
 			"phase": &"", "asking": false, "subagents": 0, "transcript": "", "transcript_offset": 0,
+			"heard": _now(), "stalled": false,
 		}
 	var session: Dictionary = _sessions[id]
 	var before := _shown(session)
 	session.name = entry.get("name", "")
 	session.cwd = entry.get("cwd", "")
 	session.pid = int(entry.get("pid", 0))
-	session.branch = _read_branch(session.cwd)
 	_read_transcript(id, session)
 	var shown := _shown(session)
 	if opened or shown != before:
@@ -111,12 +122,6 @@ func _shown(session: Dictionary) -> Dictionary:
 	for field in SHOWN:
 		shown[field] = session[field]
 	return shown
-
-
-## Branch checked out in the folder. Empty when the folder is not a git checkout.
-func _read_branch(folder: String) -> String:
-	var head := FileAccess.get_file_as_string(folder.path_join(".git/HEAD")).strip_edges()
-	return head.trim_prefix("ref: refs/heads/") if head.begins_with("ref: ") else ""
 
 
 ## Reads only what was added to the transcript since the last call.
@@ -133,7 +138,18 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 			session.color = _json_field(line, "agentColor")
 		elif line.begins_with(PROMPT_LINE):
 			session.last_prompt = _json_field(line, "lastPrompt")
+		elif USAGE_MARK in line:
+			session.context = _count_tokens(line)
 	session.transcript_offset = file.get_position()
+
+
+## Size of the context sent for an answer: its three input counts, added.
+func _count_tokens(line: String) -> int:
+	var tokens := 0
+	# The counts come first in the usage object: stop before any other number.
+	for found in _token_counts.search_all(line, line.find(USAGE_MARK)).slice(0, 3):
+		tokens += found.get_string(1).to_int()
+	return roundi(float(tokens) / TOKEN_STEP) * TOKEN_STEP
 
 
 func _json_field(line: String, field: String) -> String:
@@ -168,6 +184,7 @@ func _handle_hook(fields: PackedStringArray) -> void:
 	var id := fields[Field.SESSION]
 	var session: Dictionary = _sessions[id]
 	var event := fields[Field.EVENT]
+	session.heard = _now()
 	# Any later event means the question was answered.
 	session.asking = event == "Notification" and fields[Field.NOTIFICATION] in ASKING
 	match event:
@@ -206,7 +223,16 @@ func _update_phase(id: String, entry: Dictionary) -> void:
 		if session.phase.is_empty() and entry.has("statusUpdatedAt"):
 			since = entry.statusUpdatedAt / 1000.0
 		session.phase = phase
+		session.heard = _now()
 		Events.post(&"session_phase", {"session": id, "phase": phase, "since": since})
+	var stalled: bool = phase == &"working" and _now() - session.heard >= STALL_SECONDS
+	if stalled != session.stalled:
+		session.stalled = stalled
+		Events.post(&"session_stalled", {"session": id, "stalled": stalled})
+
+
+func _now() -> float:
+	return Time.get_ticks_msec() / 1000.0
 
 
 func _home() -> String:

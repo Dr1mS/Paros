@@ -21,9 +21,11 @@ Après un clone, ou après l'ajout d'un script avec `class_name`, lancer une foi
 | Geste | Effet |
 |---|---|
 | Clic gauche | Le personnage est content |
-| Glisser | Le porter. Lâché avec élan, il vole et rebondit sur les bords et le sol |
+| Double-clic | Met le terminal de sa session au premier plan (extension GNOME) et fait sonner son onglet |
+| Glisser | Le porter. Lâché avec élan, il vole et rebondit sur les bords et le sol. Lâché de haut, il ouvre un parapluie |
+| Déposer un fichier dessus | Copie le chemin dans le presse-papiers, prêt à coller dans le terminal |
 | Survol | Fiche de la session ; ses yeux suivent la souris |
-| Clic droit | Menu : sonnerie du terminal, focus, « Réglages… », « Quitter » |
+| Clic droit | Menu : aller au terminal, le faire sonner, focus, « Réglages… », « Quitter » |
 
 Seul, il marche, s'assoit et regarde autour de lui. Il s'endort la nuit (23 h à 7 h) et après 5 minutes sans activité clavier ni souris, puis s'étire au réveil. Deux personnages qui se croisent se saluent.
 
@@ -33,7 +35,10 @@ Clic droit, « Démarrer un focus » : 25 minutes de travail, puis 5 minutes de 
 
 ### Alertes système
 
-Sous Linux : bulle si le processeur dépasse 92 °C, ou si la batterie passe sous 15 % en décharge. Au plus une fois toutes les 10 minutes.
+Sous Linux, au plus une fois toutes les 10 minutes :
+
+- processeur à 92 °C ou plus, ou tous les cœurs occupés depuis une minute : les personnages s'assoient près d'un feu de camp et font griller une guimauve ;
+- batterie à 15 % ou moins, en décharge : bulle.
 
 ## Claude Code
 
@@ -45,13 +50,12 @@ Un personnage par session Claude Code ouverte sur la machine. Il porte le nom de
 | Attend une permission ou une réponse | Agite les bras, « ! », bulle « Claude attend ta réponse » |
 | A fini son tour | Saute, bulle « Tâche finie ! » |
 
-`claude_code_sense.gd` lit quatre sources :
+`claude_code_sense.gd` lit trois sources :
 
 | Source | Donne |
 |---|---|
 | `~/.claude/sessions/<pid>.json` | Sessions ouvertes, nom, statut (`busy`, `waiting`, `idle`). Format interne à Claude Code, non documenté : peut changer |
-| Transcript de la session | Couleur choisie avec `/color`, dernier prompt |
-| `<dossier>/.git/HEAD` | Branche git |
+| Transcript de la session | Couleur choisie avec `/color`, dernier prompt, tokens de contexte |
 | `$XDG_RUNTIME_DIR/paros/claude-events.log` | Outils, sous-agents, échecs, fin de tour, demande de permission, écrits par `hooks/claude-hook.sh` |
 
 Installation des hooks : dans `~/.claude/settings.json`, déclarer le script pour les événements `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `Notification`, `SubagentStart`, `SubagentStop` et `Stop` :
@@ -74,12 +78,46 @@ Sans les hooks, noms, couleurs et états restent suivis. Tout le reste du tablea
 | Tests échoués | Tremble, bulle « Tests rouges » |
 | Autre commande échouée | Tremble, goutte de sueur |
 | Attente plus longue que 2 minutes | Saute plus haut, bulle de rappel chaque minute |
+| Aucun événement depuis 20 s pendant le travail | Tape du pied, regarde par terre. Réflexion longue ou réseau lent : impossible à distinguer |
+| Contexte rempli à 75 % ou plus | La tête fume |
+| Fin de tour ou tests verts, quand un voisin vient de réussir aussi | Les deux se tapent dans la main |
 
-Fiche au survol : dossier, état et sa durée, outil en cours, nombre de sous-agents, dernier prompt.
+Un sous-agent qui démarre part du grand personnage en courant, une feuille à la main.
 
-Étiquette : nom de session, puis branche git du dossier. Accessoire (chapeau, couronne, casquette, nœud, lunettes, fleur ou rien) : tiré du nom de session, donc stable.
+### État git du dossier
 
-« Faire sonner son terminal » envoie une sonnerie au terminal de la session : son onglet est marqué. Mettre la fenêtre du terminal au premier plan n'est pas possible : GNOME sous Wayland le refuse à une application tierce.
+Lu toutes les 10 secondes avec `git status` et `git diff --shortstat` (réglage « Suivre l'état git des dossiers »).
+
+| État | Personnage |
+|---|---|
+| Lignes non commitées : 1, 50, 300 ou plus | Pile de 1, 2 ou 3 dossiers sur le bras. Chaque dossier ralentit la marche de 20 % |
+| Fusion, rebase ou cherry-pick à terminer | Casque de chantier, panneau d'avertissement |
+| En retard sur la branche amont | Carte à la main, se gratte la tête, « ? ». Le retard date du dernier `git fetch` : Paros n'en lance pas |
+| Deux sessions dans le même dossier et la même branche | En se croisant, les deux se toisent au lieu de se saluer |
+
+Fiche au survol : dossier, état et sa durée, outil en cours, nombre de sous-agents, tokens de contexte, état git, dernier prompt.
+
+Étiquette : nom de session, puis branche git du dossier. Contexte : la taille de fenêtre du modèle n'est pas lisible, elle se règle (1000 k tokens par défaut). Accessoire (chapeau, couronne, casquette, nœud, lunettes, fleur ou rien) : tiré du nom de session, donc stable.
+
+« Faire sonner son terminal » envoie une sonnerie au terminal de la session : son onglet est marqué.
+
+## Extension GNOME Shell
+
+Sous Wayland, une application ne voit ni la fenêtre active ni le curseur hors de ses propres fenêtres, et ne peut pas mettre une autre fenêtre au premier plan. L'extension `gnome-extension/paros@paros.local` donne ces trois choses à Paros.
+
+```sh
+./gnome-extension/install.sh
+```
+
+Puis se déconnecter et se reconnecter : GNOME sous Wayland ne charge une nouvelle extension qu'à l'ouverture de session.
+
+| Avec l'extension | Détail |
+|---|---|
+| Double-clic : terminal au premier plan | Fenêtre trouvée par le processus de la session, puis par son titre. Si la session est dans un onglet en arrière-plan, la fenêtre choisie peut être la mauvaise : la sonnerie marque le bon onglet |
+| Perchoir | Un personnage saute parfois sur le bord supérieur de la fenêtre active, plus souvent quand il réfléchit. Il y marche et s'y assoit. Fenêtre déplacée ou focus perdu : il tombe |
+| Sommeil contre le curseur | Curseur immobile depuis une minute : le personnage libre le plus proche vient dormir à côté. Il se réveille quand le curseur bouge |
+
+L'extension écrit l'état du bureau dans `$XDG_RUNTIME_DIR/paros/desktop.json` deux fois par seconde au plus, et expose `org.paros.Desktop.Activate` sur D-Bus. Sans elle, ces trois comportements sont absents et le reste fonctionne.
 
 ## Réglages
 
@@ -96,6 +134,10 @@ Clic droit sur un personnage, puis « Réglages… ». Chaque changement s'appli
 | Durée des bulles | 4 s | `bubble/seconds` |
 | Afficher l'outil en cours | oui | `claude/show_activity` |
 | Insister après une attente de | 2 min | `claude/nag_minutes` |
+| Fenêtre de contexte du modèle | 1000 k tokens | `claude/context_window_k` |
+| Suivre l'état git des dossiers | oui | `git/enabled` |
+| Grimper sur la fenêtre active | oui | `desktop/perch` |
+| Dormir contre le curseur immobile | oui | `desktop/cuddle` |
 | Début de la nuit | 23 h | `sleep/night_start_hour` |
 | Fin de la nuit | 7 h | `sleep/night_end_hour` |
 | Sommeil après inactivité | 5 min | `sleep/idle_minutes` |
@@ -122,9 +164,10 @@ Chaque personnage a sa propre fenêtre (`src/pet/pet_window.tscn`). La fenêtre 
 | `src/core/settings.gd` | Réglages utilisateur (autoload `Settings`) |
 | `src/core/autostart.gd` | Lancement à l'ouverture de session |
 | `src/core/focus.gd` | Minuteur de focus (autoload `Focus`) |
+| `src/core/desktop.gd` | Actions sur le bureau : terminal au premier plan, sonnerie |
 | `src/senses/` | Un fichier par sens. Un sens observe et poste des événements, rien d'autre |
 | `src/brain/brain.gd` | Toutes les règles : quel événement provoque quel comportement |
-| `src/pet/pets.gd` | Crée et supprime les personnages, un par clé de session. Fait se saluer deux personnages proches |
+| `src/pet/pets.gd` | Crée et supprime les personnages, un par clé de session. Gère ce qui se fait à deux : salut, rivalité, tape dans la main |
 | `src/pet/pet.gd` | Machine à états et déplacement de la fenêtre sur le bureau |
 | `src/pet/pointer.gd` | Souris sur un personnage : clic, glisser, clic droit |
 | `src/pet/pet_body.gd` | Dessin du personnage selon l'état |
@@ -132,6 +175,7 @@ Chaque personnage a sa propre fenêtre (`src/pet/pet_window.tscn`). La fenêtre 
 | `src/ui/context_menu.gd` | Menu du clic droit |
 | `src/ui/settings_window.gd` | Fenêtre de réglages |
 | `hooks/claude-hook.sh` | Script appelé par les hooks Claude Code |
+| `gnome-extension/` | Extension GNOME Shell et son script d'installation |
 
 ### Ajouter un sens
 
@@ -146,8 +190,10 @@ Chaque personnage a sa propre fenêtre (`src/pet/pet_window.tscn`). La fenêtre 
 | `pointer_tap`, `pointer_grab`, `pointer_drop`, `pointer_menu` | `pet/pointer.gd` |
 | `night`, `day` | `clock_sense.gd` |
 | `user_idle`, `user_active` | `idle_sense.gd` |
-| `pointer_enter`, `pointer_leave` | `pet/pointer.gd` |
-| `session_opened`, `session_changed`, `session_closed`, `session_phase`, `session_activity`, `session_subagents`, `session_finished`, `session_needs_you`, `session_tool_failed`, `session_tests_passed` | `claude_code_sense.gd` |
+| `pointer_double`, `pointer_enter`, `pointer_leave`, `files_dropped` | `pet/pointer.gd` |
+| `session_opened`, `session_changed`, `session_closed`, `session_phase`, `session_activity`, `session_stalled`, `session_subagents`, `session_finished`, `session_needs_you`, `session_tool_failed`, `session_tests_passed` | `claude_code_sense.gd` |
+| `repo_state` | `git_sense.gd` |
+| `desktop_state`, `pointer_idle`, `pointer_moved` | `desktop_sense.gd` |
 | `cpu_hot`, `battery_low` | `system_sense.gd` |
 | `focus_started`, `focus_finished`, `break_finished` | `core/focus.gd` |
 | `settings_requested`, `locate_requested` | `ui/context_menu.gd` |
@@ -165,7 +211,7 @@ Le binaire est autonome : Godot n'est plus nécessaire pour le lancer. « Lancer
 
 ## Consommation
 
-Environ 9 % d'un cœur et 150 Mo de mémoire pour trois personnages (Intel HD 530). Le rendu coûte l'essentiel :
+Environ 10 % d'un cœur et 150 Mo de mémoire pour trois personnages (Intel HD 530). Le rendu coûte l'essentiel :
 
 - 30 images par seconde quand un personnage bouge, 12 quand tous sont calmes (`src/pet/pets.gd`).
 - Pilote OpenGL ES sous Linux : deux fois moins coûteux que OpenGL avec plusieurs fenêtres.

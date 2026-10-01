@@ -1,10 +1,13 @@
 extends Node
-## Posts: cpu_hot {celsius}, battery_low {percent}.
+## Posts: cpu_hot, battery_low {percent}.
+## cpu_hot: the processor is very hot, or every core has been busy for a minute.
 ## Reads Linux sysfs. On other systems the files do not exist and this sense
 ## stays silent.
 
 const POLL_SECONDS := 30.0
 const HOT_CELSIUS := 92.0
+## Runnable tasks per core, averaged over one minute.
+const BUSY_LOAD := 0.9
 const LOW_BATTERY_PERCENT := 15
 ## Seconds before the same alert is posted again.
 const REPEAT_SECONDS := 600.0
@@ -28,8 +31,9 @@ func _poll() -> void:
 	for zone in DirAccess.get_directories_at(THERMAL):
 		# Millidegrees.
 		hottest = maxf(hottest, _read(THERMAL.path_join(zone).path_join("temp")).to_float() / 1000.0)
-	if hottest >= HOT_CELSIUS:
-		_post(&"cpu_hot", {"celsius": roundi(hottest)})
+	var load := _read("/proc/loadavg").get_slice(" ", 0).to_float() / OS.get_processor_count()
+	if hottest >= HOT_CELSIUS or load >= BUSY_LOAD:
+		_post(&"cpu_hot", {})
 
 	for supply in DirAccess.get_directories_at(POWER):
 		var folder := POWER.path_join(supply)

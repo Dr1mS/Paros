@@ -1,7 +1,7 @@
 extends PopupMenu
 ## Right-click menu. Only way to quit: the window has no title bar.
 
-enum Item { LOCATE, FOCUS, SETTINGS, QUIT }
+enum Item { GO, LOCATE, FOCUS, SETTINGS, QUIT }
 
 @export var pet: Pet
 
@@ -22,6 +22,7 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 func _fill() -> void:
 	clear()
 	if not pet.key.is_empty():
+		add_item("Aller à son terminal", Item.GO)
 		add_item("Faire sonner son terminal", Item.LOCATE)
 	match Focus.phase:
 		Focus.Phase.OFF:
@@ -37,6 +38,8 @@ func _fill() -> void:
 
 func _on_id_pressed(id: int) -> void:
 	match id:
+		Item.GO:
+			Events.post(&"pointer_double", {"pet": pet})
 		Item.LOCATE:
 			Events.post(&"locate_requested", {"pet": pet})
 		Item.FOCUS:

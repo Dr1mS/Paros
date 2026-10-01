@@ -1,13 +1,17 @@
 class_name Pets
 extends Node
 ## The pets on the desktop, one window each, found by key.
-## Also makes two pets greet when they meet, and sets the frame rate.
+## Also handles what takes two pets: meetings and shared celebrations. And sets
+## the frame rate.
 
 const PET_WINDOW := preload("res://src/pet/pet_window.tscn")
 ## Feet distance under which two pets meet, at size 1.
 const MEET_DISTANCE := 150.0
-## Seconds before the same two pets greet again.
-const GREET_COOLDOWN := 45.0
+## Seconds before the same two pets meet again.
+const MEET_COOLDOWN := 45.0
+## Two pets that succeed this close in space and time clap hands.
+const HIGH_FIVE_DISTANCE := 200.0
+const HIGH_FIVE_SECONDS := 20.0
 ## Frames per second. Rendering is the main CPU cost: slow down while every pet
 ## is calm (still, asleep or thinking).
 const LIVELY_FPS := 30
@@ -17,8 +21,10 @@ const SMOOTH_GROUP := &"smooth_frames"
 
 ## Key -> Pet.
 var _pets := {}
-## Pair of pets -> time of their last greeting, in seconds.
-var _greeted := {}
+## Pair of pets -> time of their last meeting, in seconds.
+var _met := {}
+## Pet -> time of its last success, in seconds.
+var _succeeded := {}
 
 
 # Godot cannot hide its main window. It stays empty: park it off screen, and let
@@ -40,21 +46,24 @@ func _process(_delta: float) -> void:
 
 	if not Settings.value("pet", "greetings"):
 		return
-	var now := Time.get_ticks_msec() / 1000.0
 	for i in all.size():
 		for j in range(i + 1, all.size()):
 			var a: Pet = all[i]
 			var b: Pet = all[j]
-			var gap := b.feet() - a.feet()
-			if gap.length() > MEET_DISTANCE * a.scale_factor() or not (a.is_free() and b.is_free()):
+			if not (a.is_free() and b.is_free()) or not _are_near(a, b, MEET_DISTANCE):
 				continue
 			var pair := [a.get_instance_id(), b.get_instance_id()]
-			if now - _greeted.get(pair, -GREET_COOLDOWN) < GREET_COOLDOWN:
+			if _now() - _met.get(pair, -MEET_COOLDOWN) < MEET_COOLDOWN:
 				continue
-			_greeted[pair] = now
-			var side := 1.0 if gap.x >= 0.0 else -1.0
-			a.greet(side)
-			b.greet(-side)
+			_met[pair] = _now()
+			var side := _side(a, b)
+			# Two pets on the same work are rivals.
+			if not a.repo.is_empty() and a.repo == b.repo:
+				a.glare(side)
+				b.glare(-side)
+			else:
+				a.greet(side)
+				b.greet(-side)
 
 
 func add(key: String) -> Pet:
@@ -68,6 +77,7 @@ func add(key: String) -> Pet:
 
 func remove(key: String) -> void:
 	if _pets.has(key):
+		_succeeded.erase(_pets[key])
 		_pets[key].get_window().queue_free()
 		_pets.erase(key)
 
@@ -78,3 +88,29 @@ func find(key: String) -> Pet:
 
 func keys() -> Array:
 	return _pets.keys()
+
+
+## Notes a success of the pet. Claps hands with a near pet that also succeeded
+## a moment ago.
+func celebrate(pet: Pet) -> void:
+	for other: Pet in _succeeded:
+		if other != pet and _now() - _succeeded[other] <= HIGH_FIVE_SECONDS and _are_near(pet, other, HIGH_FIVE_DISTANCE):
+			var side := _side(pet, other)
+			pet.high_five(side)
+			other.high_five(-side)
+			_succeeded.erase(other)
+			return
+	_succeeded[pet] = _now()
+
+
+func _are_near(a: Pet, b: Pet, distance: float) -> bool:
+	return (b.feet() - a.feet()).length() <= distance * a.scale_factor()
+
+
+## Side of b seen from a: -1 left, 1 right.
+func _side(a: Pet, b: Pet) -> float:
+	return 1.0 if b.feet().x >= a.feet().x else -1.0
+
+
+func _now() -> float:
+	return Time.get_ticks_msec() / 1000.0

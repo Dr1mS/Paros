@@ -20,14 +20,23 @@ const TICK_SECONDS := 1.0
 const NAG_REPEAT_SECONDS := 60.0
 const PATH_MAX_LENGTH := 38
 const PROMPT_MAX_LENGTH := 70
+## Uncommitted lines from which the pile of folders gains a level.
+const BAGGAGE_LEVELS: Array[int] = [1, 50, 300]
+## Distance kept from the pointer by the pet that sleeps beside it, at size 1.
+const CUDDLE_GAP := 70.0
 
 @export var pets: Pets
 
 var _night := false
 var _user_idle := false
-## Session id -> what the sense told about it: name, cwd, branch, last_prompt,
-## pid, phase, since, tool, detail, count. Plus "nagged". Times are Unix times.
+## Session id -> what the senses told about it: name, color, cwd, last_prompt,
+## pid, context, phase, since, tool, detail, count, stalled, branch, dirty,
+## behind, conflict. Plus "nagged". Times are Unix times.
 var _sessions := {}
+## Frame of the focused window. No size: none, or not known.
+var _active_window := Rect2()
+## Pet that sleeps beside the still pointer. Null: none.
+var _cuddler: Pet = null
 
 
 func _ready() -> void:
@@ -56,12 +65,18 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 	match event:
 		&"pointer_tap":
 			pet.cheer()
+		&"pointer_double":
+			_go_to_terminal(pet.key)
 		&"pointer_grab":
 			pet.grab()
 		&"pointer_drop":
 			pet.release()
+		&"files_dropped":
+			# Typing into another terminal is not allowed: the paths go to the clipboard.
+			DisplayServer.clipboard_set(" ".join(Array(data.files).map(func(path: String) -> String: return "'%s'" % path)))
+			pet.say("Chemin copié : colle-le dans le terminal")
 		&"locate_requested":
-			_ring_terminal(pet.key)
+			Desktop.ring_terminal(_sessions.get(pet.key, {}).get("pid", 0))
 		&"night":
 			_night = true
 		&"day":
@@ -70,8 +85,6 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			_user_idle = true
 		&"user_active":
 			_user_idle = false
-		&"session_opened", &"session_changed":
-			_dress(pet, data)
 		&"session_closed":
 			pets.remove(data.session)
 			_sessions.erase(data.session)
@@ -79,16 +92,16 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 				pets.add(NO_SESSION)
 		&"session_phase":
 			pet.urgent = false
-		&"session_subagents":
-			pet.minis = data.count
 		&"session_finished":
 			pet.cheer()
 			pet.say("Tâche finie !")
+			pets.celebrate(pet)
 		&"session_needs_you":
 			pet.say(data.detail if not data.detail.is_empty() else "Claude attend ta réponse")
 		&"session_tests_passed":
 			pet.cheer()
 			pet.say("Tests verts !")
+			pets.celebrate(pet)
 		&"session_tool_failed":
 			pet.worry()
 			if data.kind == "test":
@@ -101,10 +114,18 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			_tell_all("Fin de pause. On reprend ?")
 		&"cpu_hot":
 			if Settings.value("system", "alerts"):
-				_tell_all("Processeur chaud : %d °C" % data.celsius, false, true)
+				for key: String in pets.keys():
+					pets.find(key).roast()
 		&"battery_low":
 			if Settings.value("system", "alerts"):
-				_tell_all("Batterie faible : %d %%" % data.percent, false, true)
+				_tell_all("Batterie faible : %d %%" % data.percent)
+		&"desktop_state":
+			# A full screen window has no top edge to stand on.
+			_active_window = Rect2() if data.fullscreen else data.active
+		&"pointer_idle":
+			_send_cuddler(data.position)
+		&"pointer_moved":
+			_cuddler = null
 	_refresh()
 
 
@@ -121,22 +142,35 @@ func _tick() -> void:
 	_refresh()
 
 
-## Sets what follows from the whole state: wish, caption and card of each pet.
+## Sets what follows from the whole state: look, wish, caption and card of
+## each pet.
 func _refresh() -> void:
 	for key: String in pets.keys():
 		var pet := pets.find(key)
 		var session: Dictionary = _sessions.get(key, {})
 		var phase: StringName = session.get("phase", &"idle")
-		pet.wish = _wish(phase)
+		if not session.is_empty():
+			_dress(pet, session)
+		pet.perch = _active_window
+		pet.wish = Pet.Wish.SLEEP if pet == _cuddler else _wish(phase)
+		pet.tapping = session.get("stalled", false)
 		pet.caption = _activity(session) if phase == &"working" and Settings.value("claude", "show_activity") else ""
 		pet.show_card(_card(session) if pet.hovered else "")
 
 
-func _dress(pet: Pet, data: Dictionary) -> void:
-	pet.label = data.name if data.branch.is_empty() else "%s · %s" % [data.name, data.branch]
-	pet.color = COLORS.get(data.color, Pet.DEFAULT_COLOR)
+## Look of the pet, from what is known of its session.
+func _dress(pet: Pet, session: Dictionary) -> void:
+	var branch: String = session.get("branch", "")
+	pet.label = session.name if branch.is_empty() else "%s · %s" % [session.name, branch]
+	pet.color = COLORS.get(session.color, Pet.DEFAULT_COLOR)
 	# From the name: the same session keeps its accessory.
-	pet.accessory = posmod(hash(data.name), Pet.ACCESSORY_COUNT)
+	pet.accessory = posmod(hash(session.name), Pet.ACCESSORY_COUNT)
+	pet.fullness = session.context / (Settings.value("claude", "context_window_k") * 1000.0)
+	pet.baggage = BAGGAGE_LEVELS.filter(func(level: int) -> bool: return session.get("dirty", 0) >= level).size()
+	pet.hard_hat = session.get("conflict", false)
+	pet.lost = session.get("behind", 0) > 0
+	# Same folder, same branch: same work.
+	pet.repo = "" if branch.is_empty() else "%s@%s" % [session.cwd, branch]
 
 
 ## Highest priority first.
@@ -148,6 +182,21 @@ func _wish(phase: StringName) -> Pet.Wish:
 	if _night or _user_idle:
 		return Pet.Wish.SLEEP
 	return Pet.Wish.ROAM
+
+
+## Sends the nearest free pet to sleep beside the still pointer.
+func _send_cuddler(pointer: Vector2) -> void:
+	if not Settings.value("desktop", "cuddle"):
+		return
+	var nearest: Pet = null
+	for key: String in pets.keys():
+		var pet := pets.find(key)
+		if pet.is_free() and not pet.is_perched() and (nearest == null or absf(pet.feet().x - pointer.x) < absf(nearest.feet().x - pointer.x)):
+			nearest = pet
+	if nearest:
+		_cuddler = nearest
+		var side := signf(nearest.feet().x - pointer.x)
+		nearest.walk_to(pointer.x + side * CUDDLE_GAP * nearest.scale_factor())
 
 
 ## Tool in use, such as "Edit · pet.gd".
@@ -177,6 +226,9 @@ func _card(session: Dictionary) -> String:
 				lines.append("Au repos depuis %s" % lasted)
 		if session.get("count", 0) > 0:
 			lines.append("Sous-agents en cours : %d" % session.count)
+		if session.context > 0:
+			lines.append("Contexte : %d k tokens (%d %%)" % [session.context / 1000, pets.find(session.session).fullness * 100.0])
+		lines.append_array(_repo_lines(session))
 		if not session.last_prompt.is_empty():
 			lines.append("« %s »" % session.last_prompt.left(PROMPT_MAX_LENGTH).replace("\n", " "))
 	match Focus.phase:
@@ -187,22 +239,32 @@ func _card(session: Dictionary) -> String:
 	return "\n".join(lines)
 
 
-func _tell_all(text: String, happy := false, worried := false) -> void:
+func _repo_lines(session: Dictionary) -> PackedStringArray:
+	var lines: PackedStringArray = []
+	if session.get("conflict", false):
+		lines.append("Fusion ou rebase à terminer")
+	if session.get("dirty", 0) > 0:
+		lines.append("Non commité : %d lignes" % session.dirty)
+	if session.get("behind", 0) > 0:
+		lines.append("En retard de %d commits sur origin" % session.behind)
+	return lines
+
+
+func _tell_all(text: String, happy := false) -> void:
 	for key: String in pets.keys():
-		var pet := pets.find(key)
-		pet.say(text)
+		pets.find(key).say(text)
 		if happy:
-			pet.cheer()
-		if worried:
-			pet.worry()
+			pets.find(key).cheer()
 
 
-## Rings the bell of the terminal that runs the session: its tab gets a mark.
-## Linux only: writes to the terminal of the process.
-func _ring_terminal(key: String) -> void:
-	var terminal := FileAccess.open("/proc/%d/fd/0" % _sessions.get(key, {}).get("pid", 0), FileAccess.WRITE)
-	if terminal:
-		terminal.store_string("\a")
+## Brings the terminal of the session to the front, and rings its bell: when
+## the session is in a background tab, the bell marks which one.
+func _go_to_terminal(key: String) -> void:
+	var session: Dictionary = _sessions.get(key, {})
+	if session.is_empty():
+		return
+	Desktop.focus_terminal(session.pid, session.name)
+	Desktop.ring_terminal(session.pid)
 
 
 func _duration(seconds: float) -> String:

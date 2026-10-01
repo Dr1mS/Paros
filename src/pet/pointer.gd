@@ -1,7 +1,7 @@
 extends Node
 ## Mouse input of one pet window.
 ## Posts, each with {pet}: pointer_tap, pointer_grab, pointer_drop, pointer_menu,
-## pointer_enter, pointer_leave.
+## pointer_double, pointer_enter, pointer_leave, files_dropped {files}.
 
 const DRAG_THRESHOLD := 6.0
 
@@ -15,6 +15,8 @@ var _pressed_at := Vector2i.ZERO
 func _ready() -> void:
 	get_window().mouse_entered.connect(_on_hover.bind(true))
 	get_window().mouse_exited.connect(_on_hover.bind(false))
+	get_window().files_dropped.connect(func(files: PackedStringArray) -> void:
+		Events.post(&"files_dropped", {"pet": pet, "files": files}))
 
 
 func _on_hover(inside: bool) -> void:
@@ -27,7 +29,9 @@ func _input(event: InputEvent) -> void:
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			Events.post(&"pointer_menu", {"pet": pet})
 		elif event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed:
+			if event.pressed and event.double_click:
+				Events.post(&"pointer_double", {"pet": pet})
+			elif event.pressed:
 				_pressed = true
 				_dragging = false
 				_pressed_at = DisplayServer.mouse_get_position()

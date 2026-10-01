@@ -5,7 +5,7 @@ extends Node2D
 ## Size of one grid unit, in pixels.
 const UNIT := 9.0
 ## Bottom center of the feet, in window coordinates. Origin of the grid.
-const GROUND := Vector2(150, 246)
+const GROUND := Vector2(150, Pet.FEET_Y)
 
 # Shapes in grid units, Y negative upward.
 const BODY := Rect2(-6, -10, 12, 8)
@@ -19,6 +19,10 @@ const PAPER := Color("#fffdf8")
 const HEART := Color("#ff5d73")
 const GOLD := Color("#f2c230")
 const SWEAT := Color("#7fd0ff")
+const SMOKE := Color("#a8a8a8")
+const WOOD := Color("#8a5a33")
+const MANILA := Color("#e8c98a")
+const FLAME := Color("#ff8a2a")
 const SHADOW := Color(0, 0, 0, 0.18)
 
 ## Worn on the head. "room": grid units taken above the head, so that the
@@ -56,6 +60,22 @@ const ACCESSORIES: Array[Dictionary] = [
 		[Rect2(-0.5, -13.5, 1, 1), GOLD],
 	]},
 ]
+## Replaces the accessory while a merge or a rebase is not finished.
+const HARD_HAT := {"room": 3.5, "blocks": [
+	[Rect2(-4, -12.5, 8, 2.5), GOLD], [Rect2(-5, -10.5, 10, 0.8), Color("#c99a12")],
+	[Rect2(-0.5, -13, 1, 3), Color("#ffe27a")],
+]}
+## Warning sign planted beside the pet, with the hard hat.
+const SIGN: Array[Array] = [
+	[Rect2(8.7, -6.5, 0.5, 6.5), Color("#8a8a8a")], [Rect2(7.4, -9.6, 3.1, 3.1), GOLD],
+	[Rect2(8.7, -9.1, 0.5, 1.4), EYE], [Rect2(8.7, -7.4, 0.5, 0.5), EYE],
+]
+## Shapes drawn on the right side. Mirrored when the pet faces left.
+const UMBRELLA: Array[Array] = [
+	[Rect2(-0.25, -15.5, 0.5, 5.5), EYE], [Rect2(-6.5, -16.5, 13, 1.2), HEART],
+	[Rect2(-5, -17.5, 10, 1), HEART], [Rect2(-3, -18.3, 6, 0.8), HEART],
+]
+const CAMPFIRE_X := 10.0
 
 const HEART_ROWS: PackedStringArray = [
 	".XX.XX.",
@@ -71,19 +91,25 @@ const BLINK_SECONDS := 0.12
 const TAG_FONT_SIZE := 11
 const LABEL_MAX_LENGTH := 28
 const CAPTION_MAX_LENGTH := 30
+## The head smokes from this fullness on.
+const SMOKE_FROM := 0.75
 ## Small pets: size against the main one, and feet positions from GROUND.
 const MINI_SCALE := 0.28
 const MINI_SPOTS: Array[Vector2] = [Vector2(-120, 0), Vector2(120, 0), Vector2(-120, -36), Vector2(120, -36)]
+## Seconds a new small pet takes to run from the big one to its spot.
+const MINI_RUN_SECONDS := 0.7
 
 var _time := 0.0
 var _blink_in := 3.0
+## Time of arrival of each small pet.
+var _mini_born: Array[float] = []
+
+@onready var _pet: Pet = get_parent()
+@onready var _font := ThemeDB.fallback_font
 
 
 func _init() -> void:
 	assert(ACCESSORIES.size() == Pet.ACCESSORY_COUNT)
-
-@onready var _pet: Pet = get_parent()
-@onready var _font := ThemeDB.fallback_font
 
 
 func _process(delta: float) -> void:
@@ -91,65 +117,91 @@ func _process(delta: float) -> void:
 	_blink_in -= delta
 	if _blink_in < -BLINK_SECONDS:
 		_blink_in = randf_range(2.0, 5.0)
+	while _mini_born.size() < _pet.minis:
+		_mini_born.append(_time)
+	_mini_born.resize(mini(_pet.minis, _mini_born.size()))
 	queue_redraw()
 
 
 func _draw() -> void:
 	var state := _pet.state
-	var airborne := _pet.is_airborne()
+	var airborne := _pet.is_airborne() or state == Pet.State.CLIMB
+	var seated := state in [Pet.State.SLEEP, Pet.State.SIT, Pet.State.ROAST]
+	var still := state in [Pet.State.IDLE, Pet.State.SIT]
+	# Index of the arm on the side the pet faces, and of the other one.
+	var front := 1 if _pet.facing > 0.0 else 0
 	# Pixels. hop lifts the whole mascot, rise lifts only the body (legs stretch).
 	var hop := 0.0
 	var rise := (sin(_time * 2.0) * 0.5 + 0.5) * 2.0
 	var shake := 0.0
-	var arm_raise := 0.0
-	var arm_wave := 0.0
+	# Grid units, left arm then right arm.
+	var arm_raise: Array[float] = [0.0, 0.0]
 	match state:
 		Pet.State.WALK:
 			rise = absf(sin(_time * 9.0)) * 3.0
-		Pet.State.SLEEP, Pet.State.SIT:
-			# On the ground: the legs fold under the body.
-			rise = (sin(_time * 1.2) * 0.5 + 0.5) * 2.0 - LEG_HEIGHT * UNIT
 		Pet.State.STRETCH:
-			rise = sin(minf(_pet.state_time / Pet.TIMED[Pet.State.STRETCH], 1.0) * PI) * 12.0
-			arm_raise = 2.0
+			rise = sin(minf(_pet.state_time / Pet.TIMED[state], 1.0) * PI) * 12.0
+			arm_raise = [2.0, 2.0]
 		Pet.State.ALERT:
 			hop = absf(sin(_time * 8.0)) * (18.0 if _pet.urgent else 6.0)
-			arm_wave = 2.0
+			# Waving arms rise in turn.
+			for i in 2:
+				arm_raise[i] = 2.0 * float(sin(_time * 10.0 + i * PI) > 0.0)
 		Pet.State.CHEER:
 			hop = absf(sin(_time * 10.0)) * 18.0
-			arm_raise = 2.0
+			arm_raise = [2.0, 2.0]
 		Pet.State.GREET:
 			hop = absf(sin(_time * 8.0)) * 4.0
+			arm_raise[front] = 1.0 + float(sin(_time * 14.0) > 0.0)
+		Pet.State.GLARE:
+			shake = sin(_time * 30.0)
+		Pet.State.HIGH_FIVE:
+			hop = sin(minf(_pet.state_time / Pet.TIMED[state], 1.0) * PI) * 12.0
+			arm_raise[front] = 3.0
 		Pet.State.WORRY:
 			shake = sin(_time * 45.0) * 2.5
-		Pet.State.CARRIED, Pet.State.FALL:
-			arm_raise = 2.0
+		Pet.State.ROAST:
+			arm_raise[front] = 0.5
+		Pet.State.CLIMB, Pet.State.CARRIED, Pet.State.FALL:
+			arm_raise = [2.0, 2.0]
+	if seated:
+		# On the ground: the legs fold under the body.
+		rise = (sin(_time * 1.2) * 0.5 + 0.5) * 2.0 - LEG_HEIGHT * UNIT
+	if _pet.lost and still:
+		# Scratches its head.
+		arm_raise[1 - front] = 2.0 + 0.5 * float(sin(_time * 8.0) > 0.0)
 	var body_offset := Vector2(shake, -hop - rise)
 
 	_draw_tag(_pet.label.left(LABEL_MAX_LENGTH) if Settings.value("pet", "show_name") else "", GROUND + Vector2(0, 7), _pet.color)
 	if not airborne:
 		var width := 13.0 * UNIT * (1.0 - hop * 0.015)
 		draw_rect(Rect2(GROUND + Vector2(-width / 2.0, 0), Vector2(width, 4)), SHADOW)
-	for i in mini(_pet.minis, MINI_SPOTS.size()):
-		_draw_mini(MINI_SPOTS[i], i)
+	if _pet.hard_hat and not airborne:
+		_blocks(SIGN, Vector2.ZERO, false)
+	for i in mini(_mini_born.size(), MINI_SPOTS.size()):
+		_draw_mini(i)
 
-	if state != Pet.State.SLEEP and state != Pet.State.SIT:
-		_draw_legs(state, body_offset, hop)
+	if not seated:
+		_draw_legs(state, body_offset, hop, airborne)
+	_draw_baggage(body_offset)
 	_block(BODY, body_offset, _pet.color)
 	for i in ARMS.size():
-		var raise := arm_raise
-		if arm_wave > 0.0:
-			# Waving arms rise in turn.
-			raise = arm_wave * float(sin(_time * 10.0 + i * PI) > 0.0)
-		elif state == Pet.State.GREET and signf(ARMS[i].position.x) == _pet.facing:
-			raise = 1.0 + float(sin(_time * 14.0) > 0.0)
-		_block(ARMS[i], body_offset - Vector2(0, raise * UNIT), _pet.color)
+		_block(ARMS[i], body_offset - Vector2(0, arm_raise[i] * UNIT), _pet.color)
 	_draw_eyes(state, body_offset)
 
-	var worn: Dictionary = ACCESSORIES[_pet.accessory if Settings.value("pet", "accessories") else 0]
-	for block: Array in worn.blocks:
-		_block(block[0], body_offset, block[1])
-	# Signs above the head sit over the accessory.
+	var worn: Dictionary = HARD_HAT
+	if not _pet.hard_hat:
+		worn = ACCESSORIES[_pet.accessory if Settings.value("pet", "accessories") else 0]
+	_blocks(worn.blocks, body_offset, false)
+	if _pet.umbrella:
+		_blocks(UMBRELLA, body_offset, false)
+	if state == Pet.State.ROAST:
+		_draw_campfire(body_offset)
+	if _pet.lost and still:
+		# A map held out in front.
+		_blocks([[Rect2(6.5, -8.5, 3, 2.4), PAPER], [Rect2(7, -7.8, 2, 0.4), Color("#46a758")], [Rect2(7.6, -7.1, 1.2, 0.4), HEART]], body_offset, true)
+
+	# Signs above the head sit over what is worn.
 	var over_head := body_offset - Vector2(0, worn.room * UNIT)
 	var body_top := GROUND + over_head + Vector2(0, BODY.position.y * UNIT)
 	match state:
@@ -164,23 +216,36 @@ func _draw() -> void:
 			if fmod(_time, 0.6) < 0.4:
 				_block(Rect2(-0.5, -15.5, 1, 2.5), over_head, HEART)
 				_block(Rect2(-0.5, -12.5, 1, 1), over_head, HEART)
+		Pet.State.GLARE:
+			# Anger mark.
+			_blocks([[Rect2(5, -13, 2.4, 0.6), HEART], [Rect2(5.9, -13.9, 0.6, 2.4), HEART]], over_head, true)
+		Pet.State.HIGH_FIVE:
+			if fmod(_time, 0.2) < 0.12:
+				_blocks([[Rect2(8.5, -15, 1, 1), GOLD], [Rect2(10, -13.5, 0.8, 0.8), GOLD], [Rect2(9.6, -16.6, 0.8, 0.8), GOLD]], body_offset, true)
 		Pet.State.WORRY:
 			_block(Rect2(6.6, -10.5, 0.8, 1.6), body_offset, SWEAT)
 		Pet.State.CHEER:
 			_draw_hearts(body_top)
+	if _pet.lost and still and fmod(_time, 1.2) < 0.8:
+		draw_string(_font, body_top + Vector2(-5, -8), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, _pet.color)
+	if _pet.fullness >= SMOKE_FROM and state != Pet.State.SLEEP:
+		_draw_smoke(body_top)
 
 
-func _draw_legs(state: Pet.State, body_offset: Vector2, hop: float) -> void:
+func _draw_legs(state: Pet.State, body_offset: Vector2, hop: float, airborne: bool) -> void:
 	var top := GROUND.y - LEG_HEIGHT * UNIT + body_offset.y
+	# The leg in front, on the side the pet faces.
+	var front_leg := LEG_COLUMNS.size() - 1 if _pet.facing > 0.0 else 0
 	for i in LEG_COLUMNS.size():
 		var x := GROUND.x + LEG_COLUMNS[i] * UNIT + body_offset.x
 		var bottom := GROUND.y - hop
-		match state:
-			Pet.State.WALK:
-				# Legs step in two alternating pairs.
-				bottom -= maxf(0.0, sin(_time * 9.0 + (i % 2) * PI)) * UNIT * 0.8
-			Pet.State.CARRIED, Pet.State.FALL:
-				x += sin(_time * 6.0 + i) * 2.0
+		if state == Pet.State.WALK:
+			# Legs step in two alternating pairs.
+			bottom -= maxf(0.0, sin(_time * 9.0 + (i % 2) * PI)) * UNIT * 0.8
+		elif airborne:
+			x += sin(_time * 6.0 + i) * 2.0
+		elif state == Pet.State.THINK and _pet.tapping and i == front_leg:
+			bottom -= maxf(0.0, sin(_time * 12.0)) * UNIT * 0.7
 		draw_rect(Rect2(x, top, UNIT, bottom - top), _pet.color)
 
 
@@ -196,7 +261,8 @@ func _draw_eyes(state: Pet.State, body_offset: Vector2) -> void:
 			# Looks around.
 			look = Vector2(signf(sin(_time * 0.9)), 0)
 		Pet.State.THINK:
-			look = Vector2(0, -0.6)
+			# Up while thinking, down at its foot while it taps.
+			look = Vector2(_pet.facing * 0.5, 0.5) if _pet.tapping else Vector2(0, -0.6)
 		Pet.State.WORRY:
 			look = Vector2.ZERO
 			wide = true
@@ -209,9 +275,41 @@ func _draw_eyes(state: Pet.State, body_offset: Vector2) -> void:
 		shape.position += look
 		if closed:
 			shape = Rect2(shape.position.x - 0.25, shape.get_center().y, 1.5, 0.4)
+		elif state == Pet.State.GLARE:
+			# Narrowed: only the lower half stays open.
+			shape = Rect2(shape.position.x - 0.2, shape.position.y + 1.0, 1.4, 1.0)
 		elif wide:
 			shape = shape.grow(0.3)
 		_block(shape, body_offset, EYE)
+
+
+## Pile of folders carried on the back arm.
+func _draw_baggage(body_offset: Vector2) -> void:
+	for i in _pet.baggage:
+		var folder := Rect2(-8.8, -7.3 - i * 1.4, 2.8, 1.2)
+		_blocks([[folder, MANILA], [Rect2(folder.position.x, folder.position.y - 0.3, 1.2, 0.3), MANILA.darkened(0.2)]], body_offset, true)
+
+
+## Fire in front of the pet, and a marshmallow on a stick that browns.
+func _draw_campfire(body_offset: Vector2) -> void:
+	var flames: Array[Array] = [[Rect2(CAMPFIRE_X - 1.5, -0.8, 3.6, 0.8), WOOD]]
+	for i in 3:
+		var height := 1.4 + absf(sin(_time * 7.0 + i * 2.1)) * 1.6
+		flames.append([Rect2(CAMPFIRE_X - 1.1 + i, -0.8 - height, 1, height), FLAME if i != 1 else GOLD])
+	_blocks(flames, Vector2.ZERO, true)
+	var done := minf(_pet.state_time / Pet.TIMED[Pet.State.ROAST], 1.0)
+	_blocks([
+		[Rect2(7.5, -6.2, CAMPFIRE_X - 7.2, 0.3), WOOD],
+		[Rect2(CAMPFIRE_X - 0.1, -6.8, 1.3, 1.3), PAPER.lerp(WOOD, done * 0.8)],
+	], body_offset, true)
+
+
+func _draw_smoke(body_top: Vector2) -> void:
+	for i in 4:
+		var phase := fmod(_time * 0.5 + i / 4.0, 1.0)
+		var size := (0.7 + phase * 0.9) * UNIT
+		var at := body_top + Vector2((i - 1.5) * 16.0 + sin(_time * 2.0 + i * 1.3) * 5.0, -4.0 - phase * 34.0)
+		draw_rect(Rect2(at - Vector2(size, size) / 2.0, Vector2(size, size)), Color(SMOKE, sin(phase * PI) * 0.8))
 
 
 func _draw_snore(from: Vector2) -> void:
@@ -234,9 +332,13 @@ func _draw_hearts(body_top: Vector2) -> void:
 					draw_rect(Rect2(at, Vector2.ONE * HEART_PIXEL), color)
 
 
-## Small copy of the mascot, feet at GROUND + spot. One per running subagent.
-func _draw_mini(spot: Vector2, index: int) -> void:
-	var bob := Vector2(0, -absf(sin(_time * 5.0 + index * 1.7)) * 3.0 / MINI_SCALE)
+## Small copy of the mascot, one per running subagent. A new one runs from the
+## big pet to its spot, with the sheet of paper it was handed.
+func _draw_mini(index: int) -> void:
+	var arrived := minf((_time - _mini_born[index]) / MINI_RUN_SECONDS, 1.0)
+	var spot := MINI_SPOTS[index] * arrived
+	var pace := 5.0 if arrived >= 1.0 else 16.0
+	var bob := Vector2(0, -absf(sin(_time * pace + index * 1.7)) * 3.0 / MINI_SCALE)
 	draw_set_transform(GROUND + spot, 0.0, Vector2.ONE * MINI_SCALE)
 	var shapes: Array[Rect2] = [BODY, ARMS[0], ARMS[1]]
 	for column in LEG_COLUMNS:
@@ -245,6 +347,8 @@ func _draw_mini(spot: Vector2, index: int) -> void:
 		draw_rect(Rect2(shape.position * UNIT + bob, shape.size * UNIT), _pet.color.lightened(0.15))
 	for eye in EYES:
 		draw_rect(Rect2(eye.position * UNIT + bob, eye.size * UNIT), EYE)
+	if arrived < 1.0:
+		draw_rect(Rect2(Vector2(-3, -15) * UNIT + bob, Vector2(6, 4) * UNIT), PAPER)
 	draw_set_transform(Vector2.ZERO)
 
 
@@ -263,3 +367,13 @@ func _draw_tag(text: String, top_center: Vector2, edge: Color) -> void:
 ## Fills a shape given in grid units.
 func _block(shape: Rect2, offset: Vector2, color: Color) -> void:
 	draw_rect(Rect2(GROUND + shape.position * UNIT + offset, shape.size * UNIT), color)
+
+
+## Fills a list of [shape, color]. Shapes are given for a pet that faces right.
+## sided: mirror them when the pet faces left.
+func _blocks(list: Array, offset: Vector2, sided: bool) -> void:
+	for entry: Array in list:
+		var shape: Rect2 = entry[0]
+		if sided and _pet.facing < 0.0:
+			shape.position.x = -shape.end.x
+		_block(shape, offset, entry[1])

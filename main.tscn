@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://src/pet/pets.gd" id="1"]
 [ext_resource type="Script" path="res://src/brain/brain.gd" id="2"]
@@ -7,6 +7,8 @@
 [ext_resource type="Script" path="res://src/senses/claude_code_sense.gd" id="5"]
 [ext_resource type="Script" path="res://src/ui/settings_window.gd" id="6"]
 [ext_resource type="Script" path="res://src/senses/system_sense.gd" id="7"]
+[ext_resource type="Script" path="res://src/senses/git_sense.gd" id="8"]
+[ext_resource type="Script" path="res://src/senses/desktop_sense.gd" id="9"]
 
 [node name="Main" type="Node"]
 
@@ -36,3 +38,9 @@ script = ExtResource("5")
 
 [node name="System" type="Node" parent="Senses"]
 script = ExtResource("7")
+
+[node name="Git" type="Node" parent="Senses"]
+script = ExtResource("8")
+
+[node name="Desktop" type="Node" parent="Senses"]
+script = ExtResource("9")

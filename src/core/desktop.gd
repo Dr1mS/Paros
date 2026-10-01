@@ -2,6 +2,16 @@ class_name Desktop
 ## Actions on the desktop around Paros. Linux only.
 
 
+## Turns the monitors on, or off (power saving). GNOME turns them off as soon
+## as the screen is locked: this is how to get them back.
+static func set_screen_power(on: bool) -> void:
+	OS.create_process("gdbus", [
+		"call", "--session", "--dest", "org.gnome.Mutter.DisplayConfig", "--object-path", "/org/gnome/Mutter/DisplayConfig",
+		"--method", "org.freedesktop.DBus.Properties.Set", "org.gnome.Mutter.DisplayConfig", "PowerSaveMode",
+		"<int32 %d>" % (0 if on else 3),
+	])
+
+
 ## Brings the terminal of a process to the front. Needs the Paros GNOME Shell
 ## extension: alone, an application cannot raise another window under Wayland.
 ## The window is found by the process and its ancestors, then by its title.

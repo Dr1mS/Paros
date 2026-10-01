@@ -66,6 +66,7 @@ var _load := 0.0
 var _locked := false
 ## Unix time until which the screen is held on, once locked.
 var _screen_held_until := 0.0
+var _screen_held := false
 
 
 func _ready() -> void:
@@ -108,11 +109,8 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			_load = data.load
 		&"screen_locked":
 			_locked = data.locked
-			pets.draw_unseen(_locked)
-			# GNOME turns the screen off a few seconds after locking: hold it on
-			# for a while, so that the pets are seen.
 			_screen_held_until = _now() + Settings.value("desktop", "lock_screen_minutes") * 60.0
-			DisplayServer.screen_set_keep_on(_locked and _now() < _screen_held_until)
+			_hold_screen()
 		&"repo_cleaned":
 			pet.sweep()
 			_sessions[data.session].cool_until = _now() + COOL_SECONDS
@@ -209,8 +207,7 @@ func _tick() -> void:
 		):
 			session.knocked = _now()
 			_send_to_knock(pets.find(key))
-	if DisplayServer.screen_is_kept_on() and _now() >= _screen_held_until:
-		DisplayServer.screen_set_keep_on(false)
+	_hold_screen()
 	_grow_tower()
 	_refresh()
 
@@ -277,6 +274,22 @@ func _send_cuddler(pointer: Vector2) -> void:
 		_cuddler = nearest
 		var side := signf(nearest.feet().x - pointer.x)
 		nearest.walk_to(pointer.x + side * CUDDLE_GAP * nearest.scale_factor())
+
+
+## GNOME turns the monitors off as soon as the screen is locked, and again
+## each time the user stops moving the mouse there. For a while after locking,
+## turn them back on every second, so that the pets are seen. Then let go.
+func _hold_screen() -> void:
+	var hold := _locked and _now() < _screen_held_until
+	if hold:
+		Desktop.set_screen_power(true)
+	elif _screen_held and _locked:
+		# GNOME thinks the monitors are off already: it will not do it again.
+		Desktop.set_screen_power(false)
+	_screen_held = hold
+	# Also keeps the session from going to sleep meanwhile.
+	DisplayServer.screen_set_keep_on(hold)
+	pets.unseen = _locked and not hold
 
 
 ## Sends the pet to knock on the screen edge nearest to the pointer. Without

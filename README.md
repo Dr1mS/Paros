@@ -143,7 +143,7 @@ GNOME cache toutes les fenêtres d'application derrière l'écran de verrouillag
 
 Paros passe alors en mode discret : ni nom, ni outil en cours, ni bulle. Seuls les personnages et leurs animations restent visibles. Les sons continuent.
 
-GNOME noircit l'écran au verrouillage, puis l'éteint après quelques secondes. Les copies sont placées au-dessus du voile noir : les personnages se promènent sur l'écran noir. Paros retient l'extinction pendant 10 minutes (réglage « Écran allumé après verrouillage », 0 pour ne rien retenir), puis l'écran s'éteint comme d'habitude. Pendant ce temps la mise en veille automatique est retenue aussi.
+GNOME éteint les moniteurs dès le verrouillage, et de nouveau chaque fois que la souris s'arrête sur l'écran de verrouillage. Pendant 10 minutes après le verrouillage (réglage « Écran allumé après verrouillage », 0 pour ne rien faire), Paros les rallume chaque seconde : les personnages se promènent sur l'écran noir. Ensuite Paros éteint les moniteurs lui-même et ne dessine presque plus. Pendant ces 10 minutes la mise en veille automatique est retenue aussi.
 
 Verrouillés, les personnages ne s'endorment pas pour inactivité : ils restent visibles. La nuit, ils dorment.
 

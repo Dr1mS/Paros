@@ -28,6 +28,7 @@ const FIELDS := [
 	["Bureau (extension GNOME)"],
 	["desktop", "perch", "Grimper sur la fenêtre active"],
 	["desktop", "cuddle", "Dormir contre le curseur immobile"],
+	["desktop", "leave_fullscreen", "Quitter l'écran d'une app en plein écran"],
 	["desktop", "lock_screen_minutes", "Écran allumé après verrouillage", 0.0, 240.0, 1.0, "min"],
 	["Sommeil"],
 	["sleep", "night_start_hour", "Début de la nuit", 0, 23, 1, "h"],

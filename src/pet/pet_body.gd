@@ -101,9 +101,15 @@ const HEART_ROWS: PackedStringArray = [
 const HEART_PIXEL := 3.0
 
 const BLINK_SECONDS := 0.12
+## Animation steps per second while the pet is calm. Between two steps the
+## picture is the same, so nothing is drawn: drawing is the main CPU cost.
+const CALM_STEPS := 6.0
 const TAG_FONT_SIZE := 11
 const LABEL_MAX_LENGTH := 28
-const CAPTION_MAX_LENGTH := 30
+## The caption wraps on lines of this width, in pixels, and stops after a
+## number of characters.
+const CAPTION_WIDTH := 280.0
+const CAPTION_MAX_LENGTH := 110
 ## The head smokes from this fullness on.
 const SMOKE_FROM := 0.75
 ## Small pets: size against the main one, and feet positions from GROUND.
@@ -114,6 +120,8 @@ const MINI_RUN_SECONDS := 0.7
 
 var _time := 0.0
 var _blink_in := 3.0
+## What the last picture showed of the pet. A change draws at once.
+var _shown := 0
 ## Time of arrival of each small pet.
 var _mini_born: Array[float] = []
 
@@ -125,15 +133,38 @@ func _init() -> void:
 	assert(ACCESSORIES.size() == Pet.ACCESSORY_COUNT)
 
 
-func _process(delta: float) -> void:
-	_time += delta
-	_blink_in -= delta
+func _ready() -> void:
+	Settings.changed.connect(func() -> void: _shown = 0)
+
+
+func _process(_delta: float) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	var shown := _look()
+	if not _pet.is_lively():
+		# Calm: time moves by steps. The steps fall at the same instants for
+		# every pet, so that they draw in the same frames.
+		now = floorf(now * CALM_STEPS) / CALM_STEPS
+		if now == _time and shown == _shown:
+			return
+	_shown = shown
+	_blink_in -= now - _time
+	_time = now
 	if _blink_in < -BLINK_SECONDS:
 		_blink_in = randf_range(2.0, 5.0)
 	while _mini_born.size() < _pet.minis:
 		_mini_born.append(_time)
 	_mini_born.resize(mini(_pet.minis, _mini_born.size()))
 	queue_redraw()
+
+
+## Everything of the pet that the picture depends on, time aside.
+func _look() -> int:
+	return [
+		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.minis,
+		_pet.urgent, _pet.hovered, _pet.fullness >= SMOKE_FROM, _pet.baggage, _pet.hard_hat, _pet.lost,
+		_pet.tapping, _pet.umbrella, _pet.meditating, _pet.headlamp, _pet.cool, _pet.discreet,
+		_pet.rooted, _pet.is_perched(),
+	].hash()
 
 
 func _draw() -> void:
@@ -251,7 +282,8 @@ func _draw() -> void:
 			# Three dots that fill up in a loop.
 			for i in int(_time * 2.5) % 4:
 				_block(Rect2(-2.4 + i * 2.0, -12.5, 0.8, 0.8), over_head, _pet.color)
-			_draw_tag("" if _pet.discreet else _pet.caption.left(CAPTION_MAX_LENGTH), body_top - Vector2(0, 4.2 * UNIT + 16.0), _pet.color)
+			if not _pet.discreet:
+				_draw_caption(_pet.caption.left(CAPTION_MAX_LENGTH), body_top - Vector2(0, 4.2 * UNIT))
 		Pet.State.ALERT:
 			if fmod(_time, 0.6) < 0.4:
 				_block(Rect2(-0.5, -15.5, 1, 2.5), over_head, HEART)
@@ -412,6 +444,18 @@ func _draw_mini(index: int) -> void:
 	if arrived < 1.0:
 		draw_rect(Rect2(Vector2(-3, -15) * UNIT + bob, Vector2(6, 4) * UNIT), PAPER)
 	draw_set_transform(Vector2.ZERO)
+
+
+## Dark tag with light text on several lines, standing on its bottom middle point.
+func _draw_caption(text: String, bottom_center: Vector2) -> void:
+	if text.is_empty():
+		return
+	var text_size := _font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, CAPTION_WIDTH, TAG_FONT_SIZE)
+	var box := Rect2(bottom_center - Vector2(text_size.x / 2.0 + 5.0, text_size.y + 2.0), text_size + Vector2(10, 2))
+	draw_rect(box, EYE)
+	draw_rect(Rect2(box.position, Vector2(4, box.size.y)), _pet.color)
+	var baseline := box.position + Vector2(7, 1 + _font.get_ascent(TAG_FONT_SIZE))
+	draw_multiline_string(_font, baseline, text, HORIZONTAL_ALIGNMENT_LEFT, CAPTION_WIDTH, TAG_FONT_SIZE, -1, PAPER)
 
 
 ## Small dark tag with light text, centered on its top middle point.

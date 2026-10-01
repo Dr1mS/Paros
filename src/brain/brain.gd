@@ -53,6 +53,8 @@ var _sessions := {}
 var _active_window := Rect2()
 ## Process that owns the focused window. -1: not known.
 var _active_pid := -1
+## Screens under a full screen window.
+var _covered: Array[Rect2] = []
 ## Last known pointer position, in screen coordinates.
 var _pointer := Vector2.ZERO
 var _pointer_known := false
@@ -179,6 +181,7 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			# A full screen window has no top edge to stand on.
 			_active_window = Rect2() if data.fullscreen else data.active
 			_active_pid = data.pid
+			_covered = data.covered
 		&"pointer_idle":
 			_send_cuddler(data.position)
 		&"pointer_moved":
@@ -230,6 +233,8 @@ func _refresh() -> void:
 		pet.headlamp = _night and Settings.value("pet", "headlamp")
 		pet.cool = _now() < session.get("cool_until", 0.0)
 		pet.discreet = _locked
+		var no_screen: Array[Rect2] = []
+		pet.avoid = _covered if Settings.value("desktop", "leave_fullscreen") else no_screen
 		pet.caption = _activity(session) if phase == &"working" and Settings.value("claude", "show_activity") else ""
 		pet.show_card(_card(session) if pet.hovered else "")
 

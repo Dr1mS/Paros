@@ -61,6 +61,7 @@ const KNOCK_SHAKE_PIXELS := 2.0
 const KNOCK_HURRY := 2.4
 ## Landing speed from which the fall is heard.
 const THUD_SPEED := 500.0
+const HIDING_PLACE := Vector2i(-20000, -20000)
 ## Clickable region in window coordinates. Clicks outside reach the desktop.
 const HIT_CENTER := Vector2(150, 192)
 const HIT_RADIUS := Vector2(72, 70)
@@ -117,6 +118,9 @@ var meditating := false
 var headlamp := false
 ## Wears sunglasses.
 var cool := false
+## Screens to keep off, in screen coordinates: those under a full screen
+## window. The pet moves to another screen. With none left, it hides.
+var avoid: Array[Rect2] = []
 ## Shows no text: no name, no caption, no bubble. For the lock screen.
 var discreet := false:
 	set(value):
@@ -149,6 +153,7 @@ var _errand_x := NAN
 var _errand_then := State.IDLE
 var _errand_hurry := 1.0
 var _knock_side := 1.0
+var _hidden := false
 
 @onready var _window := get_window()
 @onready var _bubble: Bubble = $"../Bubble"
@@ -170,6 +175,7 @@ func _process(delta: float) -> void:
 	if _area_age >= AREA_REFRESH_SECONDS:
 		_area = _walk_area()
 		_area_age = 0.0
+		_hidden = _free_screens().is_empty()
 	var area := _ground()
 	state_time += delta
 	match state:
@@ -239,6 +245,9 @@ func _process(delta: float) -> void:
 		for blow in KNOCK_BLOWS:
 			if state_time >= blow and state_time < blow + KNOCK_SHAKE_SECONDS:
 				target_pos.x += roundi(KNOCK_SHAKE_PIXELS * (1.0 if sin((state_time - blow) * 90.0) >= 0.0 else -1.0))
+	if _hidden:
+		# Parked off every screen. Hiding the window would destroy it.
+		target_pos = HIDING_PLACE
 	if target_pos != _window.position:
 		_window.position = target_pos
 
@@ -475,12 +484,21 @@ func _perch_ground() -> Rect2:
 ## the floor of the current screen. The width spans every screen placed side
 ## by side with it.
 func _walk_area() -> Rect2:
+	var screens := _free_screens()
+	if screens.is_empty():
+		return _area
 	var current := _window.current_screen
+	if current not in screens:
+		# Its screen is taken by a full screen window: go to the nearest free one.
+		var from := _screen_rect(current).get_center()
+		screens.sort_custom(func(a: int, b: int) -> bool:
+			return from.distance_squared_to(_screen_rect(a).get_center()) < from.distance_squared_to(_screen_rect(b).get_center()))
+		current = screens[0]
 	var usable := DisplayServer.screen_get_usable_rect(current)
 	var row := _screen_rect(current)
 	var left := usable.position.x
 	var right := usable.end.x
-	var others := range(DisplayServer.get_screen_count())
+	var others := screens.duplicate()
 	others.erase(current)
 	var grown := true
 	while grown:
@@ -498,6 +516,17 @@ func _walk_area() -> Rect2:
 			grown = true
 	var margin := SIDE_MARGIN * _size
 	return Rect2(left - margin, usable.position.y, right - left - _window.size.x + margin * 2.0, usable.size.y - _window.size.y)
+
+
+## Screens not under a full screen window.
+func _free_screens() -> Array:
+	return range(DisplayServer.get_screen_count()).filter(func(screen: int) -> bool:
+		var rect := Rect2(_screen_rect(screen))
+		for zone in avoid:
+			# Covered for the most part.
+			if rect.intersection(zone).get_area() * 2.0 >= rect.get_area():
+				return false
+		return true)
 
 
 func _screen_rect(screen: int) -> Rect2i:

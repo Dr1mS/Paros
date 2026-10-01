@@ -1,9 +1,11 @@
 extends Node
-## Posts: desktop_state {active: Rect2, fullscreen: bool, pid: int}, pointer_at
+## Posts: desktop_state {active: Rect2, fullscreen: bool, pid: int, covered:
+## Array[Rect2]}, pointer_at
 ## {position: Vector2}, pointer_idle {position: Vector2}, pointer_moved,
 ## screen_locked {locked: bool}.
 ## active: frame of the focused window, in screen coordinates. Empty: none.
 ## pid: process that owns the focused window. -1: not known.
+## covered: screens under a full screen window, such as a game or a video.
 ## Reads the file written by the Paros GNOME Shell extension (gnome-extension/).
 ## Without the extension the file does not exist and this sense stays silent.
 
@@ -17,6 +19,7 @@ var _path := OS.get_environment("XDG_RUNTIME_DIR").path_join("paros/desktop.json
 var _active := Rect2()
 var _fullscreen := false
 var _pid := -1
+var _covered: Array[Rect2] = []
 var _locked := false
 var _pointer := Vector2.ZERO
 var _still_for := 0.0
@@ -40,14 +43,23 @@ func _poll() -> void:
 		_locked = locked
 		Events.post(&"screen_locked", {"locked": locked})
 	if not state is Dictionary:
-		_set_active(Rect2(), false, -1)
+		_set_active(Rect2(), false, -1, [])
 		return
 
 	var window: Variant = state.get("active")
+	var active := Rect2()
+	var fullscreen := false
 	if window is Dictionary:
-		_set_active(Rect2(window.x, window.y, window.width, window.height), window.fullscreen, int(window.get("pid", -1)))
-	else:
-		_set_active(Rect2(), false, 0)
+		active = Rect2(window.x, window.y, window.width, window.height)
+		fullscreen = window.fullscreen
+	var covered: Array[Rect2] = []
+	if state.has("covered"):
+		for area: Array in state.covered:
+			covered.append(Rect2(area[0], area[1], area[2], area[3]))
+	elif fullscreen:
+		# Older extension: only the focused window is known.
+		covered.append(active)
+	_set_active(active, fullscreen, int(window.get("pid", -1)) if window is Dictionary else 0, covered)
 
 	var pointer := Vector2(state.pointer[0], state.pointer[1])
 	if pointer != _pointer:
@@ -64,9 +76,10 @@ func _poll() -> void:
 		Events.post(&"pointer_idle", {"position": _pointer})
 
 
-func _set_active(active: Rect2, fullscreen: bool, pid: int) -> void:
-	if active != _active or fullscreen != _fullscreen or pid != _pid:
+func _set_active(active: Rect2, fullscreen: bool, pid: int, covered: Array[Rect2]) -> void:
+	if active != _active or fullscreen != _fullscreen or pid != _pid or covered != _covered:
 		_active = active
 		_fullscreen = fullscreen
 		_pid = pid
-		Events.post(&"desktop_state", {"active": active, "fullscreen": fullscreen, "pid": pid})
+		_covered = covered
+		Events.post(&"desktop_state", {"active": active, "fullscreen": fullscreen, "pid": pid, "covered": covered})

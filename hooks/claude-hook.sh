@@ -26,5 +26,5 @@ fi
 
 dir="${XDG_RUNTIME_DIR:-/tmp}/paros"
 mkdir -p "$dir" 2>/dev/null
-printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(field hook_event_name)" "$(field session_id)" "$(field notification_type)" "$(field tool_name)" "$(printf '%s' "$detail" | cut -c1-60)" "$kind" >> "$dir/claude-events.log" 2>/dev/null
+printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(field hook_event_name)" "$(field session_id)" "$(field notification_type)" "$(field tool_name)" "$(printf '%s' "$detail" | cut -c1-120)" "$kind" >> "$dir/claude-events.log" 2>/dev/null
 exit 0

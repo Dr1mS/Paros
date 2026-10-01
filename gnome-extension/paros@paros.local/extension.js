@@ -1,9 +1,10 @@
 // Bridge between GNOME Shell and Paros.
 //
 // Writes the desktop state to $XDG_RUNTIME_DIR/paros/desktop.json:
-//   {"pointer": [x, y], "locked": bool, "mirrored": n,
+//   {"pointer": [x, y], "locked": bool, "mirrored": n, "covered": [[x, y, width, height], ...],
 //    "active": {"x", "y", "width", "height", "fullscreen", "pid"} | null}
 // locked: the lock screen is up. mirrored: number of pets shown on it.
+// covered: the monitors under a full screen window, such as a game or a video.
 // and offers one D-Bus method on org.gnome.Shell, object /org/paros/Desktop:
 //   org.paros.Desktop.Activate(au pids, s title) -> b
 // which brings to the front a window owned by one of the processes, the one
@@ -145,7 +146,14 @@ export default class ParosExtension extends Extension {
                 fullscreen: window.is_fullscreen(), pid: window.get_pid(),
             };
         }
-        const state = JSON.stringify({pointer: [x, y], locked, mirrored: this._mirrors.size, active});
+        const covered = [];
+        for (let monitor = 0; monitor < global.display.get_n_monitors(); monitor++) {
+            if (global.display.get_monitor_in_fullscreen(monitor)) {
+                const area = global.display.get_monitor_geometry(monitor);
+                covered.push([area.x, area.y, area.width, area.height]);
+            }
+        }
+        const state = JSON.stringify({pointer: [x, y], locked, mirrored: this._mirrors.size, covered, active});
         const now = GLib.get_monotonic_time() / 1000;
         if (state === this._written && now - this._writtenAt < HEARTBEAT_MS)
             return;

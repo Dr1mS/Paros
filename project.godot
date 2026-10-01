@@ -16,6 +16,7 @@ config/custom_user_dir_name="paros"
 run/main_scene="res://main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 run/max_fps=30
+run/low_processor_mode=true
 boot_splash/show_image=false
 boot_splash/bg_color=Color(0, 0, 0, 0)
 
@@ -25,6 +26,10 @@ Settings="*res://src/core/settings.gd"
 Events="*res://src/core/events.gd"
 Focus="*res://src/core/focus.gd"
 Sound="*res://src/core/sound.gd"
+
+[audio]
+
+driver/driver.linuxbsd="Dummy"
 
 [display]
 

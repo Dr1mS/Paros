@@ -1,5 +1,7 @@
 # Utilisation
 
+[English](../en/usage.md)
+
 ## Les personnages
 
 Chaque session Claude Code interactive ouverte sur la machine a son personnage. Il apparaît à l'ouverture de la session et disparaît à sa fermeture, sans relancer Paros. Sans aucune session, un seul personnage orange, sans nom, se promène.
@@ -9,6 +11,8 @@ Chaque session Claude Code interactive ouverte sur la machine a son personnage. 
 | Nom sous ses pieds | Nom de la session (`/rename`), suivi de la branche git du dossier |
 | Couleur | Couleur de la session (`/color`). Sans couleur choisie : orange |
 | Accessoire | Tiré du nom de la session, donc toujours le même pour une session : haut-de-forme, couronne, casquette, nœud, lunettes, fleur, ou rien |
+
+![Seize états d'un personnage](../images/states.fr.png)
 
 ## Gestes
 
@@ -22,6 +26,8 @@ Chaque session Claude Code interactive ouverte sur la machine a son personnage. 
 | Clic droit | Menu |
 
 Un clic à côté du personnage traverse sa fenêtre et atteint ce qui est derrière.
+
+![Fiche au survol](../images/card.png)
 
 ## Menu du clic droit
 
@@ -51,6 +57,8 @@ Les deux premières entrées n'existent que pour un personnage lié à une sessi
 | S'empile | Quand au moins deux sessions sont au repos depuis 90 secondes : leurs personnages se rejoignent et s'assoient l'un sur l'autre. La tour s'écroule dès qu'une de ces sessions reçoit un prompt, ou qu'un personnage est attrapé |
 | Feu de camp | Processeur à 92 °C ou plus, ou tous les cœurs occupés depuis une minute : il s'assoit et fait griller une guimauve. Au plus une fois toutes les 10 minutes |
 
+![Deux personnages au repos empilés](../images/tower.png)
+
 Les comportements liés à l'état des sessions (réflexion, alerte, sous-agents, tests, git) sont décrits dans [Claude Code](claude-code.md). Ceux qui demandent l'extension GNOME (perchoir, sommeil contre le curseur, écran de verrouillage, plein écran) dans [Extension GNOME](extension-gnome.md).
 
 ## Focus
@@ -75,6 +83,8 @@ Un personnage parle par bulles : « Tâche finie ! », « Tests verts ! », « T
 ## Réglages
 
 Clic droit, « Réglages… ». Chaque changement s'applique et s'enregistre tout de suite. Les réglages sont stockés dans `~/.local/share/paros/settings.cfg`.
+
+![Fenêtre de réglages](../images/settings.png)
 
 ### Personnage
 

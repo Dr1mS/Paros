@@ -1,50 +1,85 @@
 # Paros
 
-Compagnon de bureau pour Claude Code. Un petit personnage en pixels vit au bas de l'écran, un par session Claude Code ouverte. Il montre d'un coup d'œil ce que fait chaque session : elle travaille, elle attend une réponse, elle a fini.
+**English** · [Français](README.fr.md)
 
-Godot 4.7, GDScript. Aucun fichier image ni son : tout est dessiné et synthétisé par le code.
+A desktop companion for Claude Code. A small pixel pet lives at the bottom of your screen, one per open Claude Code session. One look tells you what each session is doing: working, waiting for you, or done.
 
-## Lancer
+![Five pets, one per session: thinking, waiting, cheering, merging, sleeping](docs/images/hero.png)
+
+Built with Godot 4.7 and GDScript. No image file and no sound file: everything is drawn and synthesized by code.
+
+> Paros is an unofficial fan project. It is not affiliated with or endorsed by Anthropic.
+
+## What it does
+
+- **One pet per session.** It carries the session name (`/rename`) and git branch under its feet, takes the session color (`/color`), and wears its own accessory.
+- **It shows the session state.** Thinking while Claude works, with the tool in use above its head. Waving its arms when Claude waits for a permission or an answer. Jumping when the turn is over.
+- **It reacts to your work.** Green or red tests, failed commands, subagents, a full context window, uncommitted changes, a merge in progress, a clean commit.
+- **It lives on your desktop.** It walks across your screens, sits, sleeps at night, greets the other pets, can be thrown around, and climbs onto the focused window.
+- **It stays out of the way.** Clicks next to it go through. It leaves a screen that runs a full screen app.
+
+![Sixteen states of a pet](docs/images/states.en.png)
+
+| Hover card | Resting sessions stack up | Settings |
+|---|---|---|
+| ![Card with folder, state, tool, context and git status](docs/images/card.png) | ![Two pets sitting on each other](docs/images/tower.png) | ![Settings window](docs/images/settings.png) |
+
+The interface (bubbles, menu, settings) is in French.
+
+## Quick start
 
 ```sh
+git clone https://github.com/Dr1mS/Paros.git
+cd Paros
+export GODOT_PATH=/path/to/godot    # Godot 4.7 or later
 ./run.sh
 ```
 
-`run.sh` lance Paros depuis les sources si Godot est trouvé (variable `GODOT_PATH`, sinon `godot` dans `PATH`), et à défaut le binaire `build/paros.x86_64`.
+Right-click a pet, then « Quitter », to quit.
 
-Pour quitter : clic droit sur un personnage, puis « Quitter ».
+Three optional steps complete the setup:
 
-## En bref
+1. **Claude Code hooks**, for the bubbles and the reactions to tools: see [Claude Code](docs/en/claude-code.md#installing-the-hooks).
+2. **GNOME Shell extension**, for the terminal focus, the perch, the lock screen and full screen apps: `./gnome-extension/install.sh`, then log out and back in. See [GNOME extension](docs/en/gnome-extension.md).
+3. **Start at login**: « Réglages… », tick « Lancer au démarrage ».
 
-| | |
+Without them, the pets still follow the sessions, their name, their color and their state.
+
+To run without Godot, build a standalone binary with `./build.sh` (see [Development](docs/en/development.md#exporting-a-binary)).
+
+## Controls
+
+| Gesture | Effect |
 |---|---|
-| Un personnage par session | Nom de la session sous ses pieds, couleur de la session, accessoire propre |
-| Il réfléchit | La session travaille. L'outil en cours s'affiche au-dessus de sa tête |
-| Il agite les bras | La session attend une permission ou une réponse |
-| Il saute | La session a fini son tour |
-| Clic droit | Menu : terminal de la session, minuteur de focus, réglages, quitter |
-| Double-clic | Met le terminal de la session au premier plan |
-| Survol | Fiche de la session |
+| Click | The pet cheers |
+| Double-click | Brings the terminal of its session to the front |
+| Drag | Carry it. Let go with a swing and it flies and bounces |
+| Hover | Session card |
+| Drop a file on it | Copies the path to the clipboard |
+| Right-click | Menu: terminal, focus timer, settings, quit |
 
 ## Documentation
 
-| Document | Contenu |
+| Guide | Content |
 |---|---|
-| [Utilisation](docs/utilisation.md) | Tous les comportements, les gestes, le menu, les réglages |
-| [Claude Code](docs/claude-code.md) | Ce que Paros lit des sessions, installation des hooks, confidentialité |
-| [Extension GNOME](docs/extension-gnome.md) | Terminal au premier plan, perchoir, écran de verrouillage, plein écran |
-| [Architecture](docs/architecture.md) | Organisation du code, événements, comment ajouter un sens ou un comportement |
-| [Développement](docs/developpement.md) | Tests, export en binaire, performances, limites connues, dépannage |
+| [Usage](docs/en/usage.md) | Every behavior, gesture, menu entry and setting |
+| [Claude Code](docs/en/claude-code.md) | What Paros reads from the sessions, hook setup, privacy |
+| [GNOME extension](docs/en/gnome-extension.md) | Terminal focus, perch, lock screen, full screen |
+| [Architecture](docs/en/architecture.md) | Code layout, event reference, how to add a sense or a behavior |
+| [Development](docs/en/development.md) | Tests, binary export, performance, known limits, troubleshooting |
 
-## Installation complète
+## Platforms
 
-1. Lancer Paros : `./run.sh`.
-2. Brancher les hooks Claude Code, pour les bulles et les réactions aux outils : voir [Claude Code](docs/claude-code.md#installer-les-hooks).
-3. Sous GNOME, installer l'extension : `./gnome-extension/install.sh`, puis se déconnecter et se reconnecter. Voir [Extension GNOME](docs/extension-gnome.md).
-4. Pour un lancement à chaque ouverture de session : « Réglages… », cocher « Lancer au démarrage ».
+| | Status |
+|---|---|
+| Linux, GNOME, Wayland | Tested |
+| Linux, other desktops | The core works. GNOME-only parts stay silent |
+| Windows | A binary is built, never tested |
 
-Les étapes 2 à 4 sont facultatives. Sans elles, les personnages suivent quand même les sessions, leur nom, leur couleur et leur état.
+## Tests
 
-## Plateformes
+```sh
+./test.sh
+```
 
-Linux avec GNOME : testé. Autres bureaux Linux : le cœur fonctionne, les parties propres à GNOME restent muettes. Windows : un binaire est produit, jamais testé.
+76 unit tests, run without a display in a few seconds.

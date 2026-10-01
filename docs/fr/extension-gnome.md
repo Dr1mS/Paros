@@ -1,5 +1,7 @@
 # Extension GNOME Shell
 
+[English](../en/gnome-extension.md)
+
 Sous Wayland, une application ne voit ni la fenêtre active, ni le curseur hors de ses propres fenêtres, ni l'écran de verrouillage. Elle ne peut pas non plus mettre une autre fenêtre au premier plan. GNOME Shell, lui, sait tout cela. L'extension `paros@paros.local` tourne dans GNOME Shell et sert de pont.
 
 Sans l'extension, tout ce qui est décrit ici est absent, et le reste de Paros fonctionne.

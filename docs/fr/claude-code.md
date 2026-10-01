@@ -1,5 +1,7 @@
 # Claude Code
 
+[English](../en/claude-code.md)
+
 Paros suit les sessions Claude Code interactives de la machine, pour l'utilisateur courant. Les sous-agents et les sessions en arrière-plan n'ont pas de personnage. Les sessions cloud (claude.ai/code) et celles d'une autre machine ne sont pas vues.
 
 ## Ce que montre un personnage

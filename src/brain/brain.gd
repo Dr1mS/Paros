@@ -62,6 +62,8 @@ var _cuddler: Pet = null
 var _tower: Array[Pet] = []
 ## Runnable tasks per core. 1: every core busy.
 var _load := 0.0
+## True while the lock screen is up. The pets show on it, without any text.
+var _locked := false
 
 
 func _ready() -> void:
@@ -102,6 +104,9 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			Sound.play(&"knock")
 		&"system_load":
 			_load = data.load
+		&"screen_locked":
+			_locked = data.locked
+			pets.draw_unseen(_locked)
 		&"repo_cleaned":
 			pet.sweep()
 			_sessions[data.session].cool_until = _now() + COOL_SECONDS
@@ -219,6 +224,7 @@ func _refresh() -> void:
 		pet.pace = lerpf(PACE_RANGE.x, PACE_RANGE.y, clampf(_load, 0.0, 1.0))
 		pet.headlamp = _night and Settings.value("pet", "headlamp")
 		pet.cool = _now() < session.get("cool_until", 0.0)
+		pet.discreet = _locked
 		pet.caption = _activity(session) if phase == &"working" and Settings.value("claude", "show_activity") else ""
 		pet.show_card(_card(session) if pet.hovered else "")
 

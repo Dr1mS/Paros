@@ -198,7 +198,7 @@ func _draw() -> void:
 
 	# Stacked on another pet: no name tag and no shadow over its face.
 	var stacked := _pet.rooted and _pet.is_perched()
-	if Settings.value("pet", "show_name") and not stacked:
+	if Settings.value("pet", "show_name") and not stacked and not _pet.discreet:
 		_draw_tag(_pet.label.left(LABEL_MAX_LENGTH), GROUND + Vector2(0, 7), _pet.color)
 	if not airborne and not stacked:
 		var width := 13.0 * UNIT * (1.0 - hop * 0.015)
@@ -251,7 +251,7 @@ func _draw() -> void:
 			# Three dots that fill up in a loop.
 			for i in int(_time * 2.5) % 4:
 				_block(Rect2(-2.4 + i * 2.0, -12.5, 0.8, 0.8), over_head, _pet.color)
-			_draw_tag(_pet.caption.left(CAPTION_MAX_LENGTH), body_top - Vector2(0, 4.2 * UNIT + 16.0), _pet.color)
+			_draw_tag("" if _pet.discreet else _pet.caption.left(CAPTION_MAX_LENGTH), body_top - Vector2(0, 4.2 * UNIT + 16.0), _pet.color)
 		Pet.State.ALERT:
 			if fmod(_time, 0.6) < 0.4:
 				_block(Rect2(-0.5, -15.5, 1, 2.5), over_head, HEART)

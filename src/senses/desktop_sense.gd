@@ -1,6 +1,7 @@
 extends Node
 ## Posts: desktop_state {active: Rect2, fullscreen: bool, pid: int}, pointer_at
-## {position: Vector2}, pointer_idle {position: Vector2}, pointer_moved.
+## {position: Vector2}, pointer_idle {position: Vector2}, pointer_moved,
+## screen_locked {locked: bool}.
 ## active: frame of the focused window, in screen coordinates. Empty: none.
 ## pid: process that owns the focused window. -1: not known.
 ## Reads the file written by the Paros GNOME Shell extension (gnome-extension/).
@@ -16,6 +17,7 @@ var _path := OS.get_environment("XDG_RUNTIME_DIR").path_join("paros/desktop.json
 var _active := Rect2()
 var _fullscreen := false
 var _pid := -1
+var _locked := false
 var _pointer := Vector2.ZERO
 var _still_for := 0.0
 var _idle := false
@@ -33,6 +35,10 @@ func _poll() -> void:
 	var state: Variant = null
 	if Time.get_unix_time_from_system() - FileAccess.get_modified_time(_path) < STALE_SECONDS:
 		state = JSON.parse_string(FileAccess.get_file_as_string(_path))
+	var locked: bool = state is Dictionary and state.get("locked", false)
+	if locked != _locked:
+		_locked = locked
+		Events.post(&"screen_locked", {"locked": locked})
 	if not state is Dictionary:
 		_set_active(Rect2(), false, -1)
 		return

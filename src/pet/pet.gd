@@ -117,6 +117,12 @@ var meditating := false
 var headlamp := false
 ## Wears sunglasses.
 var cool := false
+## Shows no text: no name, no caption, no bubble. For the lock screen.
+var discreet := false:
+	set(value):
+		discreet = value
+		if discreet:
+			_bubble.hush()
 ## Top edge of a window the pet may stand on, in screen coordinates. No size: none.
 var perch := Rect2():
 	set(value):
@@ -321,12 +327,13 @@ func scale_factor() -> float:
 
 
 func say(text: String) -> void:
-	_bubble.say(text)
+	if not discreet:
+		_bubble.say(text)
 
 
 ## Text shown as long as no other bubble is up. Empty: none.
 func show_card(text: String) -> void:
-	_bubble.card = text
+	_bubble.card = "" if discreet else text
 
 
 func cheer() -> void:

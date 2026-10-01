@@ -3,5 +3,6 @@
   "name": "Paros Desktop Bridge",
   "description": "Gives the Paros desktop companion what Wayland hides from applications: the focused window, the pointer position, and a way to bring a window to the front.",
   "shell-version": ["45", "46", "47", "48"],
+  "session-modes": ["user", "unlock-dialog"],
   "url": ""
 }

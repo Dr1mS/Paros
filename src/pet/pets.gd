@@ -25,6 +25,7 @@ var _pets := {}
 var _met := {}
 ## Pet -> time of its last success, in seconds.
 var _succeeded := {}
+var _drawn_unseen := false
 
 
 # Godot cannot hide its main window. It stays empty: park it off screen, and let
@@ -69,6 +70,7 @@ func _process(_delta: float) -> void:
 func add(key: String) -> Pet:
 	var window := PET_WINDOW.instantiate()
 	add_child(window)
+	_set_sync(window)
 	var pet: Pet = window.get_node("Pet")
 	pet.key = key
 	_pets[key] = pet
@@ -80,6 +82,20 @@ func remove(key: String) -> void:
 		_succeeded.erase(_pets[key])
 		_pets[key].get_window().queue_free()
 		_pets.erase(key)
+
+
+## Keeps the pets drawing at full rate while nothing shows their windows.
+## A synced frame waits for the screen, and a hidden window gets about one
+## frame per second. Needed on the lock screen, which shows copies of them.
+func draw_unseen(enabled: bool) -> void:
+	_drawn_unseen = enabled
+	for pet: Pet in _pets.values():
+		_set_sync(pet.get_window())
+
+
+func _set_sync(window: Window) -> void:
+	var mode := DisplayServer.VSYNC_DISABLED if _drawn_unseen else DisplayServer.VSYNC_ENABLED
+	DisplayServer.window_set_vsync_mode(mode, window.get_window_id())
 
 
 func find(key: String) -> Pet:

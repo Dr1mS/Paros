@@ -137,6 +137,14 @@ Puis se déconnecter et se reconnecter : GNOME sous Wayland ne charge une nouvel
 | Perchoir | Un personnage saute parfois sur le bord supérieur de la fenêtre active, plus souvent quand il réfléchit. Il y marche et s'y assoit. Fenêtre déplacée ou focus perdu : il tombe |
 | Sommeil contre le curseur | Curseur immobile depuis une minute : le personnage libre le plus proche vient dormir à côté. Il se réveille quand le curseur bouge |
 
+### Écran de verrouillage
+
+GNOME cache toutes les fenêtres d'application derrière l'écran de verrouillage. L'extension reste active pendant le verrouillage (`session-modes` dans `metadata.json`) et y dessine une copie en direct de chaque fenêtre de personnage. Les copies ne reçoivent ni clic ni clavier.
+
+Paros passe alors en mode discret : ni nom, ni outil en cours, ni bulle. Seuls les personnages et leurs animations restent visibles. Les sons continuent.
+
+En cas de problème sur l'écran de verrouillage : `Ctrl+Alt+F3`, se connecter en console, puis `gnome-extensions disable paros@paros.local`, et revenir avec `Ctrl+Alt+F2` (ou `F1`).
+
 L'extension écrit l'état du bureau dans `$XDG_RUNTIME_DIR/paros/desktop.json` deux fois par seconde au plus, et expose `org.paros.Desktop.Activate` sur D-Bus. Sans elle, ces trois comportements sont absents et le reste fonctionne.
 
 ## Réglages
@@ -220,7 +228,7 @@ Chaque personnage a sa propre fenêtre (`src/pet/pet_window.tscn`). La fenêtre 
 | `pet_landed`, `pet_knocked` | `pet/pet.gd` |
 | `session_opened`, `session_changed`, `session_closed`, `session_phase`, `session_activity`, `session_quiet`, `session_subagents`, `session_finished`, `session_needs_you`, `session_tool_failed`, `session_tests_passed` | `claude_code_sense.gd` |
 | `repo_state`, `repo_cleaned` | `git_sense.gd` |
-| `desktop_state`, `pointer_at`, `pointer_idle`, `pointer_moved` | `desktop_sense.gd` |
+| `desktop_state`, `pointer_at`, `pointer_idle`, `pointer_moved`, `screen_locked` | `desktop_sense.gd` |
 | `cpu_hot`, `battery_low`, `system_load` | `system_sense.gd` |
 | `focus_started`, `focus_finished`, `break_finished` | `core/focus.gd` |
 | `settings_requested`, `locate_requested` | `ui/context_menu.gd` |

@@ -35,6 +35,13 @@ func say(text: String) -> void:
 	queue_redraw()
 
 
+## Removes what is shown at once.
+func hush() -> void:
+	_message = ""
+	_seconds_left = 0.0
+	card = ""
+
+
 func _process(delta: float) -> void:
 	if _seconds_left <= 0.0:
 		return

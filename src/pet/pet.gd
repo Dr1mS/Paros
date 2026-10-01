@@ -35,6 +35,9 @@ const HIT_RADIUS := Vector2(72, 70)
 ## Empty window width on each side of the mascot. The window may overflow the
 ## screen by this much, so the mascot itself reaches the screen edge.
 const SIDE_MARGIN := 78.0
+## Seconds between two readings of the screen layout. Reading it asks the
+## display server, too slow for every frame.
+const AREA_REFRESH_SECONDS := 0.25
 
 var state := State.IDLE
 ## Seconds since the state began.
@@ -58,6 +61,8 @@ var urgent := false
 var hovered := false
 
 var _window_pos := Vector2.ZERO
+var _area := Rect2()
+var _area_age := 0.0
 var _velocity := Vector2.ZERO
 var _timer := 0.0
 var _grab_offset := Vector2i.ZERO
@@ -73,14 +78,18 @@ var _walk_speed := 0.0
 func _ready() -> void:
 	_apply_settings()
 	Settings.changed.connect(_apply_settings)
-	var area := _walk_area()
+	var area := _area
 	_window_pos = Vector2(randf_range(area.position.x, area.end.x), area.end.y)
 	_window.position = Vector2i(_window_pos)
 	_enter(State.IDLE)
 
 
 func _process(delta: float) -> void:
-	var area := _walk_area()
+	_area_age += delta
+	if _area_age >= AREA_REFRESH_SECONDS:
+		_area = _walk_area()
+		_area_age = 0.0
+	var area := _area
 	state_time += delta
 	match state:
 		State.IDLE:
@@ -162,13 +171,19 @@ func _apply_settings() -> void:
 	_window.size = Vector2i(Vector2(_base_size) * _size)
 	_window.content_scale_factor = _size
 	_window.mouse_passthrough_polygon = _hit_polygon()
+	_area = _walk_area()
 	# The window grows downward: put the feet back on the floor.
 	if not is_airborne():
-		_window_pos.y = _walk_area().end.y
+		_window_pos.y = _area.end.y
 
 
 func is_airborne() -> bool:
 	return state == State.CARRIED or state == State.FALL
+
+
+## True when the pet moves fast enough to need smooth frames.
+func is_lively() -> bool:
+	return hovered or state not in [State.IDLE, State.SIT, State.SLEEP, State.THINK]
 
 
 ## True when the pet is free to stop for another pet.

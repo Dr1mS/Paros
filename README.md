@@ -161,6 +161,16 @@ Chaque personnage a sa propre fenêtre (`src/pet/pet_window.tscn`). La fenêtre 
 
 Demande les modèles d'export Godot de la même version que l'éditeur : dans l'éditeur, Éditeur > Gérer les modèles d'export. Sans eux, l'export échoue.
 
+Le binaire est autonome : Godot n'est plus nécessaire pour le lancer. « Lancer au démarrage », coché depuis le binaire, pointe vers le binaire.
+
+## Consommation
+
+Environ 9 % d'un cœur et 150 Mo de mémoire pour trois personnages (Intel HD 530). Le rendu coûte l'essentiel :
+
+- 30 images par seconde quand un personnage bouge, 12 quand tous sont calmes (`src/pet/pets.gd`).
+- Pilote OpenGL ES sous Linux : deux fois moins coûteux que OpenGL avec plusieurs fenêtres.
+- Pas de sortie audio.
+
 ## Plateformes
 
 Linux d'abord. Sous Wayland, l'app tourne via XWayland (`display_server/driver.linuxbsd="x11"` dans `project.godot`) : Wayland natif interdit à une fenêtre de se placer elle-même.

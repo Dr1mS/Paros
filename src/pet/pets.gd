@@ -1,13 +1,19 @@
 class_name Pets
 extends Node
 ## The pets on the desktop, one window each, found by key.
-## Also makes two pets greet when they meet.
+## Also makes two pets greet when they meet, and sets the frame rate.
 
 const PET_WINDOW := preload("res://src/pet/pet_window.tscn")
 ## Feet distance under which two pets meet, at size 1.
 const MEET_DISTANCE := 150.0
 ## Seconds before the same two pets greet again.
 const GREET_COOLDOWN := 45.0
+## Frames per second. Rendering is the main CPU cost: slow down while every pet
+## is calm (still, asleep or thinking).
+const LIVELY_FPS := 30
+const CALM_FPS := 12
+## Nodes of this group ask for smooth frames while they are visible.
+const SMOOTH_GROUP := &"smooth_frames"
 
 ## Key -> Pet.
 var _pets := {}
@@ -17,6 +23,8 @@ var _greeted := {}
 
 # Godot cannot hide its main window. It stays empty: park it off screen, and let
 # clicks through in case the window manager brings it back.
+# Its vertical sync is off in the project settings: off screen, a synced frame
+# waits a full second.
 func _ready() -> void:
 	var main := get_window()
 	main.position = -main.size * 4
@@ -24,10 +32,15 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
+	var all: Array = _pets.values()
+	var lively := all.any(func(pet: Pet) -> bool: return pet.is_lively())
+	for node in get_tree().get_nodes_in_group(SMOOTH_GROUP):
+		lively = lively or node.visible
+	Engine.max_fps = LIVELY_FPS if lively else CALM_FPS
+
 	if not Settings.value("pet", "greetings"):
 		return
 	var now := Time.get_ticks_msec() / 1000.0
-	var all: Array = _pets.values()
 	for i in all.size():
 		for j in range(i + 1, all.size()):
 			var a: Pet = all[i]

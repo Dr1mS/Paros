@@ -36,6 +36,7 @@ var _autostart := CheckBox.new()
 
 func _ready() -> void:
 	title = "Paros — Réglages"
+	add_to_group(Pets.SMOOTH_GROUP)
 	close_requested.connect(hide)
 	Events.sensed.connect(_on_sensed)
 

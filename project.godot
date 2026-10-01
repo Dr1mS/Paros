@@ -23,6 +23,7 @@ boot_splash/bg_color=Color(0, 0, 0, 0)
 
 Settings="*res://src/core/settings.gd"
 Events="*res://src/core/events.gd"
+Focus="*res://src/core/focus.gd"
 
 [display]
 

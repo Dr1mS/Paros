@@ -2,18 +2,33 @@ extends Window
 ## Settings dialog, opened from the right-click menu. Every change applies and
 ## saves at once.
 
-## Section, key, label, then for numbers: minimum, maximum, step, unit.
+## One entry: a heading. Else: section, key, label, then for numbers: minimum,
+## maximum, step, unit.
 const FIELDS := [
+	["Personnage"],
 	["pet", "size", "Taille", 0.5, 3.0, 0.1, "×"],
 	["pet", "walk_speed", "Vitesse de marche", 10.0, 300.0, 5.0, "px/s"],
 	["pet", "show_name", "Afficher le nom de session"],
+	["pet", "accessories", "Accessoires"],
+	["pet", "greetings", "Les personnages se saluent"],
+	["Bulles"],
 	["bubble", "enabled", "Afficher les bulles"],
 	["bubble", "seconds", "Durée des bulles", 1.0, 30.0, 0.5, "s"],
+	["Claude Code"],
+	["claude", "show_activity", "Afficher l'outil en cours"],
+	["claude", "nag_minutes", "Insister après une attente de", 0.5, 60.0, 0.5, "min"],
+	["Sommeil"],
 	["sleep", "night_start_hour", "Début de la nuit", 0, 23, 1, "h"],
 	["sleep", "night_end_hour", "Fin de la nuit", 0, 23, 1, "h"],
 	["sleep", "idle_minutes", "Sommeil après inactivité", 1.0, 120.0, 1.0, "min"],
+	["Focus"],
+	["focus", "minutes", "Durée d'un focus", 1.0, 120.0, 1.0, "min"],
+	["focus", "break_minutes", "Durée d'une pause", 1.0, 60.0, 1.0, "min"],
+	["Système"],
+	["system", "alerts", "Alertes batterie et température"],
 ]
 const MARGIN := 18
+const HEADING := Color("#d97757")
 
 var _panel := PanelContainer.new()
 var _autostart := CheckBox.new()
@@ -33,11 +48,14 @@ func _ready() -> void:
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 28)
-	grid.add_theme_constant_override("v_separation", 10)
+	grid.add_theme_constant_override("v_separation", 6)
 	margin.add_child(grid)
 
 	for field: Array in FIELDS:
-		_add_row(grid, field[2], _editor(field))
+		if field.size() == 1:
+			_add_heading(grid, field[0])
+		else:
+			_add_row(grid, field[2], _editor(field))
 	if Autostart.is_supported():
 		_autostart.toggled.connect(Autostart.set_enabled)
 		_add_row(grid, "Lancer au démarrage", _autostart)
@@ -49,6 +67,15 @@ func _on_sensed(event: StringName, _data: Dictionary) -> void:
 		size = Vector2i(_panel.get_combined_minimum_size())
 		show()
 		grab_focus()
+
+
+func _add_heading(grid: GridContainer, text: String) -> void:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_color_override("font_color", HEADING)
+	grid.add_child(label)
+	# Fills the second column of the row.
+	grid.add_child(Control.new())
 
 
 func _add_row(grid: GridContainer, text: String, editor: Control) -> void:

@@ -1,34 +1,46 @@
 extends Node
 ## Follows the Claude Code sessions running on this machine.
 ## Posts, each with {session}:
-##   session_opened {name, color}, session_changed {name, color}, session_closed,
-##   session_phase {phase: &"idle" | &"working" | &"waiting"},
-##   session_finished, session_needs_you.
+##   session_opened, session_changed {name, color, cwd, branch, last_prompt, pid},
+##   session_closed,
+##   session_phase {phase: &"idle" | &"working" | &"waiting", since: Unix time},
+##   session_activity {tool, detail}, session_subagents {count},
+##   session_needs_you {detail}, session_finished,
+##   session_tool_failed {tool, detail, kind}, session_tests_passed.
 ##
 ## Reads three kinds of local files:
 ## - <claude dir>/sessions/<pid>.json: one per live session, with its name and
 ##   status. Internal Claude Code format, not documented: may change.
-## - the session transcript: the color chosen with /color.
-## - the log written by hooks/claude-hook.sh, one line per hook event:
-##   "<hook_event_name> <session_id> <notification_type>".
+## - the session transcript: color (/color) and last prompt.
+## - the log written by hooks/claude-hook.sh, one line per hook event.
+
+## Fields of a hook log line, separated by tabs.
+enum Field { EVENT, SESSION, NOTIFICATION, TOOL, DETAIL, KIND, COUNT }
 
 const POLL_SECONDS := 0.5
 ## Notification types that mean Claude waits for the user.
 const ASKING: Array[String] = ["permission_prompt", "elicitation_dialog"]
 const COLOR_LINE := '{"type":"agent-color"'
+const PROMPT_LINE := '{"type":"last-prompt"'
+## Session fields that the pet shows: a change posts session_changed.
+const SHOWN: Array[String] = ["name", "color", "cwd", "branch", "last_prompt", "pid"]
 
-var _claude_dir := OS.get_environment("HOME").path_join(".claude")
+var _claude_dir := _home().path_join(".claude")
 var _log_path := "/tmp/paros/claude-events.log"
 var _log_offset := 0
-## Session id -> {name, color, phase, asking, transcript, transcript_offset}.
+## Session id -> the SHOWN fields, plus phase, asking, subagents, transcript,
+## transcript_offset.
 var _sessions := {}
 
 
 func _ready() -> void:
 	if OS.has_environment("CLAUDE_CONFIG_DIR"):
 		_claude_dir = OS.get_environment("CLAUDE_CONFIG_DIR")
-	if OS.has_environment("XDG_RUNTIME_DIR"):
-		_log_path = OS.get_environment("XDG_RUNTIME_DIR").path_join("paros/claude-events.log")
+	# Same folder as the hook script: the runtime folder, else the temporary one.
+	for variable: String in ["XDG_RUNTIME_DIR", "TEMP"]:
+		if OS.has_environment(variable):
+			_log_path = OS.get_environment(variable).path_join("paros/claude-events.log")
+			break
 	# Skip history: only hook events from now on matter.
 	var file := FileAccess.open(_log_path, FileAccess.READ)
 	if file:
@@ -51,7 +63,7 @@ func _poll() -> void:
 		_update(id, live[id])
 	_read_hook_log()
 	for id: String in _sessions:
-		_update_phase(id, live[id].get("status", "idle"))
+		_update_phase(id, live[id])
 
 
 ## Session id -> registry entry, for each live interactive session.
@@ -77,33 +89,56 @@ func _is_running(entry: Dictionary) -> bool:
 func _update(id: String, entry: Dictionary) -> void:
 	var opened := not _sessions.has(id)
 	if opened:
-		_sessions[id] = {"name": "", "color": "", "phase": &"idle", "asking": false, "transcript": "", "transcript_offset": 0}
+		_sessions[id] = {
+			"name": "", "color": "", "cwd": "", "branch": "", "last_prompt": "", "pid": 0,
+			"phase": &"", "asking": false, "subagents": 0, "transcript": "", "transcript_offset": 0,
+		}
 	var session: Dictionary = _sessions[id]
-	var name_now: String = entry.get("name", "")
-	var color_now := _read_color(id, session)
-	if opened or name_now != session.name or color_now != session.color:
-		session.name = name_now
-		session.color = color_now
-		Events.post(&"session_opened" if opened else &"session_changed", {"session": id, "name": name_now, "color": color_now})
+	var before := _shown(session)
+	session.name = entry.get("name", "")
+	session.cwd = entry.get("cwd", "")
+	session.pid = int(entry.get("pid", 0))
+	session.branch = _read_branch(session.cwd)
+	_read_transcript(id, session)
+	var shown := _shown(session)
+	if opened or shown != before:
+		shown.session = id
+		Events.post(&"session_opened" if opened else &"session_changed", shown)
+
+
+func _shown(session: Dictionary) -> Dictionary:
+	var shown := {}
+	for field in SHOWN:
+		shown[field] = session[field]
+	return shown
+
+
+## Branch checked out in the folder. Empty when the folder is not a git checkout.
+func _read_branch(folder: String) -> String:
+	var head := FileAccess.get_file_as_string(folder.path_join(".git/HEAD")).strip_edges()
+	return head.trim_prefix("ref: refs/heads/") if head.begins_with("ref: ") else ""
 
 
 ## Reads only what was added to the transcript since the last call.
-func _read_color(id: String, session: Dictionary) -> String:
-	var color: String = session.color
+func _read_transcript(id: String, session: Dictionary) -> void:
 	if session.transcript.is_empty():
 		session.transcript = _find_transcript(id)
 	var file := FileAccess.open(session.transcript, FileAccess.READ)
 	if file == null:
-		return color
+		return
 	file.seek(session.transcript_offset)
 	while file.get_position() < file.get_length():
 		var line := file.get_line()
 		if line.begins_with(COLOR_LINE):
-			var parsed: Variant = JSON.parse_string(line)
-			if parsed is Dictionary:
-				color = parsed.get("agentColor", "")
+			session.color = _json_field(line, "agentColor")
+		elif line.begins_with(PROMPT_LINE):
+			session.last_prompt = _json_field(line, "lastPrompt")
 	session.transcript_offset = file.get_position()
-	return color
+
+
+func _json_field(line: String, field: String) -> String:
+	var parsed: Variant = JSON.parse_string(line)
+	return str(parsed.get(field, "")) if parsed is Dictionary else ""
 
 
 func _find_transcript(id: String) -> String:
@@ -123,20 +158,41 @@ func _read_hook_log() -> void:
 		_log_offset = 0
 	file.seek(_log_offset)
 	while file.get_position() < file.get_length():
-		var parts := file.get_line().split(" ")
-		if parts.size() < 3 or not _sessions.has(parts[1]):
-			continue
-		var session: Dictionary = _sessions[parts[1]]
-		session.asking = parts[0] == "Notification" and parts[2] in ASKING
-		if session.asking:
-			Events.post(&"session_needs_you", {"session": parts[1]})
-		elif parts[0] == "Stop":
-			Events.post(&"session_finished", {"session": parts[1]})
+		var fields := file.get_line().split("\t")
+		if fields.size() == Field.COUNT and _sessions.has(fields[Field.SESSION]):
+			_handle_hook(fields)
 	_log_offset = file.get_position()
 
 
-func _update_phase(id: String, status: String) -> void:
+func _handle_hook(fields: PackedStringArray) -> void:
+	var id := fields[Field.SESSION]
 	var session: Dictionary = _sessions[id]
+	var event := fields[Field.EVENT]
+	# Any later event means the question was answered.
+	session.asking = event == "Notification" and fields[Field.NOTIFICATION] in ASKING
+	match event:
+		"Notification":
+			if session.asking:
+				Events.post(&"session_needs_you", {"session": id, "detail": fields[Field.DETAIL]})
+		"PreToolUse":
+			Events.post(&"session_activity", {"session": id, "tool": fields[Field.TOOL], "detail": fields[Field.DETAIL]})
+		"PostToolUse":
+			if fields[Field.KIND] == "test":
+				Events.post(&"session_tests_passed", {"session": id})
+		"PostToolUseFailure":
+			Events.post(&"session_tool_failed", {
+				"session": id, "tool": fields[Field.TOOL], "detail": fields[Field.DETAIL], "kind": fields[Field.KIND],
+			})
+		"SubagentStart", "SubagentStop":
+			session.subagents = maxi(session.subagents + (1 if event == "SubagentStart" else -1), 0)
+			Events.post(&"session_subagents", {"session": id, "count": session.subagents})
+		"Stop":
+			Events.post(&"session_finished", {"session": id})
+
+
+func _update_phase(id: String, entry: Dictionary) -> void:
+	var session: Dictionary = _sessions[id]
+	var status: String = entry.get("status", "idle")
 	if status == "idle":
 		session.asking = false
 	var phase := &"idle"
@@ -145,5 +201,13 @@ func _update_phase(id: String, status: String) -> void:
 	elif status == "busy":
 		phase = &"working"
 	if phase != session.phase:
+		var since := Time.get_unix_time_from_system()
+		# First look at a session: its phase began before, at the time the registry gives.
+		if session.phase.is_empty() and entry.has("statusUpdatedAt"):
+			since = entry.statusUpdatedAt / 1000.0
 		session.phase = phase
-		Events.post(&"session_phase", {"session": id, "phase": phase})
+		Events.post(&"session_phase", {"session": id, "phase": phase, "since": since})
+
+
+func _home() -> String:
+	return OS.get_environment("USERPROFILE" if OS.get_name() == "Windows" else "HOME")

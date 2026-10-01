@@ -21,10 +21,19 @@ Après un clone, ou après l'ajout d'un script avec `class_name`, lancer une foi
 | Geste | Effet |
 |---|---|
 | Clic gauche | Le personnage est content |
-| Glisser | Le porter, puis le lâcher : il retombe au sol |
-| Clic droit | Menu : « Réglages… », « Quitter » |
+| Glisser | Le porter. Lâché avec élan, il vole et rebondit sur les bords et le sol |
+| Survol | Fiche de la session ; ses yeux suivent la souris |
+| Clic droit | Menu : sonnerie du terminal, focus, « Réglages… », « Quitter » |
 
-Il s'endort la nuit (23 h à 7 h) et après 5 minutes sans activité clavier ni souris.
+Seul, il marche, s'assoit et regarde autour de lui. Il s'endort la nuit (23 h à 7 h) et après 5 minutes sans activité clavier ni souris, puis s'étire au réveil. Deux personnages qui se croisent se saluent.
+
+### Focus
+
+Clic droit, « Démarrer un focus » : 25 minutes de travail, puis 5 minutes de pause. Les personnages annoncent le début de la pause et sa fin. Le temps restant se lit dans le menu et dans la fiche.
+
+### Alertes système
+
+Sous Linux : bulle si le processeur dépasse 92 °C, ou si la batterie passe sous 15 % en décharge. Au plus une fois toutes les 10 minutes.
 
 ## Claude Code
 
@@ -36,15 +45,16 @@ Un personnage par session Claude Code ouverte sur la machine. Il porte le nom de
 | Attend une permission ou une réponse | Agite les bras, « ! », bulle « Claude attend ta réponse » |
 | A fini son tour | Saute, bulle « Tâche finie ! » |
 
-`claude_code_sense.gd` lit trois sources :
+`claude_code_sense.gd` lit quatre sources :
 
 | Source | Donne |
 |---|---|
 | `~/.claude/sessions/<pid>.json` | Sessions ouvertes, nom, statut (`busy`, `waiting`, `idle`). Format interne à Claude Code, non documenté : peut changer |
-| Transcript de la session | Couleur choisie avec `/color` |
-| `$XDG_RUNTIME_DIR/paros/claude-events.log` | Fin de tour et demande de permission, écrites par `hooks/claude-hook.sh` |
+| Transcript de la session | Couleur choisie avec `/color`, dernier prompt |
+| `<dossier>/.git/HEAD` | Branche git |
+| `$XDG_RUNTIME_DIR/paros/claude-events.log` | Outils, sous-agents, échecs, fin de tour, demande de permission, écrits par `hooks/claude-hook.sh` |
 
-Installation des hooks : dans `~/.claude/settings.json`, déclarer le script pour les événements `UserPromptSubmit`, `PostToolUse`, `Notification`, `Stop` et `SessionEnd` :
+Installation des hooks : dans `~/.claude/settings.json`, déclarer le script pour les événements `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `Notification`, `SubagentStart`, `SubagentStop` et `Stop` :
 
 ```json
 "hooks": {
@@ -54,7 +64,22 @@ Installation des hooks : dans `~/.claude/settings.json`, déclarer le script pou
 }
 ```
 
-Sans les hooks, noms, couleurs et états restent suivis. Seules les bulles et le saut de fin de tour manquent.
+Sans les hooks, noms, couleurs et états restent suivis. Tout le reste du tableau ci-dessous manque.
+
+| Événement | Paros |
+|---|---|
+| Outil lancé | Étiquette au-dessus de la tête : « Edit · pet.gd » |
+| Sous-agent lancé | Un petit personnage à côté du grand, quatre au plus |
+| Tests réussis (`npm test`, `pytest`, `cargo test`…) | Saut, bulle « Tests verts ! » |
+| Tests échoués | Tremble, bulle « Tests rouges » |
+| Autre commande échouée | Tremble, goutte de sueur |
+| Attente plus longue que 2 minutes | Saute plus haut, bulle de rappel chaque minute |
+
+Fiche au survol : dossier, état et sa durée, outil en cours, nombre de sous-agents, dernier prompt.
+
+Étiquette : nom de session, puis branche git du dossier. Accessoire (chapeau, couronne, casquette, nœud, lunettes, fleur ou rien) : tiré du nom de session, donc stable.
+
+« Faire sonner son terminal » envoie une sonnerie au terminal de la session : son onglet est marqué. Mettre la fenêtre du terminal au premier plan n'est pas possible : GNOME sous Wayland le refuse à une application tierce.
 
 ## Réglages
 
@@ -65,11 +90,18 @@ Clic droit sur un personnage, puis « Réglages… ». Chaque changement s'appli
 | Taille | 1.0 × | `pet/size` |
 | Vitesse de marche | 70 px/s | `pet/walk_speed` |
 | Afficher le nom de session | oui | `pet/show_name` |
+| Accessoires | oui | `pet/accessories` |
+| Les personnages se saluent | oui | `pet/greetings` |
 | Afficher les bulles | oui | `bubble/enabled` |
 | Durée des bulles | 4 s | `bubble/seconds` |
+| Afficher l'outil en cours | oui | `claude/show_activity` |
+| Insister après une attente de | 2 min | `claude/nag_minutes` |
 | Début de la nuit | 23 h | `sleep/night_start_hour` |
 | Fin de la nuit | 7 h | `sleep/night_end_hour` |
 | Sommeil après inactivité | 5 min | `sleep/idle_minutes` |
+| Durée d'un focus | 25 min | `focus/minutes` |
+| Durée d'une pause | 5 min | `focus/break_minutes` |
+| Alertes batterie et température | oui | `system/alerts` |
 | Lancer au démarrage | non | crée ou supprime `~/.config/autostart/paros.desktop` |
 
 Les réglages sont stockés dans `~/.local/share/paros/settings.cfg`.
@@ -89,9 +121,10 @@ Chaque personnage a sa propre fenêtre (`src/pet/pet_window.tscn`). La fenêtre 
 | `src/core/events.gd` | Bus d'événements (autoload `Events`) |
 | `src/core/settings.gd` | Réglages utilisateur (autoload `Settings`) |
 | `src/core/autostart.gd` | Lancement à l'ouverture de session |
+| `src/core/focus.gd` | Minuteur de focus (autoload `Focus`) |
 | `src/senses/` | Un fichier par sens. Un sens observe et poste des événements, rien d'autre |
 | `src/brain/brain.gd` | Toutes les règles : quel événement provoque quel comportement |
-| `src/pet/pets.gd` | Crée et supprime les personnages, un par clé de session |
+| `src/pet/pets.gd` | Crée et supprime les personnages, un par clé de session. Fait se saluer deux personnages proches |
 | `src/pet/pet.gd` | Machine à états et déplacement de la fenêtre sur le bureau |
 | `src/pet/pointer.gd` | Souris sur un personnage : clic, glisser, clic droit |
 | `src/pet/pet_body.gd` | Dessin du personnage selon l'état |
@@ -113,7 +146,20 @@ Chaque personnage a sa propre fenêtre (`src/pet/pet_window.tscn`). La fenêtre 
 | `pointer_tap`, `pointer_grab`, `pointer_drop`, `pointer_menu` | `pet/pointer.gd` |
 | `night`, `day` | `clock_sense.gd` |
 | `user_idle`, `user_active` | `idle_sense.gd` |
-| `session_opened`, `session_changed`, `session_closed`, `session_phase`, `session_finished`, `session_needs_you` | `claude_code_sense.gd` |
+| `pointer_enter`, `pointer_leave` | `pet/pointer.gd` |
+| `session_opened`, `session_changed`, `session_closed`, `session_phase`, `session_activity`, `session_subagents`, `session_finished`, `session_needs_you`, `session_tool_failed`, `session_tests_passed` | `claude_code_sense.gd` |
+| `cpu_hot`, `battery_low` | `system_sense.gd` |
+| `focus_started`, `focus_finished`, `break_finished` | `core/focus.gd` |
+| `settings_requested`, `locate_requested` | `ui/context_menu.gd` |
+
+## Export en binaire
+
+```sh
+./build.sh          # build/paros.x86_64
+./build.sh Windows  # build/paros.exe
+```
+
+Demande les modèles d'export Godot de la même version que l'éditeur : dans l'éditeur, Éditeur > Gérer les modèles d'export. Sans eux, l'export échoue.
 
 ## Plateformes
 
@@ -122,3 +168,5 @@ Linux d'abord. Sous Wayland, l'app tourne via XWayland (`display_server/driver.l
 La fenêtre est de type utilitaire, sans focus : absente du dock et d'Alt+Tab.
 
 `idle_sense.gd` interroge GNOME (Mutter). Sur un autre bureau, ce sens reste muet et le reste fonctionne.
+
+Windows : non testé. Le code évite ce qui est propre à Linux (dossier personnel, dossier temporaire, lancement au démarrage par un fichier `.cmd` du dossier Démarrage). Sens d'inactivité et alertes système restent muets. Les hooks demandent Git Bash.

@@ -15,7 +15,7 @@ const DEFAULTS := {
 	"bubble": {"enabled": true, "seconds": 4.0},
 	"claude": {"show_activity": true, "nag_minutes": 2.0, "context_window_k": 1000, "knock": true},
 	"git": {"enabled": true},
-	"desktop": {"perch": true, "cuddle": true},
+	"desktop": {"perch": true, "cuddle": true, "lock_screen_minutes": 10.0},
 	"focus": {"minutes": 25.0, "break_minutes": 5.0},
 	"system": {"alerts": true},
 }

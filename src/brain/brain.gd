@@ -64,6 +64,8 @@ var _tower: Array[Pet] = []
 var _load := 0.0
 ## True while the lock screen is up. The pets show on it, without any text.
 var _locked := false
+## Unix time until which the screen is held on, once locked.
+var _screen_held_until := 0.0
 
 
 func _ready() -> void:
@@ -107,6 +109,10 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 		&"screen_locked":
 			_locked = data.locked
 			pets.draw_unseen(_locked)
+			# GNOME turns the screen off a few seconds after locking: hold it on
+			# for a while, so that the pets are seen.
+			_screen_held_until = _now() + Settings.value("desktop", "lock_screen_minutes") * 60.0
+			DisplayServer.screen_set_keep_on(_locked and _now() < _screen_held_until)
 		&"repo_cleaned":
 			pet.sweep()
 			_sessions[data.session].cool_until = _now() + COOL_SECONDS
@@ -203,6 +209,8 @@ func _tick() -> void:
 		):
 			session.knocked = _now()
 			_send_to_knock(pets.find(key))
+	if DisplayServer.screen_is_kept_on() and _now() >= _screen_held_until:
+		DisplayServer.screen_set_keep_on(false)
 	_grow_tower()
 	_refresh()
 
@@ -250,7 +258,8 @@ func _wish(phase: StringName) -> Pet.Wish:
 		return Pet.Wish.ALERT
 	if phase == &"working":
 		return Pet.Wish.THINK
-	if _night or _user_idle:
+	# Locked, the user is idle by definition: the pets stay up to be seen.
+	if _night or (_user_idle and not _locked):
 		return Pet.Wish.SLEEP
 	return Pet.Wish.ROAM
 

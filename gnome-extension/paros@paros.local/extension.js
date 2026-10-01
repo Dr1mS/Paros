@@ -12,6 +12,8 @@
 // While the screen is locked, shows the pets on the lock screen. GNOME hides
 // every application window behind the lock screen: the extension draws live
 // copies of the pet windows over it. The copies take no input.
+// The copies sit above everything, the black veil of a freshly locked screen
+// included: the pets walk on the black screen.
 // The extension stays enabled on the lock screen for this ("session-modes"
 // in metadata.json).
 
@@ -95,8 +97,10 @@ export default class ParosExtension extends Extension {
             }
             if (!this._lockLayer) {
                 this._lockLayer = new Clutter.Actor({reactive: false});
-                Main.layoutManager.screenShieldGroup.add_child(this._lockLayer);
+                Main.uiGroup.add_child(this._lockLayer);
             }
+            // The black veil is raised each time it comes back: stay above it.
+            Main.uiGroup.set_child_above_sibling(this._lockLayer, null);
             const pets = new Set(global.get_window_actors().filter(actor => this._isPet(actor.meta_window)));
             for (const [actor, mirror] of this._mirrors) {
                 if (!pets.has(actor)) {

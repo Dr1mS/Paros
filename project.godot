@@ -36,6 +36,7 @@ window/size/always_on_top=true
 window/size/no_focus=true
 window/size/transparent=true
 window/vsync/vsync_mode=0
+window/energy_saving/keep_screen_on=false
 window/per_pixel_transparency/allowed=true
 window/subwindows/embed_subwindows=false
 display_server/driver.linuxbsd="x11"

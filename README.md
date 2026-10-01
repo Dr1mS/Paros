@@ -143,6 +143,10 @@ GNOME cache toutes les fenêtres d'application derrière l'écran de verrouillag
 
 Paros passe alors en mode discret : ni nom, ni outil en cours, ni bulle. Seuls les personnages et leurs animations restent visibles. Les sons continuent.
 
+GNOME noircit l'écran au verrouillage, puis l'éteint après quelques secondes. Les copies sont placées au-dessus du voile noir : les personnages se promènent sur l'écran noir. Paros retient l'extinction pendant 10 minutes (réglage « Écran allumé après verrouillage », 0 pour ne rien retenir), puis l'écran s'éteint comme d'habitude. Pendant ce temps la mise en veille automatique est retenue aussi.
+
+Verrouillés, les personnages ne s'endorment pas pour inactivité : ils restent visibles. La nuit, ils dorment.
+
 En cas de problème sur l'écran de verrouillage : `Ctrl+Alt+F3`, se connecter en console, puis `gnome-extensions disable paros@paros.local`, et revenir avec `Ctrl+Alt+F2` (ou `F1`).
 
 L'extension écrit l'état du bureau dans `$XDG_RUNTIME_DIR/paros/desktop.json` deux fois par seconde au plus, et expose `org.paros.Desktop.Activate` sur D-Bus. Sans elle, ces trois comportements sont absents et le reste fonctionne.
@@ -171,6 +175,7 @@ Clic droit sur un personnage, puis « Réglages… ». Chaque changement s'appli
 | Suivre l'état git des dossiers | oui | `git/enabled` |
 | Grimper sur la fenêtre active | oui | `desktop/perch` |
 | Dormir contre le curseur immobile | oui | `desktop/cuddle` |
+| Écran allumé après verrouillage | 10 min | `desktop/lock_screen_minutes` |
 | Début de la nuit | 23 h | `sleep/night_start_hour` |
 | Fin de la nuit | 7 h | `sleep/night_end_hour` |
 | Sommeil après inactivité | 5 min | `sleep/idle_minutes` |

@@ -1,0 +1,34 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://src/pet/pets.gd" id="1"]
+[ext_resource type="Script" path="res://src/brain/brain.gd" id="2"]
+[ext_resource type="Script" path="res://src/senses/clock_sense.gd" id="3"]
+[ext_resource type="Script" path="res://src/senses/idle_sense.gd" id="4"]
+[ext_resource type="Script" path="res://src/senses/claude_code_sense.gd" id="5"]
+[ext_resource type="Script" path="res://src/ui/settings_window.gd" id="6"]
+
+[node name="Main" type="Node"]
+
+[node name="Pets" type="Node" parent="."]
+script = ExtResource("1")
+
+[node name="Brain" type="Node" parent="." node_paths=PackedStringArray("pets")]
+script = ExtResource("2")
+pets = NodePath("../Pets")
+
+[node name="SettingsWindow" type="Window" parent="."]
+initial_position = 4
+visible = false
+unresizable = true
+script = ExtResource("6")
+
+[node name="Senses" type="Node" parent="."]
+
+[node name="Clock" type="Node" parent="Senses"]
+script = ExtResource("3")
+
+[node name="Idle" type="Node" parent="Senses"]
+script = ExtResource("4")
+
+[node name="ClaudeCode" type="Node" parent="Senses"]
+script = ExtResource("5")

@@ -1,0 +1,33 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://src/pet/pet.gd" id="1"]
+[ext_resource type="Script" path="res://src/pet/pet_body.gd" id="2"]
+[ext_resource type="Script" path="res://src/ui/bubble.gd" id="3"]
+[ext_resource type="Script" path="res://src/pet/pointer.gd" id="4"]
+[ext_resource type="Script" path="res://src/ui/context_menu.gd" id="5"]
+
+[node name="PetWindow" type="Window"]
+transparent_bg = true
+size = Vector2i(300, 272)
+unresizable = true
+borderless = true
+always_on_top = true
+transparent = true
+unfocusable = true
+
+[node name="Pet" type="Node2D" parent="."]
+script = ExtResource("1")
+
+[node name="Body" type="Node2D" parent="Pet"]
+script = ExtResource("2")
+
+[node name="Bubble" type="Node2D" parent="."]
+script = ExtResource("3")
+
+[node name="Pointer" type="Node" parent="." node_paths=PackedStringArray("pet")]
+script = ExtResource("4")
+pet = NodePath("../Pet")
+
+[node name="ContextMenu" type="PopupMenu" parent="." node_paths=PackedStringArray("pet")]
+script = ExtResource("5")
+pet = NodePath("../Pet")

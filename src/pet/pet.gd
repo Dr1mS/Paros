@@ -5,7 +5,7 @@ extends Node2D
 
 enum State {
 	IDLE, SIT, WALK, SLEEP, STRETCH, THINK, ALERT, CHEER, GREET, GLARE, HIGH_FIVE, WORRY, ROAST,
-	CLIMB, CARRIED, FALL,
+	KNOCK, SWEEP, CLIMB, CARRIED, FALL,
 }
 ## Standing order from the brain. The pet obeys as soon as it is idle.
 enum Wish { ROAM, SLEEP, THINK, ALERT }
@@ -24,6 +24,8 @@ const TIMED := {
 	State.HIGH_FIVE: 1.3,
 	State.WORRY: 1.5,
 	State.ROAST: 7.0,
+	State.KNOCK: 1.2,
+	State.SWEEP: 2.2,
 	State.CLIMB: 0.7,
 }
 ## States slow enough for a low frame rate.
@@ -50,6 +52,15 @@ const PERCH_CHANCE_THINKING := 0.6
 const PERCH_LEAVE_CHANCE := 0.1
 const PERCH_MIN_WIDTH := 200.0
 const CLIMB_ARC := 120.0
+## Seconds, from the start of the knock, of each blow on the glass. A blow
+## shakes the window sideways for a moment.
+const KNOCK_BLOWS: Array[float] = [0.25, 0.65]
+const KNOCK_SHAKE_SECONDS := 0.12
+const KNOCK_SHAKE_PIXELS := 2.0
+## Speed of the run to the glass, against the walk speed.
+const KNOCK_HURRY := 2.4
+## Landing speed from which the fall is heard.
+const THUD_SPEED := 500.0
 ## Clickable region in window coordinates. Clicks outside reach the desktop.
 const HIT_CENTER := Vector2(150, 192)
 const HIT_RADIUS := Vector2(72, 70)
@@ -96,6 +107,16 @@ var tapping := false
 var repo := ""
 ## True while the umbrella is open.
 var umbrella := false
+## Walk speed and step rate, against the normal ones.
+var pace := 1.0
+## Stays where it is, sitting: no walk, no jump. Part of a tower.
+var rooted := false
+## Floats cross-legged while it thinks.
+var meditating := false
+## Lights the ground ahead.
+var headlamp := false
+## Wears sunglasses.
+var cool := false
 ## Top edge of a window the pet may stand on, in screen coordinates. No size: none.
 var perch := Rect2():
 	set(value):
@@ -118,6 +139,10 @@ var _climb_from := Vector2.ZERO
 var _climb_to := Vector2.ZERO
 ## Window x to walk to, whatever the wish. NAN: none.
 var _errand_x := NAN
+## What the pet does once there, and how fast it goes.
+var _errand_then := State.IDLE
+var _errand_hurry := 1.0
+var _knock_side := 1.0
 
 @onready var _window := get_window()
 @onready var _bubble: Bubble = $"../Bubble"
@@ -144,7 +169,9 @@ func _process(delta: float) -> void:
 	match state:
 		State.IDLE:
 			_timer -= delta
-			if _wants_perch and wish in [Wish.ROAM, Wish.THINK] and (_perched or _can_climb()):
+			if rooted and wish == Wish.ROAM:
+				_enter(State.SIT)
+			elif _wants_perch and wish in [Wish.ROAM, Wish.THINK] and (_perched or _can_climb()):
 				_wants_perch = false
 				if _perched:
 					_perched = false
@@ -156,7 +183,7 @@ func _process(delta: float) -> void:
 				_enter(State.SIT if randf() < SIT_CHANCE else State.WALK)
 		State.SIT:
 			_timer -= delta
-			if wish != Wish.ROAM or _timer <= 0.0:
+			if wish != Wish.ROAM or (_timer <= 0.0 and not rooted):
 				_enter(State.IDLE)
 		State.WALK:
 			_walk(delta, area)
@@ -166,7 +193,7 @@ func _process(delta: float) -> void:
 		State.THINK, State.ALERT:
 			if WISH_STATE.get(wish) != state:
 				_enter(State.IDLE)
-		State.STRETCH, State.CHEER, State.GLARE, State.HIGH_FIVE, State.WORRY, State.ROAST:
+		State.STRETCH, State.CHEER, State.GLARE, State.HIGH_FIVE, State.WORRY, State.ROAST, State.KNOCK, State.SWEEP:
 			if state_time >= TIMED[state]:
 				_enter(State.IDLE)
 		State.GREET:
@@ -202,6 +229,10 @@ func _process(delta: float) -> void:
 				_window_pos.y = area.end.y
 
 	var target_pos := Vector2i(_window_pos.round())
+	if state == State.KNOCK:
+		for blow in KNOCK_BLOWS:
+			if state_time >= blow and state_time < blow + KNOCK_SHAKE_SECONDS:
+				target_pos.x += roundi(KNOCK_SHAKE_PIXELS * (1.0 if sin((state_time - blow) * 90.0) >= 0.0 else -1.0))
 	if target_pos != _window.position:
 		_window.position = target_pos
 
@@ -210,13 +241,14 @@ func _walk(delta: float, area: Rect2) -> void:
 	var on_errand := not is_nan(_errand_x)
 	if on_errand:
 		facing = signf(_errand_x - _window_pos.x)
-	_window_pos.x += facing * _walk_speed * _size * (1.0 - BAGGAGE_DRAG * baggage) * delta
+	var speed := _walk_speed * _size * pace * (1.0 - BAGGAGE_DRAG * baggage)
 	if on_errand:
 		# An errand goes on whatever the wish, until the pet is there.
-		if absf(_errand_x - _window_pos.x) < 4.0 or _window_pos.x <= area.position.x or _window_pos.x >= area.end.x:
-			_errand_x = NAN
-			_enter(State.IDLE)
+		_window_pos.x = move_toward(_window_pos.x, clampf(_errand_x, area.position.x, area.end.x), speed * _errand_hurry * delta)
+		if is_equal_approx(_window_pos.x, clampf(_errand_x, area.position.x, area.end.x)):
+			_enter(_errand_then)
 		return
+	_window_pos.x += facing * speed * delta
 	if _window_pos.x <= area.position.x:
 		facing = 1.0
 	elif _window_pos.x >= area.end.x:
@@ -241,6 +273,8 @@ func _fly(delta: float, area: Rect2) -> void:
 	if _window_pos.y < area.end.y:
 		return
 	_window_pos.y = area.end.y
+	if _velocity.y > THUD_SPEED * _size:
+		Events.post(&"pet_landed", {"pet": self})
 	if _velocity.y > MIN_BOUNCE_SPEED * _size:
 		_velocity = Vector2(_velocity.x * BOUNCE, -_velocity.y * BOUNCE)
 	else:
@@ -270,7 +304,7 @@ func is_lively() -> bool:
 
 ## True when the pet is free to stop for another pet.
 func is_free() -> bool:
-	return wish == Wish.ROAM and is_nan(_errand_x) and state in [State.IDLE, State.SIT, State.WALK]
+	return wish == Wish.ROAM and not rooted and is_nan(_errand_x) and state in [State.IDLE, State.SIT, State.WALK]
 
 
 func is_perched() -> bool:
@@ -326,13 +360,37 @@ func high_five(side: float) -> void:
 	_play(State.HIGH_FIVE)
 
 
-## Walks until its feet are at the given screen x, whatever the wish.
-## Does nothing in the air or on a perch.
-func walk_to(feet_x: float) -> void:
-	if _perched or state not in [State.IDLE, State.SIT, State.WALK]:
+## Sweeps the floor in front of itself.
+func sweep() -> void:
+	_play(State.SWEEP)
+
+
+## Walks until its feet are at the given screen x, whatever the wish, then
+## enters the given state. Does nothing in the air or on a perch.
+func walk_to(feet_x: float, then := State.IDLE, hurry := 1.0) -> void:
+	if _perched or is_airborne() or state == State.CLIMB:
 		return
-	_errand_x = feet_x - _window.size.x / 2.0
 	_enter(State.WALK)
+	_errand_x = feet_x - _window.size.x / 2.0
+	_errand_then = then
+	_errand_hurry = hurry
+
+
+## Runs until its feet are at the given screen x, then knocks twice on the
+## screen edge on the given side (-1 left, 1 right). On a perch or in the air:
+## knocks where it is.
+func knock_at(feet_x: float, side: float) -> void:
+	_knock_side = side
+	if _perched:
+		_play(State.KNOCK)
+	else:
+		walk_to(feet_x, State.KNOCK, KNOCK_HURRY)
+
+
+## Jumps onto the given top edge and stands at its middle.
+func climb_onto(edge: Rect2) -> void:
+	perch = edge
+	_start_climb(true)
 
 
 func grab() -> void:
@@ -360,6 +418,9 @@ func _enter(next: State) -> void:
 	umbrella = false
 	if next != State.WALK:
 		_errand_x = NAN
+	if next == State.KNOCK:
+		facing = _knock_side
+		Events.post(&"pet_knocked", {"pet": self})
 	match next:
 		State.IDLE:
 			_timer = randf_range(2.0, 6.0)
@@ -381,10 +442,12 @@ func _can_climb() -> bool:
 	return top >= _area.position.y - 100.0 * _size and top < _area.end.y - 100.0 * _size
 
 
-func _start_climb() -> void:
+func _start_climb(centered := false) -> void:
 	_climb_from = _window_pos
 	var spot := _perch_ground()
 	_climb_to = Vector2(randf_range(spot.position.x, spot.end.x), spot.end.y)
+	if centered:
+		_climb_to.x = spot.get_center().x
 	facing = signf(_climb_to.x - _climb_from.x)
 	_enter(State.CLIMB)
 

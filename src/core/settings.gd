@@ -6,10 +6,14 @@ signal changed
 
 const PATH := "user://settings.cfg"
 const DEFAULTS := {
-	"pet": {"size": 1.0, "walk_speed": 70.0, "show_name": true, "accessories": true, "greetings": true},
+	"pet": {
+		"size": 1.0, "walk_speed": 70.0, "show_name": true, "accessories": true, "greetings": true,
+		"tower": true, "headlamp": true,
+	},
+	"sound": {"enabled": true, "volume": 50},
 	"sleep": {"night_start_hour": 23, "night_end_hour": 7, "idle_minutes": 5.0},
 	"bubble": {"enabled": true, "seconds": 4.0},
-	"claude": {"show_activity": true, "nag_minutes": 2.0, "context_window_k": 1000},
+	"claude": {"show_activity": true, "nag_minutes": 2.0, "context_window_k": 1000, "knock": true},
 	"git": {"enabled": true},
 	"desktop": {"perch": true, "cuddle": true},
 	"focus": {"minutes": 25.0, "break_minutes": 5.0},

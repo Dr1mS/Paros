@@ -6,7 +6,8 @@ extends Node
 ##   session_closed,
 ##   session_phase {phase: &"idle" | &"working" | &"waiting", since: Unix time},
 ##   session_activity {tool, detail}, session_subagents {count},
-##   session_stalled {stalled}: working, but silent for a while,
+##   session_quiet {level}: working with no hook event, 0: for a moment,
+##     1: for a while, 2: for long,
 ##   session_needs_you {detail}, session_finished,
 ##   session_tool_failed {tool, detail, kind}, session_tests_passed.
 ##
@@ -28,9 +29,9 @@ const PROMPT_LINE := '{"type":"last-prompt"'
 const USAGE_MARK := '"usage":{'
 ## Tokens are posted rounded to this step, to post less often.
 const TOKEN_STEP := 10000
-## A working session with no hook event for this long is stalled: long
-## thinking or slow network, the two look the same from here.
-const STALL_SECONDS := 20.0
+## Seconds without hook event that make a working session quiet at level 1,
+## then 2. Long thinking or slow network: the two look the same from here.
+const QUIET_SECONDS: Array[float] = [8.0, 25.0]
 ## Session fields that the pet shows: a change posts session_changed.
 const SHOWN: Array[String] = ["name", "color", "cwd", "last_prompt", "pid", "context"]
 
@@ -38,7 +39,7 @@ var _claude_dir := _home().path_join(".claude")
 var _log_path := "/tmp/paros/claude-events.log"
 var _log_offset := 0
 ## Session id -> the SHOWN fields, plus phase, asking, subagents, transcript,
-## transcript_offset, heard (time of the last hook event), stalled.
+## transcript_offset, heard (time of the last hook event), quiet.
 var _sessions := {}
 ## Input token counts of an answer: fresh, written to cache, read from cache.
 var _token_counts := RegEx.create_from_string('"(?:input_tokens|cache_creation_input_tokens|cache_read_input_tokens)":(\\d+)')
@@ -103,7 +104,7 @@ func _update(id: String, entry: Dictionary) -> void:
 		_sessions[id] = {
 			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0,
 			"phase": &"", "asking": false, "subagents": 0, "transcript": "", "transcript_offset": 0,
-			"heard": _now(), "stalled": false,
+			"heard": _now(), "quiet": 0,
 		}
 	var session: Dictionary = _sessions[id]
 	var before := _shown(session)
@@ -225,10 +226,11 @@ func _update_phase(id: String, entry: Dictionary) -> void:
 		session.phase = phase
 		session.heard = _now()
 		Events.post(&"session_phase", {"session": id, "phase": phase, "since": since})
-	var stalled: bool = phase == &"working" and _now() - session.heard >= STALL_SECONDS
-	if stalled != session.stalled:
-		session.stalled = stalled
-		Events.post(&"session_stalled", {"session": id, "stalled": stalled})
+	var silent_for: float = _now() - session.heard if phase == &"working" else 0.0
+	var quiet := QUIET_SECONDS.filter(func(seconds: float) -> bool: return silent_for >= seconds).size()
+	if quiet != session.quiet:
+		session.quiet = quiet
+		Events.post(&"session_quiet", {"session": id, "level": quiet})
 
 
 func _now() -> float:

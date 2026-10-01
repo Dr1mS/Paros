@@ -1,5 +1,6 @@
 extends Node
-## Posts: cpu_hot, battery_low {percent}.
+## Posts: cpu_hot, battery_low {percent}, system_load {load}.
+## load: runnable tasks per core over the last minute. 1: every core busy.
 ## cpu_hot: the processor is very hot, or every core has been busy for a minute.
 ## Reads Linux sysfs. On other systems the files do not exist and this sense
 ## stays silent.
@@ -16,6 +17,7 @@ const POWER := "/sys/class/power_supply"
 
 ## Event -> time of its last post, in seconds.
 var _posted := {}
+var _load := -1.0
 
 
 func _ready() -> void:
@@ -24,6 +26,7 @@ func _ready() -> void:
 	timer.autostart = true
 	timer.timeout.connect(_poll)
 	add_child(timer)
+	_poll.call_deferred()
 
 
 func _poll() -> void:
@@ -31,7 +34,10 @@ func _poll() -> void:
 	for zone in DirAccess.get_directories_at(THERMAL):
 		# Millidegrees.
 		hottest = maxf(hottest, _read(THERMAL.path_join(zone).path_join("temp")).to_float() / 1000.0)
-	var load := _read("/proc/loadavg").get_slice(" ", 0).to_float() / OS.get_processor_count()
+	var load := snappedf(Desktop.read_proc("/proc/loadavg").get_slice(" ", 0).to_float() / OS.get_processor_count(), 0.1)
+	if load != _load and FileAccess.file_exists("/proc/loadavg"):
+		_load = load
+		Events.post(&"system_load", {"load": load})
 	if hottest >= HOT_CELSIUS or load >= BUSY_LOAD:
 		_post(&"cpu_hot", {})
 

@@ -27,7 +27,24 @@ Après un clone, ou après l'ajout d'un script avec `class_name`, lancer une foi
 | Survol | Fiche de la session ; ses yeux suivent la souris |
 | Clic droit | Menu : aller au terminal, le faire sonner, focus, « Réglages… », « Quitter » |
 
-Seul, il marche, s'assoit et regarde autour de lui. Il s'endort la nuit (23 h à 7 h) et après 5 minutes sans activité clavier ni souris, puis s'étire au réveil. Deux personnages qui se croisent se saluent.
+Seul, il marche, s'assoit et regarde autour de lui. Il flâne quand la machine ne fait rien et trottine quand tous les cœurs sont occupés (charge moyenne de Linux). La nuit, éveillé, il allume une lampe frontale. Il s'endort la nuit (23 h à 7 h) et après 5 minutes sans activité clavier ni souris, puis s'étire au réveil. Deux personnages qui se croisent se saluent.
+
+### Tour des sessions au repos
+
+Quand au moins deux sessions sont au repos depuis 90 secondes, leurs personnages se rejoignent et s'empilent, assis l'un sur l'autre. La tour s'écroule dès qu'une de ces sessions reçoit un prompt, ou qu'un personnage est attrapé.
+
+### Sons
+
+Aucun fichier audio : ondes carrées et bruit blanc calculés par `src/core/sound.gd`.
+
+| Son | Quand |
+|---|---|
+| Deux notes montantes | Tour fini, tests verts |
+| Deux notes descendantes, la dernière dissonante | Commande ou tests échoués |
+| Souffle court | Retombée au sol après un lancer |
+| Deux coups sourds | Toc-toc sur le bord de l'écran |
+
+Le pilote audio coûte environ 2 % d'un cœur, sons coupés ou non. Pour l'éviter : lancer avec `--audio-driver Dummy`.
 
 ### Focus
 
@@ -78,7 +95,9 @@ Sans les hooks, noms, couleurs et états restent suivis. Tout le reste du tablea
 | Tests échoués | Tremble, bulle « Tests rouges » |
 | Autre commande échouée | Tremble, goutte de sueur |
 | Attente plus longue que 2 minutes | Saute plus haut, bulle de rappel chaque minute |
-| Aucun événement depuis 20 s pendant le travail | Tape du pied, regarde par terre. Réflexion longue ou réseau lent : impossible à distinguer |
+| Aucun événement depuis 8 s pendant le travail | Tape du pied, regarde par terre |
+| Aucun événement depuis 25 s | Médite : assis, flotte au-dessus du sol, signes mathématiques en orbite. Réflexion longue ou réseau lent : impossible à distinguer |
+| Attente depuis 20 s, terminal sans le focus | Court vers le bord d'écran le plus proche du curseur et toque deux fois : la fenêtre du personnage tremble de 2 pixels. Recommence toutes les 30 s. Sans l'extension GNOME, le focus est inconnu : il toque après 20 s d'attente |
 | Contexte rempli à 75 % ou plus | La tête fume |
 | Fin de tour ou tests verts, quand un voisin vient de réussir aussi | Les deux se tapent dans la main |
 
@@ -94,6 +113,7 @@ Lu toutes les 10 secondes avec `git status` et `git diff --shortstat` (réglage 
 | Fusion, rebase ou cherry-pick à terminer | Casque de chantier, panneau d'avertissement |
 | En retard sur la branche amont | Carte à la main, se gratte la tête, « ? ». Le retard date du dernier `git fetch` : Paros n'en lance pas |
 | Deux sessions dans le même dossier et la même branche | En se croisant, les deux se toisent au lieu de se saluer |
+| Commit qui laisse l'arbre de travail propre | Trois coups de balai, puis lunettes de soleil pendant une minute |
 
 Fiche au survol : dossier, état et sa durée, outil en cours, nombre de sous-agents, tokens de contexte, état git, dernier prompt.
 
@@ -130,10 +150,15 @@ Clic droit sur un personnage, puis « Réglages… ». Chaque changement s'appli
 | Afficher le nom de session | oui | `pet/show_name` |
 | Accessoires | oui | `pet/accessories` |
 | Les personnages se saluent | oui | `pet/greetings` |
+| Tour des sessions au repos | oui | `pet/tower` |
+| Lampe frontale la nuit | oui | `pet/headlamp` |
+| Activer les sons | oui | `sound/enabled` |
+| Volume | 50 % | `sound/volume` |
 | Afficher les bulles | oui | `bubble/enabled` |
 | Durée des bulles | 4 s | `bubble/seconds` |
 | Afficher l'outil en cours | oui | `claude/show_activity` |
 | Insister après une attente de | 2 min | `claude/nag_minutes` |
+| Toquer quand le terminal n'a pas le focus | oui | `claude/knock` |
 | Fenêtre de contexte du modèle | 1000 k tokens | `claude/context_window_k` |
 | Suivre l'état git des dossiers | oui | `git/enabled` |
 | Grimper sur la fenêtre active | oui | `desktop/perch` |
@@ -165,6 +190,7 @@ Chaque personnage a sa propre fenêtre (`src/pet/pet_window.tscn`). La fenêtre 
 | `src/core/autostart.gd` | Lancement à l'ouverture de session |
 | `src/core/focus.gd` | Minuteur de focus (autoload `Focus`) |
 | `src/core/desktop.gd` | Actions sur le bureau : terminal au premier plan, sonnerie |
+| `src/core/sound.gd` | Sons calculés (autoload `Sound`) |
 | `src/senses/` | Un fichier par sens. Un sens observe et poste des événements, rien d'autre |
 | `src/brain/brain.gd` | Toutes les règles : quel événement provoque quel comportement |
 | `src/pet/pets.gd` | Crée et supprime les personnages, un par clé de session. Gère ce qui se fait à deux : salut, rivalité, tape dans la main |
@@ -191,10 +217,11 @@ Chaque personnage a sa propre fenêtre (`src/pet/pet_window.tscn`). La fenêtre 
 | `night`, `day` | `clock_sense.gd` |
 | `user_idle`, `user_active` | `idle_sense.gd` |
 | `pointer_double`, `pointer_enter`, `pointer_leave`, `files_dropped` | `pet/pointer.gd` |
-| `session_opened`, `session_changed`, `session_closed`, `session_phase`, `session_activity`, `session_stalled`, `session_subagents`, `session_finished`, `session_needs_you`, `session_tool_failed`, `session_tests_passed` | `claude_code_sense.gd` |
-| `repo_state` | `git_sense.gd` |
-| `desktop_state`, `pointer_idle`, `pointer_moved` | `desktop_sense.gd` |
-| `cpu_hot`, `battery_low` | `system_sense.gd` |
+| `pet_landed`, `pet_knocked` | `pet/pet.gd` |
+| `session_opened`, `session_changed`, `session_closed`, `session_phase`, `session_activity`, `session_quiet`, `session_subagents`, `session_finished`, `session_needs_you`, `session_tool_failed`, `session_tests_passed` | `claude_code_sense.gd` |
+| `repo_state`, `repo_cleaned` | `git_sense.gd` |
+| `desktop_state`, `pointer_at`, `pointer_idle`, `pointer_moved` | `desktop_sense.gd` |
+| `cpu_hot`, `battery_low`, `system_load` | `system_sense.gd` |
 | `focus_started`, `focus_finished`, `break_finished` | `core/focus.gd` |
 | `settings_requested`, `locate_requested` | `ui/context_menu.gd` |
 
@@ -211,11 +238,10 @@ Le binaire est autonome : Godot n'est plus nécessaire pour le lancer. « Lancer
 
 ## Consommation
 
-Environ 10 % d'un cœur et 150 Mo de mémoire pour trois personnages (Intel HD 530). Le rendu coûte l'essentiel :
+Environ 12 % d'un cœur et 150 Mo de mémoire pour trois personnages (Intel HD 530). Le rendu coûte l'essentiel :
 
 - 30 images par seconde quand un personnage bouge, 12 quand tous sont calmes (`src/pet/pets.gd`).
 - Pilote OpenGL ES sous Linux : deux fois moins coûteux que OpenGL avec plusieurs fenêtres.
-- Pas de sortie audio.
 
 ## Plateformes
 

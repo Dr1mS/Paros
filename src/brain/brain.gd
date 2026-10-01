@@ -24,6 +24,21 @@ const PROMPT_MAX_LENGTH := 70
 const BAGGAGE_LEVELS: Array[int] = [1, 50, 300]
 ## Distance kept from the pointer by the pet that sleeps beside it, at size 1.
 const CUDDLE_GAP := 70.0
+## A session waits and its terminal is not focused for this long: its pet
+## knocks on the screen edge. Then again at each repeat.
+const KNOCK_AFTER_SECONDS := 20.0
+const KNOCK_REPEAT_SECONDS := 30.0
+## Distance from the screen edge to the feet of a knocking pet, at size 1.
+const KNOCK_REACH := 72.0
+## Walk pace when the machine does nothing, and when every core is busy.
+const PACE_RANGE := Vector2(0.7, 1.6)
+## Sessions at rest for this long gather in a tower.
+const TOWER_AFTER_SECONDS := 90.0
+## Height of one sitting pet, and width of the head a pet stands on, at size 1.
+const TOWER_LEVEL := 72.0
+const TOWER_WIDTH := 200.0
+## Seconds of sunglasses after a commit that leaves nothing to commit.
+const COOL_SECONDS := 60.0
 
 @export var pets: Pets
 
@@ -31,12 +46,22 @@ var _night := false
 var _user_idle := false
 ## Session id -> what the senses told about it: name, color, cwd, last_prompt,
 ## pid, context, phase, since, tool, detail, count, stalled, branch, dirty,
-## behind, conflict. Plus "nagged". Times are Unix times.
+## behind, conflict, level. Plus "nagged", "knocked", "unfocused_since",
+## "cool_until", "lineage". Times are Unix times.
 var _sessions := {}
 ## Frame of the focused window. No size: none, or not known.
 var _active_window := Rect2()
+## Process that owns the focused window. -1: not known.
+var _active_pid := -1
+## Last known pointer position, in screen coordinates.
+var _pointer := Vector2.ZERO
+var _pointer_known := false
 ## Pet that sleeps beside the still pointer. Null: none.
 var _cuddler: Pet = null
+## Pets stacked on each other, the one on the ground first.
+var _tower: Array[Pet] = []
+## Runnable tasks per core. 1: every core busy.
+var _load := 0.0
 
 
 func _ready() -> void:
@@ -56,13 +81,30 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 		if event == &"session_opened":
 			pets.remove(NO_SESSION)
 			pets.add(data.session)
-			_sessions[data.session] = {"phase": &"idle", "since": _now(), "nagged": 0.0}
+			_sessions[data.session] = {
+				"phase": &"idle", "since": _now(), "nagged": 0.0, "knocked": 0.0, "unfocused_since": _now(),
+				"lineage": Desktop.lineage(data.pid),
+			}
 		if not _sessions.has(data.session):
 			return
 		_sessions[data.session].merge(data, true)
 		pet = pets.find(data.session)
 
 	match event:
+		&"pointer_at":
+			# Comes twice a second while the pointer moves: nothing else to update.
+			_pointer = data.position
+			_pointer_known = true
+			return
+		&"pet_landed":
+			Sound.play(&"thud")
+		&"pet_knocked":
+			Sound.play(&"knock")
+		&"system_load":
+			_load = data.load
+		&"repo_cleaned":
+			pet.sweep()
+			_sessions[data.session].cool_until = _now() + COOL_SECONDS
 		&"pointer_tap":
 			pet.cheer()
 		&"pointer_double":
@@ -86,6 +128,8 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 		&"user_active":
 			_user_idle = false
 		&"session_closed":
+			if pet in _tower:
+				_fell_tower()
 			pets.remove(data.session)
 			_sessions.erase(data.session)
 			if pets.keys().is_empty():
@@ -96,14 +140,17 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			pet.cheer()
 			pet.say("Tâche finie !")
 			pets.celebrate(pet)
+			Sound.play(&"success")
 		&"session_needs_you":
 			pet.say(data.detail if not data.detail.is_empty() else "Claude attend ta réponse")
 		&"session_tests_passed":
 			pet.cheer()
 			pet.say("Tests verts !")
 			pets.celebrate(pet)
+			Sound.play(&"success")
 		&"session_tool_failed":
 			pet.worry()
+			Sound.play(&"failure")
 			if data.kind == "test":
 				pet.say("Tests rouges")
 		&"focus_started":
@@ -122,6 +169,7 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 		&"desktop_state":
 			# A full screen window has no top edge to stand on.
 			_active_window = Rect2() if data.fullscreen else data.active
+			_active_pid = data.pid
 		&"pointer_idle":
 			_send_cuddler(data.position)
 		&"pointer_moved":
@@ -129,16 +177,28 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 	_refresh()
 
 
-## Every second: cards show durations, and a long wait gets a reminder.
+## Every second: cards show durations, a long wait gets a reminder and a
+## knock, the tower grows.
 func _tick() -> void:
 	var nag_after: float = Settings.value("claude", "nag_minutes") * 60.0
 	for key: String in _sessions:
 		var session: Dictionary = _sessions[key]
 		var waited: float = _now() - session.since
-		if session.phase == &"waiting" and waited >= nag_after and _now() - session.nagged >= NAG_REPEAT_SECONDS:
+		if session.phase != &"waiting" or _active_pid in session.lineage:
+			session.unfocused_since = _now()
+			continue
+		if waited >= nag_after and _now() - session.nagged >= NAG_REPEAT_SECONDS:
 			session.nagged = _now()
 			pets.find(key).urgent = true
 			pets.find(key).say("Claude attend depuis %s" % _duration(waited))
+		if (
+			Settings.value("claude", "knock")
+			and _now() - session.unfocused_since >= KNOCK_AFTER_SECONDS
+			and _now() - session.knocked >= KNOCK_REPEAT_SECONDS
+		):
+			session.knocked = _now()
+			_send_to_knock(pets.find(key))
+	_grow_tower()
 	_refresh()
 
 
@@ -151,9 +211,14 @@ func _refresh() -> void:
 		var phase: StringName = session.get("phase", &"idle")
 		if not session.is_empty():
 			_dress(pet, session)
-		pet.perch = _active_window
+		var level := _tower.find(pet)
+		pet.perch = _tower_edge(level) if level > 0 else _active_window
 		pet.wish = Pet.Wish.SLEEP if pet == _cuddler else _wish(phase)
-		pet.tapping = session.get("stalled", false)
+		pet.tapping = session.get("level", 0) == 1
+		pet.meditating = session.get("level", 0) == 2
+		pet.pace = lerpf(PACE_RANGE.x, PACE_RANGE.y, clampf(_load, 0.0, 1.0))
+		pet.headlamp = _night and Settings.value("pet", "headlamp")
+		pet.cool = _now() < session.get("cool_until", 0.0)
 		pet.caption = _activity(session) if phase == &"working" and Settings.value("claude", "show_activity") else ""
 		pet.show_card(_card(session) if pet.hovered else "")
 
@@ -197,6 +262,78 @@ func _send_cuddler(pointer: Vector2) -> void:
 		_cuddler = nearest
 		var side := signf(nearest.feet().x - pointer.x)
 		nearest.walk_to(pointer.x + side * CUDDLE_GAP * nearest.scale_factor())
+
+
+## Sends the pet to knock on the screen edge nearest to the pointer. Without
+## the pointer: nearest to the pet.
+func _send_to_knock(pet: Pet) -> void:
+	var near := _pointer if _pointer_known else pet.feet()
+	var screen := Desktop.screen_at(near)
+	if not screen.has_area():
+		pet.knock_at(pet.feet().x, pet.facing)
+		return
+	var side := -1.0 if near.x - screen.position.x < screen.end.x - near.x else 1.0
+	var edge := screen.position.x if side < 0.0 else screen.end.x
+	pet.knock_at(edge - side * KNOCK_REACH * pet.scale_factor(), side)
+
+
+## Builds the tower of the sessions at rest, one pet per second, and brings
+## it down when one of them is no longer at rest.
+func _grow_tower() -> void:
+	var standing: bool = not (_night or _user_idle) and Settings.value("pet", "tower")
+	for pet in _tower:
+		standing = standing and _rests(pet) and not pet.is_airborne()
+	if not standing:
+		_fell_tower()
+		return
+
+	if _tower.is_empty():
+		for key: String in _sessions:
+			var pet := pets.find(key)
+			if _rests(pet) and pet.is_free() and not pet.is_perched():
+				_tower.append(pet)
+		if _tower.size() < 2:
+			_tower.clear()
+			return
+		_tower[0].rooted = true
+	for level in range(1, _tower.size()):
+		var pet := _tower[level]
+		if pet.is_perched():
+			pet.rooted = true
+		if pet.rooted:
+			continue
+		# One at a time: the pet below must be in place.
+		if level > 1 and not _tower[level - 1].is_perched():
+			return
+		var base_x := _tower[0].feet().x
+		if absf(pet.feet().x - base_x) > 12.0 * pet.scale_factor():
+			if pet.is_free():
+				pet.walk_to(base_x)
+		elif pet.is_free():
+			pet.rooted = true
+			pet.climb_onto(_tower_edge(level))
+		return
+
+
+## Frees the pets of the tower: those above the ground fall.
+func _fell_tower() -> void:
+	for pet in _tower:
+		pet.rooted = false
+	_tower.clear()
+
+
+## True when the session of the pet has been at rest long enough for the tower.
+func _rests(pet: Pet) -> bool:
+	var session: Dictionary = _sessions.get(pet.key, {})
+	return session.get("phase") == &"idle" and _now() - session.since >= TOWER_AFTER_SECONDS
+
+
+## Head of the pet below, for the pet at the given level of the tower.
+func _tower_edge(level: int) -> Rect2:
+	var base := _tower[0]
+	var size := base.scale_factor()
+	var feet := base.feet().round()
+	return Rect2(feet.x - TOWER_WIDTH * size / 2.0, feet.y - level * TOWER_LEVEL * size, TOWER_WIDTH * size, 0)
 
 
 ## Tool in use, such as "Edit · pet.gd".

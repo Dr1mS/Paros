@@ -23,6 +23,8 @@ const SMOKE := Color("#a8a8a8")
 const WOOD := Color("#8a5a33")
 const MANILA := Color("#e8c98a")
 const FLAME := Color("#ff8a2a")
+const STRAW := Color("#d9b24a")
+const LIGHT := Color(1.0, 0.93, 0.45, 0.3)
 const SHADOW := Color(0, 0, 0, 0.18)
 
 ## Worn on the head. "room": grid units taken above the head, so that the
@@ -76,6 +78,17 @@ const UMBRELLA: Array[Array] = [
 	[Rect2(-5, -17.5, 10, 1), HEART], [Rect2(-3, -18.3, 6, 0.8), HEART],
 ]
 const CAMPFIRE_X := 10.0
+const SHADES: Array[Array] = [
+	[Rect2(-5.6, -8.6, 4.2, 2.3), EYE], [Rect2(1.4, -8.6, 4.2, 2.3), EYE], [Rect2(-1.4, -8.2, 2.8, 0.6), EYE],
+	[Rect2(-5.0, -8.2, 1.0, 0.5), PAPER], [Rect2(2.0, -8.2, 1.0, 0.5), PAPER],
+]
+## Lamp on the forehead, on the side the pet faces, and its strap.
+const HEADLAMP: Array[Array] = [[Rect2(-6, -9.5, 12, 0.5), EYE], [Rect2(4.4, -9.9, 1.4, 1.3), GOLD]]
+## Light of the lamp on the ground ahead: lamp, far end, near end. Grid units.
+const BEAM: Array[Vector2] = [Vector2(5.8, -9.2), Vector2(16, 0.4), Vector2(8.5, 0.4)]
+## Signs that circle a meditating pet.
+const MANTRA: PackedStringArray = ["π", "∑", "√", "∞"]
+const LEVITATION := 5.0
 
 const HEART_ROWS: PackedStringArray = [
 	".XX.XX.",
@@ -126,7 +139,8 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var state := _pet.state
 	var airborne := _pet.is_airborne() or state == Pet.State.CLIMB
-	var seated := state in [Pet.State.SLEEP, Pet.State.SIT, Pet.State.ROAST]
+	var meditating := state == Pet.State.THINK and _pet.meditating
+	var seated := meditating or state in [Pet.State.SLEEP, Pet.State.SIT, Pet.State.ROAST]
 	var still := state in [Pet.State.IDLE, Pet.State.SIT]
 	# Index of the arm on the side the pet faces, and of the other one.
 	var front := 1 if _pet.facing > 0.0 else 0
@@ -138,7 +152,14 @@ func _draw() -> void:
 	var arm_raise: Array[float] = [0.0, 0.0]
 	match state:
 		Pet.State.WALK:
-			rise = absf(sin(_time * 9.0)) * 3.0
+			rise = absf(sin(_time * 9.0 * _pet.pace)) * 3.0
+		Pet.State.KNOCK:
+			# The arm in front goes up for each blow.
+			for blow in Pet.KNOCK_BLOWS:
+				if absf(_pet.state_time - blow) < 0.12:
+					arm_raise[front] = 2.0
+		Pet.State.SWEEP:
+			arm_raise[front] = 0.5
 		Pet.State.STRETCH:
 			rise = sin(minf(_pet.state_time / Pet.TIMED[state], 1.0) * PI) * 12.0
 			arm_raise = [2.0, 2.0]
@@ -170,10 +191,16 @@ func _draw() -> void:
 	if _pet.lost and still:
 		# Scratches its head.
 		arm_raise[1 - front] = 2.0 + 0.5 * float(sin(_time * 8.0) > 0.0)
+	if meditating:
+		# Floats above the ground.
+		hop = LEVITATION + sin(_time * 1.5) * 2.0
 	var body_offset := Vector2(shake, -hop - rise)
 
-	_draw_tag(_pet.label.left(LABEL_MAX_LENGTH) if Settings.value("pet", "show_name") else "", GROUND + Vector2(0, 7), _pet.color)
-	if not airborne:
+	# Stacked on another pet: no name tag and no shadow over its face.
+	var stacked := _pet.rooted and _pet.is_perched()
+	if Settings.value("pet", "show_name") and not stacked:
+		_draw_tag(_pet.label.left(LABEL_MAX_LENGTH), GROUND + Vector2(0, 7), _pet.color)
+	if not airborne and not stacked:
 		var width := 13.0 * UNIT * (1.0 - hop * 0.015)
 		draw_rect(Rect2(GROUND + Vector2(-width / 2.0, 0), Vector2(width, 4)), SHADOW)
 	if _pet.hard_hat and not airborne:
@@ -181,13 +208,26 @@ func _draw() -> void:
 	for i in mini(_mini_born.size(), MINI_SPOTS.size()):
 		_draw_mini(i)
 
+	if _pet.headlamp and state != Pet.State.SLEEP and not airborne:
+		var beam := PackedVector2Array()
+		for point in BEAM:
+			beam.append(GROUND + Vector2(point.x * signf(_pet.facing), point.y) * UNIT + (body_offset if point.y < 0.0 else Vector2.ZERO))
+		draw_colored_polygon(beam, LIGHT)
 	if not seated:
 		_draw_legs(state, body_offset, hop, airborne)
 	_draw_baggage(body_offset)
 	_block(BODY, body_offset, _pet.color)
 	for i in ARMS.size():
 		_block(ARMS[i], body_offset - Vector2(0, arm_raise[i] * UNIT), _pet.color)
-	_draw_eyes(state, body_offset)
+	_draw_eyes(state, body_offset, meditating)
+	if _pet.cool:
+		_blocks(SHADES, body_offset, false)
+	if _pet.headlamp and state != Pet.State.SLEEP:
+		_blocks(HEADLAMP, body_offset, true)
+	if state == Pet.State.SWEEP:
+		_draw_broom()
+	if meditating:
+		_draw_mantra(body_offset)
 
 	var worn: Dictionary = HARD_HAT
 	if not _pet.hard_hat:
@@ -241,7 +281,7 @@ func _draw_legs(state: Pet.State, body_offset: Vector2, hop: float, airborne: bo
 		var bottom := GROUND.y - hop
 		if state == Pet.State.WALK:
 			# Legs step in two alternating pairs.
-			bottom -= maxf(0.0, sin(_time * 9.0 + (i % 2) * PI)) * UNIT * 0.8
+			bottom -= maxf(0.0, sin(_time * 9.0 * _pet.pace + (i % 2) * PI)) * UNIT * 0.8
 		elif airborne:
 			x += sin(_time * 6.0 + i) * 2.0
 		elif state == Pet.State.THINK and _pet.tapping and i == front_leg:
@@ -249,8 +289,8 @@ func _draw_legs(state: Pet.State, body_offset: Vector2, hop: float, airborne: bo
 		draw_rect(Rect2(x, top, UNIT, bottom - top), _pet.color)
 
 
-func _draw_eyes(state: Pet.State, body_offset: Vector2) -> void:
-	var closed := _blink_in < 0.0 and not _pet.is_airborne()
+func _draw_eyes(state: Pet.State, body_offset: Vector2, meditating: bool) -> void:
+	var closed := meditating or (_blink_in < 0.0 and not _pet.is_airborne())
 	var wide := _pet.is_airborne()
 	var look := Vector2(_pet.facing, 0)
 	match state:
@@ -281,6 +321,28 @@ func _draw_eyes(state: Pet.State, body_offset: Vector2) -> void:
 		elif wide:
 			shape = shape.grow(0.3)
 		_block(shape, body_offset, EYE)
+
+
+## Broom held in front, three strokes over the floor, with dust.
+func _draw_broom() -> void:
+	var stroke := sin(_pet.state_time / Pet.TIMED[Pet.State.SWEEP] * TAU * 3.0)
+	var x := 8.6 + stroke * 1.4
+	_blocks([
+		[Rect2(x, -7.5, 0.4, 6.5), WOOD], [Rect2(x - 0.9, -1.3, 2.2, 1.3), STRAW],
+		[Rect2(x + 2.0 * signf(stroke), -1.0 - absf(stroke), 0.6, 0.6), SMOKE],
+		[Rect2(x + 3.0 * signf(stroke), -0.6 - absf(stroke) * 1.8, 0.5, 0.5), SMOKE],
+	], Vector2.ZERO, true)
+
+
+## Signs that circle the pet, behind it then in front.
+func _draw_mantra(body_offset: Vector2) -> void:
+	var center := GROUND + body_offset + Vector2(0, -6.0 * UNIT)
+	for i in MANTRA.size():
+		var angle := _time * 1.1 + TAU * i / MANTRA.size()
+		var at := center + Vector2(cos(angle) * 9.5 * UNIT, sin(angle) * 2.2 * UNIT)
+		# Smaller and paler at the back of the circle.
+		var depth := sin(angle) * 0.5 + 0.5
+		draw_string(_font, at, MANTRA[i], HORIZONTAL_ALIGNMENT_LEFT, -1, int(11 + depth * 7), Color(GOLD, 0.45 + depth * 0.55))
 
 
 ## Pile of folders carried on the back arm.

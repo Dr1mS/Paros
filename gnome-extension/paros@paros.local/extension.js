@@ -1,7 +1,7 @@
 // Bridge between GNOME Shell and Paros.
 //
 // Writes the desktop state to $XDG_RUNTIME_DIR/paros/desktop.json:
-//   {"pointer": [x, y], "active": {"x", "y", "width", "height", "fullscreen"} | null}
+//   {"pointer": [x, y], "active": {"x", "y", "width", "height", "fullscreen", "pid"} | null}
 // and offers one D-Bus method on org.gnome.Shell, object /org/paros/Desktop:
 //   org.paros.Desktop.Activate(au pids, s title) -> b
 // which brings to the front a window owned by one of the processes, the one
@@ -73,7 +73,7 @@ export default class ParosExtension extends Extension {
             const frame = window.get_frame_rect();
             active = {
                 x: frame.x, y: frame.y, width: frame.width, height: frame.height,
-                fullscreen: window.is_fullscreen(),
+                fullscreen: window.is_fullscreen(), pid: window.get_pid(),
             };
         }
         const state = JSON.stringify({pointer: [x, y], active});

@@ -10,5 +10,10 @@ case "$preset" in
 	Windows) output="build/paros.exe" ;;
 	*) output="build/paros.x86_64" ;;
 esac
-"${GODOT_PATH:-godot}" --headless --path . --export-release "$preset" "$output"
+godot="${GODOT_PATH:-godot}"
+if ! command -v "$godot" >/dev/null 2>&1; then
+	echo "Godot introuvable. Indiquer Godot : export GODOT_PATH=/chemin/vers/godot" >&2
+	exit 1
+fi
+"$godot" --headless --path . --export-release "$preset" "$output"
 echo "Exporté : $output"

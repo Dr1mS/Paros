@@ -23,6 +23,7 @@ boot_splash/bg_color=Color(0, 0, 0, 0)
 [autoload]
 
 Settings="*res://src/core/settings.gd"
+Language="*res://src/core/language.gd"
 Events="*res://src/core/events.gd"
 Focus="*res://src/core/focus.gd"
 Sound="*res://src/core/sound.gd"

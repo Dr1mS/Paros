@@ -6,6 +6,8 @@ const FOLDER := "res://tests"
 
 
 func _ready() -> void:
+	# The texts checked by the tests are the English ones, whatever the system.
+	Settings.set_value("interface", "language", "en")
 	var failed := 0
 	var passed := 0
 	var files := Array(DirAccess.get_files_at(FOLDER)).filter(func(file: String) -> bool:

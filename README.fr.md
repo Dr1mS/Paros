@@ -4,7 +4,7 @@
 
 Compagnon de bureau pour Claude Code. Un petit personnage en pixels vit au bas de l'écran, un par session Claude Code ouverte. Un coup d'œil suffit pour savoir ce que fait chaque session : elle travaille, elle attend une réponse, elle a fini.
 
-![Cinq personnages, un par session : réflexion, attente, joie, fusion, sommeil](docs/images/hero.png)
+![Cinq personnages, un par session : réflexion, attente, joie, fusion, sommeil](docs/images/hero.fr.png)
 
 Godot 4.7, GDScript. Aucun fichier image ni son : tout est dessiné et synthétisé par le code.
 
@@ -22,7 +22,9 @@ Godot 4.7, GDScript. Aucun fichier image ni son : tout est dessiné et synthéti
 
 | Fiche au survol | Les sessions au repos s'empilent | Réglages |
 |---|---|---|
-| ![Fiche avec dossier, état, outil, contexte et état git](docs/images/card.png) | ![Deux personnages assis l'un sur l'autre](docs/images/tower.png) | ![Fenêtre de réglages](docs/images/settings.png) |
+| ![Fiche avec dossier, état, outil, contexte et état git](docs/images/card.fr.png) | ![Deux personnages assis l'un sur l'autre](docs/images/tower.png) | ![Fenêtre de réglages](docs/images/settings.fr.png) |
+
+L'interface (bulles, menu, réglages) est en français ou en anglais. Elle suit la langue du système, et se règle dans les réglages.
 
 ## Démarrage rapide
 
@@ -80,7 +82,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 ./test.sh
 ```
 
-76 tests unitaires, sans affichage, en quelques secondes.
+79 tests unitaires, sans affichage, en quelques secondes.
 
 ## Licence
 

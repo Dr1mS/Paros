@@ -27,6 +27,7 @@ Adding a feature nearly always comes down to: a sense that posts an event, a rul
 | `settings.gd` | User settings. Autoload `Settings` |
 | `focus.gd` | Focus timer. Autoload `Focus` |
 | `sound.gd` | Synthesized sounds. Autoload `Sound` |
+| `language.gd` | Interface language and French texts. Autoload `Language` |
 | `desktop.gd` | Actions on the desktop: terminal to the front, bell, monitor power, reading `/proc`. Class `Desktop` |
 | `autostart.gd` | Start at login. Class `Autostart` |
 | **`src/senses/`** | |
@@ -185,9 +186,15 @@ Add an entry to `TUNES` in `sound.gd`: a list of notes, each with its duration t
 
 A test checks that every setting of `DEFAULTS` is in the window.
 
+### Adding a displayed text
+
+Write it in English, as the argument of `tr()`: `pet.say(tr("Task done!"))`. A text with a number keeps its placeholder: `tr("Focus: %d min") % minutes`. The text of a label of the settings window is translated by the control itself.
+
+Then add its French version to `FRENCH` in `language.gd`. A test checks that both versions have the same placeholders, and that every label of the settings has a French text.
+
 ## Conventions
 
-- Code and comments in English, displayed text in French.
+- Code and comments in English. Displayed texts are written in English in the code and translated to French in `language.gd`.
 - A comment says why, not what the line does.
 - Rules go in the brain. A sense never orders a pet.
 - Nothing is drawn from an image file.

@@ -129,7 +129,7 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 		&"files_dropped":
 			# Typing into another terminal is not allowed: the paths go to the clipboard.
 			DisplayServer.clipboard_set(" ".join(Array(data.files).map(func(path: String) -> String: return "'%s'" % path)))
-			pet.say("Chemin copié : colle-le dans le terminal")
+			pet.say(tr("Path copied: paste it in the terminal"))
 		&"locate_requested":
 			Desktop.ring_terminal(_sessions.get(pet.key, {}).get("pid", 0))
 		&"night":
@@ -153,34 +153,34 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			pet.minis = data.count
 		&"session_finished":
 			pet.cheer()
-			pet.say("Tâche finie !")
+			pet.say(tr("Task done!"))
 			pets.celebrate(pet)
 			Sound.play(&"success")
 		&"session_needs_you":
-			pet.say(data.detail if not data.detail.is_empty() else "Claude attend ta réponse")
+			pet.say(data.detail if not data.detail.is_empty() else tr("Claude is waiting for you"))
 		&"session_tests_passed":
 			pet.cheer()
-			pet.say("Tests verts !")
+			pet.say(tr("Green tests!"))
 			pets.celebrate(pet)
 			Sound.play(&"success")
 		&"session_tool_failed":
 			pet.worry()
 			Sound.play(&"failure")
 			if data.kind == "test":
-				pet.say("Tests rouges")
+				pet.say(tr("Red tests"))
 		&"focus_started":
-			_tell_all("Focus : %d min" % Settings.value("focus", "minutes"))
+			_tell_all(tr("Focus: %d min") % Settings.value("focus", "minutes"))
 		&"focus_finished":
-			_tell_all("Pause ! %d min" % Settings.value("focus", "break_minutes"), true)
+			_tell_all(tr("Break! %d min") % Settings.value("focus", "break_minutes"), true)
 		&"break_finished":
-			_tell_all("Fin de pause. On reprend ?")
+			_tell_all(tr("Break is over. Back to it?"))
 		&"cpu_hot":
 			if Settings.value("system", "alerts"):
 				for key: String in pets.keys():
 					pets.find(key).roast()
 		&"battery_low":
 			if Settings.value("system", "alerts"):
-				_tell_all("Batterie faible : %d %%" % data.percent)
+				_tell_all(tr("Low battery: %d %%") % data.percent)
 		&"desktop_state":
 			# A full screen window has no top edge to stand on.
 			_active_window = Rect2() if data.fullscreen else data.active
@@ -206,7 +206,7 @@ func _tick() -> void:
 		if waited >= nag_after and _now() - session.nagged >= NAG_REPEAT_SECONDS:
 			session.nagged = _now()
 			pets.find(key).urgent = true
-			pets.find(key).say("Claude attend depuis %s" % _duration(waited))
+			pets.find(key).say(tr("Claude has been waiting for %s") % _duration(waited))
 		if (
 			Settings.value("claude", "knock")
 			and _now() - session.unfocused_since >= KNOCK_AFTER_SECONDS
@@ -391,36 +391,36 @@ func _card(session: Dictionary) -> String:
 		var lasted := _duration(_now() - session.since)
 		match session.phase:
 			&"working":
-				lines.append("Travaille depuis %s" % lasted)
+				lines.append(tr("Working for %s") % lasted)
 				if not _activity(session).is_empty():
 					lines.append(_activity(session))
 			&"waiting":
-				lines.append("Attend ta réponse depuis %s" % lasted)
+				lines.append(tr("Waiting for you for %s") % lasted)
 			_:
-				lines.append("Au repos depuis %s" % lasted)
+				lines.append(tr("At rest for %s") % lasted)
 		if session.get("count", 0) > 0:
-			lines.append("Sous-agents en cours : %d" % session.count)
+			lines.append(tr("Subagents running: %d") % session.count)
 		if session.context > 0:
-			lines.append("Contexte : %d k tokens (%d %%)" % [session.context / 1000, pets.find(session.session).fullness * 100.0])
+			lines.append(tr("Context: %d k tokens (%d %%)") % [session.context / 1000, pets.find(session.session).fullness * 100.0])
 		lines.append_array(_repo_lines(session))
 		if not session.last_prompt.is_empty():
-			lines.append("« %s »" % session.last_prompt.left(PROMPT_MAX_LENGTH).replace("\n", " "))
+			lines.append(tr("“%s”") % session.last_prompt.left(PROMPT_MAX_LENGTH).replace("\n", " "))
 	match Focus.phase:
 		Focus.Phase.FOCUS:
-			lines.append("Focus : reste %d min" % Focus.minutes_left())
+			lines.append(tr("Focus: %d min left") % Focus.minutes_left())
 		Focus.Phase.BREAK:
-			lines.append("Pause : reste %d min" % Focus.minutes_left())
+			lines.append(tr("Break: %d min left") % Focus.minutes_left())
 	return "\n".join(lines)
 
 
 func _repo_lines(session: Dictionary) -> PackedStringArray:
 	var lines: PackedStringArray = []
 	if session.get("conflict", false):
-		lines.append("Fusion ou rebase à terminer")
+		lines.append(tr("Merge or rebase to finish"))
 	if session.get("dirty", 0) > 0:
-		lines.append("Non commité : %d lignes" % session.dirty)
+		lines.append(tr("Uncommitted: %d lines") % session.dirty)
 	if session.get("behind", 0) > 0:
-		lines.append("En retard de %d commits sur origin" % session.behind)
+		lines.append(tr("%d commits behind origin") % session.behind)
 	return lines
 
 

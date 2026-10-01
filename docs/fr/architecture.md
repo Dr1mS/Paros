@@ -27,6 +27,7 @@ Ajouter une fonctionnalité revient presque toujours à : un sens qui poste un �
 | `settings.gd` | Réglages de l'utilisateur. Autoload `Settings` |
 | `focus.gd` | Minuteur de focus. Autoload `Focus` |
 | `sound.gd` | Sons synthétisés. Autoload `Sound` |
+| `language.gd` | Langue de l'interface et textes français. Autoload `Language` |
 | `desktop.gd` | Actions sur le bureau : terminal au premier plan, sonnerie, allumage des moniteurs, lecture de `/proc`. Classe `Desktop` |
 | `autostart.gd` | Lancement à l'ouverture de session. Classe `Autostart` |
 | **`src/senses/`** | |
@@ -185,9 +186,15 @@ Ajouter une entrée à `TUNES` dans `sound.gd` : une liste de notes, chacune ave
 
 Un test vérifie que tout réglage de `DEFAULTS` est dans la fenêtre.
 
+### Ajouter un texte affiché
+
+L'écrire en anglais, en argument de `tr()` : `pet.say(tr("Task done!"))`. Un texte avec un nombre garde son emplacement : `tr("Focus: %d min") % minutes`. Le texte d'un libellé de la fenêtre de réglages est traduit par le contrôle lui-même.
+
+Puis ajouter sa version française à `FRENCH` dans `language.gd`. Un test vérifie que les deux versions ont les mêmes emplacements, et que chaque libellé des réglages a un texte français.
+
 ## Conventions
 
-- Code et commentaires en anglais, textes affichés en français.
+- Code et commentaires en anglais. Les textes affichés sont écrits en anglais dans le code et traduits en français dans `language.gd`.
 - Un commentaire dit pourquoi, pas ce que fait la ligne.
 - Les règles vont dans le cerveau. Un sens ne commande jamais un personnage.
 - Rien n'est dessiné à partir d'un fichier image.

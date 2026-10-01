@@ -4,7 +4,7 @@
 
 A desktop companion for Claude Code. A small pixel pet lives at the bottom of your screen, one per open Claude Code session. One look tells you what each session is doing: working, waiting for you, or done.
 
-![Five pets, one per session: thinking, waiting, cheering, merging, sleeping](docs/images/hero.png)
+![Five pets, one per session: thinking, waiting, cheering, merging, sleeping](docs/images/hero.en.png)
 
 Built with Godot 4.7 and GDScript. No image file and no sound file: everything is drawn and synthesized by code.
 
@@ -22,9 +22,9 @@ Built with Godot 4.7 and GDScript. No image file and no sound file: everything i
 
 | Hover card | Resting sessions stack up | Settings |
 |---|---|---|
-| ![Card with folder, state, tool, context and git status](docs/images/card.png) | ![Two pets sitting on each other](docs/images/tower.png) | ![Settings window](docs/images/settings.png) |
+| ![Card with folder, state, tool, context and git status](docs/images/card.en.png) | ![Two pets sitting on each other](docs/images/tower.png) | ![Settings window](docs/images/settings.en.png) |
 
-The interface (bubbles, menu, settings) is in French.
+The interface (bubbles, menu, settings) is in English or in French. It follows the language of the system, and can be set in the settings.
 
 ## Quick start
 
@@ -35,13 +35,13 @@ export GODOT_PATH=/path/to/godot    # Godot 4.7 or later
 ./run.sh
 ```
 
-Right-click a pet, then « Quitter », to quit.
+Right-click a pet, then "Quit", to quit.
 
 Three optional steps complete the setup:
 
 1. **Claude Code hooks**, for the bubbles and the reactions to tools: see [Claude Code](docs/en/claude-code.md#installing-the-hooks).
 2. **GNOME Shell extension**, for the terminal focus, the perch, the lock screen and full screen apps: `./gnome-extension/install.sh`, then log out and back in. See [GNOME extension](docs/en/gnome-extension.md).
-3. **Start at login**: « Réglages… », tick « Lancer au démarrage ».
+3. **Start at login**: "Settings…", tick "Start at login".
 
 Without them, the pets still follow the sessions, their name, their color and their state.
 
@@ -82,7 +82,7 @@ To run without Godot, build a standalone binary with `./build.sh` (see [Developm
 ./test.sh
 ```
 
-76 unit tests, run without a display in a few seconds.
+79 unit tests, run without a display in a few seconds.
 
 ## License
 

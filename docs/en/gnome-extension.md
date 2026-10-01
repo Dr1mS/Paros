@@ -36,7 +36,7 @@ Declared GNOME Shell versions: 45 to 48. Tested with 46.
 
 ### Terminal to the front
 
-Double-click a pet, or « Aller à son terminal » in the menu. The window is searched among those of the session process and its parents, then by its title if it contains the session name.
+Double-click a pet, or "Go to its terminal" in the menu. The window is searched among those of the session process and its parents, then by its title if it contains the session name.
 
 Limit: every GNOME Terminal window belongs to the same process. If the session is in a background tab, the title does not match and the window chosen may be the wrong one. The bell sent at the same time marks the right tab.
 
@@ -63,7 +63,7 @@ GNOME hides every application window behind the lock screen. The extension stays
 | While locked | |
 |---|---|
 | No text | No name, no tool in use, no bubble. Sounds go on |
-| Screen on | GNOME switches the monitors off as soon as the screen locks. Paros switches them back on every second for 10 minutes (setting « Écran allumé après verrouillage », 0 to do nothing), then switches them off itself. Automatic suspend is held back meanwhile |
+| Screen on | GNOME switches the monitors off as soon as the screen locks. Paros switches them back on every second for 10 minutes (setting "Screen on after locking", 0 to do nothing), then switches them off itself. Automatic suspend is held back meanwhile |
 | Pets awake | They do not fall asleep for inactivity. At night, they sleep |
 | Screen off | Paros barely draws: 2 frames per second |
 

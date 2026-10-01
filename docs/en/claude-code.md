@@ -23,10 +23,10 @@ Paros follows the interactive Claude Code sessions of the machine, for the curre
 |---|---|
 | Tool started | Caption above the head: "Edit · pet.gd", "Bash · Run the tests". On several lines when needed |
 | Permission request | Bubble with the message of Claude |
-| End of turn | Jump, hearts, bubble « Tâche finie ! », two rising notes |
+| End of turn | Jump, hearts, bubble "Task done!", two rising notes |
 | Subagent started | A small pet runs off from the big one with a sheet of paper, and stays beside it. Four at most |
-| Tests passed | Jump, bubble « Tests verts ! » |
-| Tests failed | Shakes, bubble « Tests rouges », two falling notes |
+| Tests passed | Jump, bubble "Green tests!" |
+| Tests failed | Shakes, bubble "Red tests", two falling notes |
 | Other failed command | Shakes, drop of sweat, two falling notes |
 | No event for 8 seconds while working | Taps its foot, looks down |
 | No event for 25 seconds | Meditates: sitting, floating above the floor, math signs circling around |
@@ -68,7 +68,7 @@ A session whose process no longer exists is ignored, even if its file was left b
 
 ### Context
 
-The context tokens are the sum of the input tokens of the last answer of the model (input, cache write, cache read), rounded to 10,000. The size of the context window of the model is written nowhere: it is a setting (« Contexte du modèle, en milliers de tokens », 1000 by default). The head smokes at 75 % of that size.
+The context tokens are the sum of the input tokens of the last answer of the model (input, cache write, cache read), rounded to 10,000. The size of the context window of the model is written nowhere: it is a setting ("Model context, in thousands of tokens", 1000 by default). The head smokes at 75 % of that size.
 
 ## Installing the hooks
 

@@ -124,3 +124,31 @@ func test_process_lineage() -> void:
 	check(lineage.size() > 1, "then its parents")
 	check_equal(Desktop.lineage(0), [], "no process, no lineage")
 	check(" " in Desktop.read_proc("/proc/loadavg"), "proc files are read")
+
+
+func test_interface_language() -> void:
+	check_equal(tr("Task done!"), "Task done!", "English as written")
+	Settings.set_value("interface", "language", "fr")
+	check_equal(tr("Task done!"), "Tâche finie !", "French")
+	check_equal(tr("Focus: %d min") % 25, "Focus : 25 min", "French with a number")
+	Settings.set_value("interface", "language", "en")
+	check_equal(tr("Quit"), "Quit", "back to English")
+
+
+func test_every_label_of_the_settings_has_a_french_text() -> void:
+	var window: Window = load("res://src/ui/settings_window.gd").new()
+	window.visible = false
+	add_child(window)
+	# Same word in both languages.
+	var shared := ["Volume", "Claude Code", "Focus"]
+	for field: Array in window.FIELDS:
+		var label: String = field[0] if field.size() == 1 else field[2]
+		check(Language.FRENCH.has(label) or label in shared, "\"%s\" is translated" % label)
+
+
+func test_french_texts_keep_their_placeholders() -> void:
+	var placeholder := RegEx.create_from_string("%[0-9]*[ds%]")
+	for text: String in Language.FRENCH:
+		var english := placeholder.search_all(text).map(func(found: RegExMatch) -> String: return found.get_string())
+		var french := placeholder.search_all(Language.FRENCH[text]).map(func(found: RegExMatch) -> String: return found.get_string())
+		check_equal(french, english, "placeholders of \"%s\"" % text)

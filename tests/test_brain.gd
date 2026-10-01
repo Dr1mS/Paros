@@ -294,13 +294,13 @@ func test_focus_messages_reach_every_pet() -> void:
 	var pet := open("s1")
 	Events.post(&"focus_finished")
 	check_equal(pet.state, Pet.State.CHEER, "cheers for the break")
-	check(pet.get_node("../Bubble")._message.begins_with("Pause"), "says so")
+	check(pet.get_node("../Bubble")._message.begins_with("Break!"), "says so")
 
 
 func test_dropped_files_go_to_the_clipboard() -> void:
 	var pet := open("s1")
 	Events.post(&"files_dropped", {"pet": pet, "files": PackedStringArray(["/tmp/a b.png", "/tmp/c.log"])})
-	check(pet.get_node("../Bubble")._message.begins_with("Chemin copié"), "says so")
+	check(pet.get_node("../Bubble")._message.begins_with("Path copied"), "says so")
 	# No clipboard without a display.
 	if DisplayServer.has_feature(DisplayServer.FEATURE_CLIPBOARD):
 		check_equal(DisplayServer.clipboard_get(), "'/tmp/a b.png' '/tmp/c.log'", "quoted paths")
@@ -314,7 +314,7 @@ func test_card_shows_while_hovered() -> void:
 	Events.post(&"pointer_enter", {"pet": pet})
 	var card: String = pet.get_node("../Bubble").card
 	check("/work/Alpha" in card, "folder")
-	check("Travaille depuis 2 min" in card, "phase and its duration")
+	check("Working for 2 min" in card, "phase and its duration")
 	check("Edit · pet.gd" in card, "tool in use")
 	pet.hovered = false
 	Events.post(&"pointer_leave", {"pet": pet})

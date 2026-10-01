@@ -2,6 +2,8 @@
 
 [English](../en/usage.md)
 
+L'interface est en français ou en anglais. Elle suit la langue du système, et se règle en bas des réglages. Les textes sont cités ici en français.
+
 ## Les personnages
 
 Chaque session Claude Code interactive ouverte sur la machine a son personnage. Il apparaît à l'ouverture de la session et disparaît à sa fermeture, sans relancer Paros. Sans aucune session, un seul personnage orange, sans nom, se promène.
@@ -27,7 +29,7 @@ Chaque session Claude Code interactive ouverte sur la machine a son personnage. 
 
 Un clic à côté du personnage traverse sa fenêtre et atteint ce qui est derrière.
 
-![Fiche au survol](../images/card.png)
+![Fiche au survol](../images/card.fr.png)
 
 ## Menu du clic droit
 
@@ -84,7 +86,7 @@ Un personnage parle par bulles : « Tâche finie ! », « Tests verts ! », « T
 
 Clic droit, « Réglages… ». Chaque changement s'applique et s'enregistre tout de suite. Les réglages sont stockés dans `~/.local/share/paros/settings.cfg`.
 
-![Fenêtre de réglages](../images/settings.png)
+![Fenêtre de réglages](../images/settings.fr.png)
 
 ### Personnage
 
@@ -156,3 +158,9 @@ L'inactivité est lue auprès de GNOME. Sur un autre bureau, seul le sommeil de 
 | Lancer au démarrage | non | aucune | Crée ou supprime `~/.config/autostart/paros.desktop`. L'entrée pointe vers le programme qui tourne au moment où la case est cochée : le binaire, ou Godot avec le dossier du projet |
 
 Attention : la molette au-dessus d'un champ numérique change sa valeur. Pour faire défiler la fenêtre, placer le curseur sur un libellé ou sur la barre de défilement.
+
+### Langue
+
+| Réglage | Défaut | Clé | Effet |
+|---|---|---|---|
+| Langue | Automatique | `interface/language` | `auto` : langue du système, français si elle est française, anglais sinon. Ou `en`, `fr` |

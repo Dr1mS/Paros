@@ -134,7 +134,6 @@ Ce qui est propre à Linux est isolé : lecture de `/proc` et `/sys`, `gdbus`, d
 - **Fenêtre de contexte** : sa taille n'est pas lisible, elle se règle.
 - **Au-dessus de tout** : les fenêtres des personnages passent au-dessus des autres. Sans l'extension, elles restent visibles sur une application en plein écran.
 - **Molette sur un champ numérique des réglages** : change la valeur au lieu de faire défiler.
-- **Langue de l'interface** : français seulement.
 
 ## Dépannage
 

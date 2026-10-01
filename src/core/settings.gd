@@ -6,6 +6,7 @@ signal changed
 
 const PATH := "user://settings.cfg"
 const DEFAULTS := {
+	"interface": {"language": "auto"},
 	"pet": {
 		"size": 1.0, "walk_speed": 70.0, "show_name": true, "accessories": true, "greetings": true,
 		"tower": true, "headlamp": true,

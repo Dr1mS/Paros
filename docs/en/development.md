@@ -134,7 +134,6 @@ What is specific to Linux is isolated: reading `/proc` and `/sys`, `gdbus`, the 
 - **Context window**: its size cannot be read, it is a setting.
 - **On top of everything**: the pet windows sit above the others. Without the extension they stay visible over a full screen application.
 - **Mouse wheel over a number field of the settings**: changes the value instead of scrolling.
-- **Interface language**: French only.
 
 ## Troubleshooting
 
@@ -145,8 +144,8 @@ What is specific to Linux is isolated: reading `/proc` and `/sys`, `gdbus`, the 
 | No bubble, no caption | Hooks not installed | See [Claude Code](claude-code.md#installing-the-hooks), then `tail $XDG_RUNTIME_DIR/paros/claude-events.log` |
 | Double-click does nothing, no perch | Extension missing, or an old version still in memory | See [GNOME extension](gnome-extension.md#installing) |
 | No sound | No audio player found | Install `pipewire-bin` (`pw-play`) or `pulseaudio-utils` (`paplay`) |
-| The pet keeps knocking | Extension missing: the terminal focus is not known | Install the extension, or untick « Toquer quand le terminal n'a pas le focus » |
-| The screen no longer turns off under the lock screen | Screen hold | Set « Écran allumé après verrouillage » to 0 |
+| The pet keeps knocking | Extension missing: the terminal focus is not known | Install the extension, or untick "Knock when the terminal is not focused" |
+| The screen no longer turns off under the lock screen | Screen hold | Set "Screen on after locking" to 0 |
 | Lock screen stuck | Extension | `Ctrl+Alt+F3`, `gnome-extensions disable paros@paros.local` |
 
 To see script errors: run from the sources with `./run.sh` in a terminal.

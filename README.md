@@ -159,7 +159,7 @@ Clic droit sur un personnage, puis « Réglages… ». Chaque changement s'appli
 | Afficher l'outil en cours | oui | `claude/show_activity` |
 | Insister après une attente de | 2 min | `claude/nag_minutes` |
 | Toquer quand le terminal n'a pas le focus | oui | `claude/knock` |
-| Fenêtre de contexte du modèle | 1000 k tokens | `claude/context_window_k` |
+| Contexte du modèle, en milliers de tokens | 1000 k | `claude/context_window_k` |
 | Suivre l'état git des dossiers | oui | `git/enabled` |
 | Grimper sur la fenêtre active | oui | `desktop/perch` |
 | Dormir contre le curseur immobile | oui | `desktop/cuddle` |

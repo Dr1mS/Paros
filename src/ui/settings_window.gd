@@ -23,7 +23,7 @@ const FIELDS := [
 	["claude", "show_activity", "Afficher l'outil en cours"],
 	["claude", "nag_minutes", "Insister après une attente de", 0.5, 60.0, 0.5, "min"],
 	["claude", "knock", "Toquer quand le terminal n'a pas le focus"],
-	["claude", "context_window_k", "Fenêtre de contexte du modèle", 100, 2000, 100, "k tokens"],
+	["claude", "context_window_k", "Contexte du modèle, en milliers de tokens", 100, 2000, 100, "k"],
 	["git", "enabled", "Suivre l'état git des dossiers"],
 	["Bureau (extension GNOME)"],
 	["desktop", "perch", "Grimper sur la fenêtre active"],
@@ -40,8 +40,12 @@ const FIELDS := [
 ]
 const MARGIN := 18
 const HEADING := Color("#d97757")
+## Tallest the window gets, as a share of the usable screen height. Past it,
+## the settings scroll.
+const MAX_SCREEN_SHARE := 0.8
 
-var _panel := PanelContainer.new()
+var _scroll := ScrollContainer.new()
+var _content := MarginContainer.new()
 var _autostart := CheckBox.new()
 
 
@@ -51,17 +55,20 @@ func _ready() -> void:
 	close_requested.connect(hide)
 	Events.sensed.connect(_on_sensed)
 
-	_panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(_panel)
-	var margin := MarginContainer.new()
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(panel)
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	panel.add_child(_scroll)
 	for side: String in ["left", "top", "right", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, MARGIN)
-	_panel.add_child(margin)
+		_content.add_theme_constant_override("margin_" + side, MARGIN)
+	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.add_child(_content)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.add_theme_constant_override("h_separation", 28)
 	grid.add_theme_constant_override("v_separation", 6)
-	margin.add_child(grid)
+	_content.add_child(grid)
 
 	for field: Array in FIELDS:
 		if field.size() == 1:
@@ -76,9 +83,20 @@ func _ready() -> void:
 func _on_sensed(event: StringName, _data: Dictionary) -> void:
 	if event == &"settings_requested":
 		_autostart.set_pressed_no_signal(Autostart.is_enabled())
-		size = Vector2i(_panel.get_combined_minimum_size())
+		_fit_screen()
 		show()
 		grab_focus()
+
+
+## As tall as the settings, up to a share of the screen. Then they scroll, and
+## the window widens by the scroll bar.
+func _fit_screen() -> void:
+	var wanted := _content.get_combined_minimum_size()
+	var screen := DisplayServer.screen_get_usable_rect(DisplayServer.SCREEN_WITH_MOUSE_FOCUS)
+	var tallest := screen.size.y * MAX_SCREEN_SHARE
+	if wanted.y > tallest:
+		wanted = Vector2(wanted.x + _scroll.get_v_scroll_bar().get_combined_minimum_size().x, tallest)
+	size = Vector2i(wanted)
 
 
 func _add_heading(grid: GridContainer, text: String) -> void:

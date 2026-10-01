@@ -1,10 +1,13 @@
 class_name Desktop
 ## Actions on the desktop around Paros. Linux only.
+## Without a display (headless run, as in the tests) the actions do nothing.
 
 
 ## Turns the monitors on, or off (power saving). GNOME turns them off as soon
 ## as the screen is locked: this is how to get them back.
 static func set_screen_power(on: bool) -> void:
+	if _is_headless():
+		return
 	OS.create_process("gdbus", [
 		"call", "--session", "--dest", "org.gnome.Mutter.DisplayConfig", "--object-path", "/org/gnome/Mutter/DisplayConfig",
 		"--method", "org.freedesktop.DBus.Properties.Set", "org.gnome.Mutter.DisplayConfig", "PowerSaveMode",
@@ -16,6 +19,8 @@ static func set_screen_power(on: bool) -> void:
 ## extension: alone, an application cannot raise another window under Wayland.
 ## The window is found by the process and its ancestors, then by its title.
 static func focus_terminal(pid: int, title: String) -> void:
+	if _is_headless():
+		return
 	OS.create_process("gdbus", [
 		"call", "--session", "--dest", "org.gnome.Shell", "--object-path", "/org/paros/Desktop",
 		"--method", "org.paros.Desktop.Activate", str(lineage(pid)), title,
@@ -43,6 +48,8 @@ static func screen_at(point: Vector2) -> Rect2:
 
 ## Rings the bell of the terminal that runs a process: its tab gets a mark.
 static func ring_terminal(pid: int) -> void:
+	if _is_headless():
+		return
 	var terminal := FileAccess.open("/proc/%d/fd/0" % pid, FileAccess.WRITE)
 	if terminal:
 		terminal.store_string("\a")
@@ -53,6 +60,10 @@ static func ring_terminal(pid: int) -> void:
 static func read_proc(path: String) -> String:
 	var file := FileAccess.open(path, FileAccess.READ)
 	return file.get_buffer(4096).get_string_from_utf8() if file else ""
+
+
+static func _is_headless() -> bool:
+	return DisplayServer.get_name() == "headless"
 
 
 static func _parent(pid: int) -> int:

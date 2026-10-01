@@ -70,28 +70,39 @@ func _inspect(folder: String) -> Dictionary:
 	var status := []
 	if OS.execute("git", ["--no-optional-locks", "-C", folder, "status", "--porcelain=v2", "--branch"], status) != 0:
 		return state
-	for line in str(status[0]).split("\n"):
-		if line.begins_with("# branch.oid "):
-			state.head = line.trim_prefix("# branch.oid ")
-		elif not line.is_empty() and not line.begins_with("#"):
-			# One line per changed or untracked file.
-			state.clean = false
-		if line.begins_with("# branch.head "):
-			state.branch = line.trim_prefix("# branch.head ").replace("(detached)", "")
-		elif line.begins_with("# branch.ab "):
-			# "# branch.ab +ahead -behind".
-			state.behind = line.get_slice(" -", 1).to_int()
-		elif line.begins_with("u "):
-			state.conflict = true
+	read_status(str(status[0]), state)
 	for marker in UNFINISHED:
 		var path := folder.path_join(".git").path_join(marker)
 		state.conflict = state.conflict or FileAccess.file_exists(path) or DirAccess.dir_exists_absolute(path)
 
 	var diff := []
 	if OS.execute("git", ["--no-optional-locks", "-C", folder, "diff", "--shortstat", "HEAD"], diff) == 0:
-		for found in _numbers.search_all(str(diff[0])):
-			state.dirty += found.get_string(1).to_int()
+		state.dirty = count_changed_lines(str(diff[0]))
 	return state
+
+
+## Fills the state from the output of "git status --porcelain=v2 --branch".
+func read_status(output: String, state: Dictionary) -> void:
+	for line in output.split("\n"):
+		if line.begins_with("# branch.oid "):
+			state.head = line.trim_prefix("# branch.oid ")
+		elif line.begins_with("# branch.head "):
+			state.branch = line.trim_prefix("# branch.head ").replace("(detached)", "")
+		elif line.begins_with("# branch.ab "):
+			# "# branch.ab +ahead -behind".
+			state.behind = line.get_slice(" -", 1).to_int()
+		elif not line.is_empty() and not line.begins_with("#"):
+			# One line per changed or untracked file. "u": unmerged.
+			state.clean = false
+			state.conflict = state.conflict or line.begins_with("u ")
+
+
+## Lines added plus lines removed, from the output of "git diff --shortstat".
+func count_changed_lines(output: String) -> int:
+	var lines := 0
+	for found in _numbers.search_all(output):
+		lines += found.get_string(1).to_int()
+	return lines
 
 
 func _report(session: String, state: Dictionary) -> void:

@@ -73,6 +73,8 @@ var _screen_held := false
 
 func _ready() -> void:
 	Events.sensed.connect(_on_sensed)
+	# A setting applies at once, not at the next event.
+	Settings.changed.connect(_refresh)
 	pets.add(NO_SESSION)
 	var timer := Timer.new()
 	timer.wait_time = TICK_SECONDS
@@ -147,6 +149,8 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 				pets.add(NO_SESSION)
 		&"session_phase":
 			pet.urgent = false
+		&"session_subagents":
+			pet.minis = data.count
 		&"session_finished":
 			pet.cheer()
 			pet.say("Tâche finie !")

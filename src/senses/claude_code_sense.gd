@@ -160,6 +160,8 @@ func _json_field(line: String, field: String) -> String:
 
 func _find_transcript(id: String) -> String:
 	var projects := _claude_dir.path_join("projects")
+	if not DirAccess.dir_exists_absolute(projects):
+		return ""
 	for project in DirAccess.get_directories_at(projects):
 		var path := projects.path_join(project).path_join(id + ".jsonl")
 		if FileAccess.file_exists(path):

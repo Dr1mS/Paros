@@ -31,7 +31,9 @@ var _playback: AudioStreamGeneratorPlayback
 
 func _ready() -> void:
 	if AudioServer.get_driver_name() == "Dummy":
-		_player = _find_player()
+		# Without a display (the tests), stay silent.
+		if DisplayServer.get_name() != "headless":
+			_player = _find_player()
 		_write_files()
 		Settings.changed.connect(_write_files)
 		return

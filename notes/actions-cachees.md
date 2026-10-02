@@ -117,5 +117,6 @@ Textes que Claude Code ajoute au contexte sans les montrer.
 | Source | Ce qu'elle dit | Paros |
 |---|---|---|
 | `~/.claude/sessions/<pid>.json` | Session ouverte, nom, dossier, statut `busy`, `waiting`, `idle` | **lu** |
+| Même fichier, statut `shell` (vu le 2 octobre 2026) | Le tour est fini et une commande lancée en arrière-plan tourne encore | **piste** : signal direct de l'attente, sans lire le transcript. Aujourd'hui Paros le prend pour du repos, et montre le sablier grâce au transcript |
 | Même fichier, `messagingSocketPath`, `peerFeatures` | Socket des messages entre sessions | — |
 | Hooks | Outil lancé, fini, raté ; sous-agents ; fin de tour ; demande de permission | **lu** |

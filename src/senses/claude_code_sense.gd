@@ -18,7 +18,7 @@ extends Node
 ## - <claude dir>/sessions/<pid>.json: one per live session, with its name and
 ##   status. Internal Claude Code format, not documented: may change.
 ## - the session transcript: color (/color), last prompt, token use, tasks
-##   started in the background and notices of their end.
+##   started in the background, then stopped or told finished by a notice.
 ## - the log written by hooks/claude-hook.sh, one line per hook event.
 
 ## Fields of a hook log line, separated by tabs.
@@ -35,6 +35,9 @@ const USAGE_MARK := '"usage":{'
 ## started in the background.
 const COMMAND_MARK := '"backgroundTaskId":"'
 const AGENT_MARK := '"status":"async_launched"'
+## In the transcript line of an answer that stops a background task. A task
+## stopped this way gets no notice of its end.
+const STOP_MARK := '"name":"TaskStop"'
 ## Start of the transcript line of a notice put in the queue of the session.
 const NOTICE_LINE := '{"type":"queue-operation","operation":"enqueue"'
 ## A background task with no notice of its end for this long is forgotten: a
@@ -57,6 +60,7 @@ var _log_offset := 0
 var _sessions := {}
 var _task_started := RegEx.create_from_string('"(?:backgroundTaskId|agentId)":"([^"]+)"')
 var _task_ended := RegEx.create_from_string("<task-id>([^<]+)</task-id>")
+var _task_stopped := RegEx.create_from_string('"name":"TaskStop","input":\\{[^}]*"(?:task_id|shell_id)":"([^"]+)"')
 var _timestamp := RegEx.create_from_string('"timestamp":"([^".]+)')
 ## Input token counts of an answer: fresh, written to cache, read from cache.
 var _token_counts := RegEx.create_from_string('"(?:input_tokens|cache_creation_input_tokens|cache_read_input_tokens)":(\\d+)')
@@ -157,6 +161,9 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 	file.seek(session.transcript_offset)
 	while file.get_position() < file.get_length():
 		var line := file.get_line()
+		if STOP_MARK in line:
+			for stopped in _task_stopped.search_all(line):
+				session.tasks.erase(stopped.get_string(1))
 		if line.begins_with(COLOR_LINE):
 			session.color = _json_field(line, "agentColor")
 		elif line.begins_with(PROMPT_LINE):

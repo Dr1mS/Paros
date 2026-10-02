@@ -44,7 +44,7 @@ The reminder and the knock only happen when the terminal of the session is not f
 
 A session can end its turn while a command or an agent it started in the background still runs: a server that boots, a long build. It then waits for that task, not for you. The pet does not say "Task done!": it sits by an hourglass until the task ends and the session resumes. The hover card reads "Waiting for a background task". Such a session does not join the tower.
 
-Paros reads this from the transcript: the result of a command or an agent started in the background, then the notice of its end.
+Paros reads this from the transcript: the result of a command or an agent started in the background, then the notice of its end, or the order to stop it.
 
 ### Git status of the session folder
 

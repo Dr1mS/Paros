@@ -44,7 +44,7 @@ Le rappel d'attente et le toc-toc n'ont lieu que si le terminal de la session n'
 
 Une session peut finir son tour alors qu'une commande ou un agent qu'elle a lancé en arrière-plan tourne encore : un serveur qui démarre, une longue compilation. Elle attend alors cette tâche, pas toi. Le personnage ne dit pas « Tâche finie ! » : il s'assoit près d'un sablier jusqu'à la fin de la tâche et la reprise de la session. La fiche au survol indique « Attend une tâche en arrière-plan ». Une telle session ne rejoint pas la tour.
 
-Paros le lit dans le transcript : le résultat d'une commande ou d'un agent lancé en arrière-plan, puis l'avis de sa fin.
+Paros le lit dans le transcript : le résultat d'une commande ou d'un agent lancé en arrière-plan, puis l'avis de sa fin, ou l'ordre de l'arrêter.
 
 ### État git du dossier de la session
 

@@ -210,6 +210,13 @@ func test_background_tasks_run_until_their_notice() -> void:
 	file.close()
 	sense._poll()
 	check_equal(last_event(&"session_background").get("background"), 1, "the command ended")
+
+	file = FileAccess.open(transcript, FileAccess.READ_WRITE)
+	file.seek_end()
+	file.store_string('{"type":"assistant","message":{"content":[{"type":"tool_use","name":"TaskStop","input":{"task_id":"a1"}}]}}\n')
+	file.close()
+	sense._poll()
+	check_equal(last_event(&"session_background").get("background"), 0, "the agent was stopped: no notice comes")
 	sense.free()
 
 

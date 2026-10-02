@@ -394,6 +394,22 @@ func walk_to(feet_x: float, then := State.IDLE, hurry := 1.0) -> void:
 	_errand_hurry = hurry
 
 
+## Walks until its feet are at the given distance from the given screen x, on
+## the floor or on its perch. Stays on its side, unless the ground ends before.
+func step_aside(from_x: float, gap: float) -> void:
+	if is_airborne() or state == State.CLIMB:
+		return
+	var area := _ground()
+	var side := 1.0 if feet().x >= from_x else -1.0
+	var target := from_x + side * gap - _window.size.x / 2.0
+	if target < area.position.x or target > area.end.x:
+		target = from_x - side * gap - _window.size.x / 2.0
+	_enter(State.WALK)
+	_errand_x = target
+	_errand_then = State.IDLE
+	_errand_hurry = 1.0
+
+
 ## Runs until its feet are at the given screen x, then knocks twice on the
 ## screen edge on the given side (-1 left, 1 right). On a perch or in the air:
 ## knocks where it is.

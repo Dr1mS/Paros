@@ -55,6 +55,7 @@ Les deux premières entrées n'existent que pour un personnage lié à une sessi
 | Lampe frontale | La nuit, quand il est éveillé |
 | Hoche la tête, avec une petite note | Quand un lecteur joue de la musique (Spotify, navigateur, VLC…), et qu'il est debout, assis ou en réflexion |
 | Salue | Quand il croise un autre personnage. Les deux s'éloignent ensuite |
+| S'écarte | Quand il reste arrêté plus de 2 secondes devant ou derrière un autre : le moins occupé des deux fait quelques pas de côté |
 | Toise | Quand il croise un personnage dont la session travaille dans le même dossier et la même branche |
 | Tape dans la main | Quand son voisin et lui viennent tous deux de réussir (fin de tour ou tests verts, à moins de 20 secondes et 200 pixels) |
 | S'empile | Quand au moins deux sessions sont au repos depuis 90 secondes : leurs personnages se rejoignent et s'assoient l'un sur l'autre. La tour s'écroule dès qu'une de ces sessions reçoit un prompt, ou qu'un personnage est attrapé |

@@ -1,8 +1,8 @@
 class_name Pets
 extends Node
 ## The pets on the desktop, one window each, found by key.
-## Also handles what takes two pets: meetings and shared celebrations. And sets
-## the frame rate.
+## Also handles what takes two pets: meetings, shared celebrations, and room
+## for each to be seen. And sets the frame rate.
 
 const PET_WINDOW := preload("res://src/pet/pet_window.tscn")
 ## Feet distance under which two pets meet, at size 1.
@@ -12,6 +12,16 @@ const MEET_COOLDOWN := 45.0
 ## Two pets that succeed this close in space and time clap hands.
 const HIGH_FIVE_DISTANCE := 200.0
 const HIGH_FIVE_SECONDS := 20.0
+## Two pets that stay in place closer than this hide each other, at size 1.
+const CROWD_DISTANCE := 120.0
+## Seconds they may stay so, then one of them walks this far from the other.
+const CROWD_SECONDS := 2.0
+const CROWD_GAP := 170.0
+## States of a pet that stays in place.
+const SETTLED: Array[Pet.State] = [Pet.State.IDLE, Pet.State.SIT, Pet.State.SLEEP, Pet.State.THINK, Pet.State.ALERT]
+## The pet that moves is the one with the wish that comes first here: a
+## sleeping pet stays asleep, and so on.
+const CROWD_MOVERS: Array[Pet.Wish] = [Pet.Wish.ROAM, Pet.Wish.THINK, Pet.Wish.ALERT, Pet.Wish.SLEEP]
 ## Frames per second. Rendering is the main CPU cost: slow down while every pet
 ## is calm (still, asleep or thinking).
 const LIVELY_FPS := 30
@@ -27,6 +37,8 @@ var _pets := {}
 var _met := {}
 ## Pet -> time of its last success, in seconds.
 var _succeeded := {}
+## Pair of pets that hide each other -> time since when, in seconds.
+var _crowded := {}
 ## True while nobody can see the pets. They barely draw.
 var unseen := false
 
@@ -48,6 +60,7 @@ func _process(_delta: float) -> void:
 		lively = lively or node.visible
 	Engine.max_fps = UNSEEN_FPS if unseen else (LIVELY_FPS if lively else CALM_FPS)
 
+	_spread(all)
 	if not Settings.value("pet", "greetings"):
 		return
 	for i in all.size():
@@ -68,6 +81,33 @@ func _process(_delta: float) -> void:
 			else:
 				a.greet(side)
 				b.greet(-side)
+
+
+## Two pets may cross, and stop on the same spot. But not for long: one of
+## them then steps aside, so that none stays hidden behind another.
+func _spread(all: Array) -> void:
+	var crowded := {}
+	for i in all.size():
+		for j in range(i + 1, all.size()):
+			var a: Pet = all[i]
+			var b: Pet = all[j]
+			# Pets of a tower sit on each other on purpose.
+			if a.rooted or b.rooted or a.state not in SETTLED or b.state not in SETTLED:
+				continue
+			var apart := (b.feet() - a.feet()).abs()
+			var size := a.scale_factor()
+			# On the same level: one on a perch does not hide one on the floor.
+			if apart.x >= CROWD_DISTANCE * size or apart.y >= CROWD_DISTANCE * size / 2.0:
+				continue
+			var pair := [a.get_instance_id(), b.get_instance_id()]
+			crowded[pair] = _crowded.get(pair, _now())
+			if _now() - crowded[pair] < CROWD_SECONDS:
+				continue
+			if CROWD_MOVERS.find(b.wish) < CROWD_MOVERS.find(a.wish):
+				b.step_aside(a.feet().x, CROWD_GAP * size)
+			else:
+				a.step_aside(b.feet().x, CROWD_GAP * size)
+	_crowded = crowded
 
 
 func add(key: String) -> Pet:

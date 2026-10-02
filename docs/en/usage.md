@@ -55,6 +55,7 @@ The first two entries exist only for a pet tied to a session.
 | Headlamp | At night, when it is awake |
 | Nods, with a small note | While a media player plays (Spotify, browser, VLC…), and it stands, sits or thinks |
 | Greets | When it meets another pet. Both walk away afterwards |
+| Steps aside | When it stays more than 2 seconds in front of another pet, or behind it: the less busy of the two walks a few steps away |
 | Glares | When it meets a pet whose session works in the same folder and on the same branch |
 | High five | When its neighbor and itself both just succeeded (end of turn or green tests, within 20 seconds and 200 pixels) |
 | Stacks up | When at least two sessions have been at rest for 90 seconds, their pets gather and sit on each other. The tower falls as soon as one of these sessions gets a prompt, or a pet is grabbed |

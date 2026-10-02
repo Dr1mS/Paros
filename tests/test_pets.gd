@@ -1,5 +1,6 @@
 extends "res://tests/test_case.gd"
-## What takes two pets: meetings, shared celebrations. And the frame rate.
+## What takes two pets: meetings, shared celebrations, room to be seen. And
+## the frame rate.
 
 var pets: Pets
 var a: Pet
@@ -58,6 +59,62 @@ func test_no_meeting_when_the_setting_is_off() -> void:
 	pets._process(0.016)
 	check_equal(a.state, Pet.State.IDLE, "no greeting")
 	Settings.set_value("pet", "greetings", true)
+
+
+## Makes the pets that hide each other do so for a long time already.
+func wait_crowded() -> void:
+	pets._process(0.016)
+	for pair: Array in pets._crowded:
+		pets._crowded[pair] -= Pets.CROWD_SECONDS
+
+
+func test_hidden_pet_steps_aside() -> void:
+	for pet: Pet in [a, b]:
+		pet.wish = Pet.Wish.THINK
+	b._window_pos.x = a._window_pos.x + 10.0
+	pets._process(0.016)
+	check_equal([a.state, b.state], [Pet.State.IDLE, Pet.State.IDLE], "allowed for a moment")
+	wait_crowded()
+	pets._process(0.016)
+	check_equal([a.state, b.state], [Pet.State.WALK, Pet.State.IDLE], "then one walks away")
+	step(a, 6.0)
+	check_near(b.feet().x - a.feet().x, Pets.CROWD_GAP, 1.0, "far enough to be seen, on its side")
+	a.wish = Pet.Wish.ROAM
+	stand(a)
+	pets._process(0.016)
+	check(pets._crowded.is_empty(), "no longer hidden")
+
+
+func test_the_less_busy_pet_steps_aside() -> void:
+	a.wish = Pet.Wish.ALERT
+	b.wish = Pet.Wish.THINK
+	b._window_pos.x = a._window_pos.x + 10.0
+	wait_crowded()
+	pets._process(0.016)
+	check_equal([a.state, b.state], [Pet.State.IDLE, Pet.State.WALK], "the one that thinks, not the one that calls")
+
+
+func test_steps_to_the_other_side_at_the_edge() -> void:
+	for pet: Pet in [a, b]:
+		pet.wish = Pet.Wish.THINK
+	a._window_pos.x = a._area.position.x
+	b._window_pos.x = a._window_pos.x + 10.0
+	wait_crowded()
+	pets._process(0.016)
+	step(a, 6.0)
+	check_near(a.feet().x - b.feet().x, Pets.CROWD_GAP, 1.0, "no room on the left: goes right")
+
+
+func test_pets_far_apart_or_in_a_tower_stay() -> void:
+	for pet: Pet in [a, b]:
+		pet.wish = Pet.Wish.THINK
+	b._window_pos.x = a._window_pos.x + 200.0
+	pets._process(0.016)
+	check(pets._crowded.is_empty(), "far apart")
+	b._window_pos.x = a._window_pos.x
+	a.rooted = true
+	pets._process(0.016)
+	check(pets._crowded.is_empty(), "in a tower")
 
 
 func test_two_close_successes_make_a_high_five() -> void:

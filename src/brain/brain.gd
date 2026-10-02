@@ -50,7 +50,9 @@ var _music := false
 ## pid, context, phase, since, tool, detail, count, stalled, branch, dirty,
 ## behind, conflict, level, background, mail. Plus "nagged", "knocked",
 ## "unfocused_since", "cool_until", "lineage", "inbound" (letters that fly to
-## its pet). Times are Unix times.
+## its pet), "origin" and "from" (what started its turn), "asked" (id of the
+## session it wrote to in that turn), "owed" (a cheer held back by a turn that
+## ended on a wait). Times are Unix times.
 var _sessions := {}
 ## Frame of the focused window. No size: none, or not known.
 var _active_window := Rect2()
@@ -159,15 +161,29 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 		&"session_subagents":
 			pet.minis = data.count
 		&"session_finished":
-			# A turn that leaves a task running is a pause, not the end.
-			if not _awaits(_sessions[data.session]):
+			var session: Dictionary = _sessions[data.session]
+			# A turn started by another session is not something the user asked.
+			var for_user: bool = session.get("origin", &"human") != &"peer" or session.get("owed", false)
+			if _awaits(session):
+				# A turn that leaves a task running, or a question to another
+				# session, is a pause, not the end. The cheer comes later.
+				session.owed = for_user
+			elif for_user:
+				session.owed = false
 				pet.cheer()
 				pet.say(tr("Task done!"))
 				pets.celebrate(pet)
 				Sound.play(&"success")
+			else:
+				# An answer to another session: nothing the user waits for.
+				pet.nod()
+		&"session_turn":
+			# A new turn: what the last one asked is answered, or dropped.
+			_sessions[data.session].erase("asked")
 		&"session_message_sent":
 			var recipient := _session_named(data.to, data.session)
 			if not recipient.is_empty():
+				_sessions[data.session].asked = recipient
 				_sessions[recipient].inbound = _sessions[recipient].get("inbound", 0) + 1
 				pets.send_letter(pet, pets.find(recipient))
 		&"session_mail":
@@ -177,9 +193,9 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 				pet.read_letter()
 		&"letter_landed":
 			# No letter waits: the session took it already.
-			var session: Dictionary = _sessions.get(pet.key, {})
-			session.inbound = maxi(session.get("inbound", 0) - 1, 0)
-			if session.get("mail", 0) == 0:
+			var reader: Dictionary = _sessions.get(pet.key, {})
+			reader.inbound = maxi(reader.get("inbound", 0) - 1, 0)
+			if reader.get("mail", 0) == 0:
 				pet.read_letter()
 		&"session_needs_you":
 			pet.say(data.detail if not data.detail.is_empty() else tr("Claude is waiting for you"))
@@ -262,6 +278,8 @@ func _refresh() -> void:
 		pet.headlamp = _night and Settings.value("pet", "headlamp")
 		pet.cool = _now() < session.get("cool_until", 0.0)
 		pet.grooving = _music and Settings.value("pet", "groove")
+		if _awaits_peer(session):
+			pet.look_toward(pets.find(session.asked).feet().x)
 		# A letter that still flies is not in the mailbox yet.
 		pet.mail = maxi(session.get("mail", 0) - session.get("inbound", 0), 0)
 		pet.discreet = _locked
@@ -301,10 +319,17 @@ func _wish(session: Dictionary) -> Pet.Wish:
 	return Pet.Wish.ROAM
 
 
-## True when the turn is over and a task the session started still runs: the
-## session waits for it, not for the user.
+## True when the turn is over and the session waits, but not for the user: for
+## a task it started and that still runs, or for another session.
 func _awaits(session: Dictionary) -> bool:
-	return session.get("phase") == &"idle" and session.get("background", 0) > 0
+	return session.get("phase") == &"idle" and (session.get("background", 0) > 0 or _awaits_peer(session))
+
+
+## True when the turn is over and the session it wrote to still works: the
+## answer is to come.
+func _awaits_peer(session: Dictionary) -> bool:
+	var asked: Dictionary = _sessions.get(session.get("asked", ""), {})
+	return session.get("phase") == &"idle" and asked.get("phase") == &"working"
 
 
 ## Id of the session with the given name, other than the given one. Empty: none.
@@ -443,6 +468,8 @@ func _card(session: Dictionary) -> String:
 					lines.append(_activity(session))
 			&"waiting":
 				lines.append(tr("Waiting for you for %s") % lasted)
+			_ when _awaits_peer(session):
+				lines.append(tr("Waiting for the answer of %s for %s") % [_sessions[session.asked].name, lasted])
 			_:
 				lines.append(tr("Waiting for a background task for %s" if _awaits(session) else "At rest for %s") % lasted)
 		if session.get("count", 0) > 0:

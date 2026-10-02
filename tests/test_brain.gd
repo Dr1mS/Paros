@@ -397,3 +397,55 @@ func test_letter_from_a_session_without_pet_goes_to_the_mailbox() -> void:
 	set_phase("s1", &"working")
 	Events.post(&"session_mail", {"session": "s1", "mail": 2})
 	check_equal(reader.mail, 2, "two letters wait")
+
+
+func test_turn_asked_by_another_session_ends_without_cheer() -> void:
+	var pet := open("s1")
+	Events.post(&"session_turn", {"session": "s1", "origin": &"peer", "from": "Beta"})
+	set_phase("s1", &"idle")
+	Events.post(&"session_finished", {"session": "s1"})
+	check_equal(pet.state, Pet.State.NOD, "nods: the user asked nothing")
+	stand(pet)
+	Events.post(&"session_turn", {"session": "s1", "origin": &"human", "from": ""})
+	Events.post(&"session_finished", {"session": "s1"})
+	check_equal(pet.state, Pet.State.CHEER, "cheers for a turn of the user")
+
+
+func test_session_that_wrote_to_another_waits_for_its_answer() -> void:
+	var asker := open("s1", "Alpha")
+	var answerer := open("s2", "Beta")
+	answerer._window_pos.x = asker._window_pos.x - 600.0
+	Events.post(&"session_turn", {"session": "s1", "origin": &"human", "from": ""})
+	set_phase("s1", &"working")
+	Events.post(&"session_message_sent", {"session": "s1", "to": "Beta"})
+	set_phase("s2", &"working")
+	set_phase("s1", &"idle")
+	Events.post(&"session_finished", {"session": "s1"})
+	check_equal(asker.wish, Pet.Wish.WAIT, "waits for the answer")
+	check_equal(asker.state, Pet.State.THROW, "no cheer: not done")
+	stand(asker)
+	brain._refresh()
+	check_equal(asker.facing, -1.0, "turned toward the other pet")
+	check(not brain._rests(asker), "not at rest for the tower")
+	asker.hovered = true
+	brain._refresh()
+	check("Waiting for the answer of Beta" in asker.get_node("../Bubble").card, "the card says so")
+
+	Events.post(&"session_turn", {"session": "s1", "origin": &"peer", "from": "Beta"})
+	set_phase("s1", &"working")
+	set_phase("s1", &"idle")
+	stand(asker)
+	Events.post(&"session_finished", {"session": "s1"})
+	check_equal(asker.state, Pet.State.CHEER, "the answer came: done for the user, at last")
+	check_equal(asker.wish, Pet.Wish.ROAM, "no more wait")
+
+
+func test_no_wait_for_a_session_that_stopped_working() -> void:
+	var asker := open("s1", "Alpha")
+	open("s2", "Beta")
+	Events.post(&"session_message_sent", {"session": "s1", "to": "Beta"})
+	set_phase("s2", &"working")
+	set_phase("s1", &"idle")
+	check_equal(asker.wish, Pet.Wish.WAIT, "waits while the other works")
+	set_phase("s2", &"idle")
+	check_equal(asker.wish, Pet.Wish.ROAM, "the other stopped without an answer")

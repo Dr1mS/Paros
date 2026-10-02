@@ -16,6 +16,7 @@ Paros follows the interactive Claude Code sessions of the machine, for the curre
 | Waits for a task it started in the background | Sits and watches an hourglass: the sand runs down, the hourglass turns over |
 | Writes to another session | Throws a letter, which flies to the pet of that session |
 | Got a message of another session while working | A mailbox stands beside the pet, flag up. With the number of letters when more than one waits |
+| Wrote to another session, which still works on it | Sits by the hourglass, turned toward the pet of that session |
 | Reads that message | The mailbox goes away. The pet holds the letter out and reads it |
 | At rest | Walks, sits, sleeps |
 | Context 75 % full or more | Its head smokes |
@@ -27,7 +28,8 @@ Paros follows the interactive Claude Code sessions of the machine, for the curre
 |---|---|
 | Tool started | Caption above the head: "Edit · pet.gd", "Bash · Run the tests". On several lines when needed |
 | Permission request | Bubble with the message of Claude |
-| End of turn | Jump, hearts, bubble "Task done!", two rising notes |
+| End of a turn you asked for | Jump, hearts, bubble "Task done!", two rising notes |
+| End of a turn another session asked for | Nods twice. No bubble, no sound |
 | Subagent started | A small pet runs off from the big one with a sheet of paper, and stays beside it. Four at most |
 | Tests passed | Jump, bubble "Green tests!" |
 | Tests failed | Shakes, bubble "Red tests", two falling notes |
@@ -55,7 +57,9 @@ A session can write to another one with the `SendMessage` tool. The pet of the s
 
 A session at rest reads the message at once: its pet holds the letter out and reads it. A session at work reads it later, between two steps or at the end of its turn. Until then the letter waits in a mailbox beside the pet, with a raised flag. The hover card reads "Letters to read". On the lock screen the number of letters is not shown.
 
-Paros reads this from the transcripts: the `SendMessage` call of the sender, with the name of the recipient, and the queue of the recipient, where the message enters then leaves.
+A session that wrote to another one and ended its turn waits for the answer, not for you: its pet sits by the hourglass, turned toward the other pet, as long as the other session works. The hover card reads "Waiting for the answer of", with the name. No "Task done!" then: it comes when the answer has arrived and the work is finished. A turn that another session started, and that you did not ask for, ends with a nod.
+
+Paros reads this from the transcripts: what started each turn (you, another session, the end of a background task), the `SendMessage` call of the sender, with the name of the recipient, and the queue of the recipient, where the message enters then leaves.
 
 ### Git status of the session folder
 

@@ -257,6 +257,9 @@ func _draw() -> void:
 			# The arm in front goes up, and the pet rises with it.
 			hop = sin(minf(_pet.state_time / Pet.TIMED[state], 1.0) * PI) * 6.0
 			arm_raise[front] = 3.0
+		Pet.State.NOD:
+			# The body dips twice.
+			rise = -absf(sin(_pet.state_time / Pet.TIMED[state] * TAU)) * 5.0
 		Pet.State.CLIMB, Pet.State.CARRIED, Pet.State.FALL:
 			arm_raise = [2.0, 2.0]
 	if seated:

@@ -232,3 +232,14 @@ func test_mailbox_stands_where_the_ground_goes_on() -> void:
 	check_equal(pet.mailbox_side(), -1.0, "on the left")
 	pet._window_pos.x = AREA.position.x
 	check_equal(pet.mailbox_side(), 1.0, "on the right at the left end of the ground")
+
+
+func test_nods_and_looks_toward_a_point() -> void:
+	pet.nod()
+	check_equal(pet.state, Pet.State.NOD, "nods")
+	pet.look_toward(pet.feet().x - 300.0)
+	check_equal(pet.facing, 1.0, "does not turn in the middle of an act")
+	step(pet, Pet.TIMED[Pet.State.NOD] + 0.1)
+	check_equal(pet.state, Pet.State.IDLE, "done")
+	pet.look_toward(pet.feet().x - 300.0)
+	check_equal(pet.facing, -1.0, "turns while it stays in place")

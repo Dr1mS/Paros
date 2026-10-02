@@ -81,7 +81,7 @@ The **state** (`Pet.State`) is what the pet does right now:
 |---|---|
 | `IDLE`, `SIT`, `WALK` | Random duration, or change of wish |
 | `SLEEP`, `THINK`, `ALERT`, `WAIT` | When the wish changes. `SLEEP` goes through `STRETCH` |
-| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP`, `THROW`, `READ` | Fixed duration, in `Pet.TIMED` |
+| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP`, `THROW`, `READ`, `NOD` | Fixed duration, in `Pet.TIMED` |
 | `CLIMB` | Arrival on the perch |
 | `CARRIED` | When the mouse lets go |
 | `FALL` | Landing |
@@ -112,8 +112,9 @@ All carry `session`, the session id.
 | `session_quiet` | `level` (0, 1, 2) | Foot tapping, meditation |
 | `session_subagents` | `count` | Small pets |
 | `session_background` | `background` | Hourglass while the turn is over and a background task still runs. No "Task done!" |
-| `session_message_sent` | `to`, the name of a session | The pet throws a letter to the pet of that session |
+| `session_message_sent` | `to`, the name of a session | The pet throws a letter to the pet of that session. Once its turn is over, it waits for the answer while that session works |
 | `session_mail` | `mail` | Mailbox while messages of other sessions wait to be read. Reading of the letter when one leaves |
+| `session_turn` | `origin` (`human`, `peer`, `task-notification`…), `from` | A turn started by another session ends with a nod, not a cheer |
 | `session_needs_you` | `detail` | Bubble |
 | `session_finished` | | Jump, bubble, sound |
 | `session_tests_passed` | | Jump, bubble, sound |

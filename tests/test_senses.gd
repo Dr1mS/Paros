@@ -255,6 +255,33 @@ func test_messages_between_sessions() -> void:
 	sense.free()
 
 
+func test_what_started_the_turn() -> void:
+	var sense := claude_sense()
+	var transcript := folder.path_join("claude/projects/-work").path_join(SESSION + ".jsonl")
+	write(folder.path_join("claude/sessions/1.json"), registry(OS.get_process_id(), "busy"))
+	write(transcript, "\n".join([
+		'{"type":"user","message":{"content":"old"},"origin":{"kind":"peer","name":"Old"}}',
+		'{"type":"user","message":{"content":"fix it"},"origin":{"kind":"human"}}',
+	]) + "\n")
+	sense._poll()
+	check_equal(event_names().count(&"session_turn"), 1, "only the turn in progress when first seen")
+	check_equal(last_event(&"session_turn").get("origin"), &"human", "started by the user")
+	check_equal(event_names().find(&"session_opened") < event_names().find(&"session_turn"), true, "after the session opens")
+
+	var file := FileAccess.open(transcript, FileAccess.READ_WRITE)
+	file.seek_end()
+	file.store_string("\n".join([
+		'{"type":"user","message":{"content":"quotes {\\"origin\\":{\\"kind\\":\\"human\\"}}"}}',
+		'{"type":"user","isMeta":true,"message":{"content":"Another Claude session sent a message"},"origin":{"kind":"peer","from":"uds:/run/1.sock","name":"Beta"}}',
+	]) + "\n")
+	file.close()
+	sense._poll()
+	check_equal(event_names().count(&"session_turn"), 2, "one more, the quoted one ignored")
+	check_equal(last_event(&"session_turn").get("origin"), &"peer", "started by another session")
+	check_equal(last_event(&"session_turn").get("from"), "Beta", "with its name")
+	sense.free()
+
+
 func test_music_players() -> void:
 	var sense: Node = load("res://src/senses/music_sense.gd").new()
 	var names := "(['org.freedesktop.DBus', ':1.7', 'org.mpris.MediaPlayer2.spotify', 'org.mpris.MediaPlayer2.firefox.instance_1_23'],)"

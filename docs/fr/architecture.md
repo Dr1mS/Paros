@@ -81,7 +81,7 @@ L'**état** (`Pet.State`) est ce que le personnage fait à l'instant :
 |---|---|
 | `IDLE`, `SIT`, `WALK` | Durée tirée au hasard, ou changement de souhait |
 | `SLEEP`, `THINK`, `ALERT`, `WAIT` | Quand le souhait change. `SLEEP` passe par `STRETCH` |
-| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP`, `THROW`, `READ` | Durée fixe, dans `Pet.TIMED` |
+| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP`, `THROW`, `READ`, `NOD` | Durée fixe, dans `Pet.TIMED` |
 | `CLIMB` | Arrivée sur le perchoir |
 | `CARRIED` | Quand la souris lâche |
 | `FALL` | Atterrissage |
@@ -112,8 +112,9 @@ Tous portent `session`, l'identifiant de la session.
 | `session_quiet` | `level` (0, 1, 2) | Tape du pied, médite |
 | `session_subagents` | `count` | Petits personnages |
 | `session_background` | `background` | Sablier tant que le tour est fini et qu'une tâche en arrière-plan tourne. Pas de « Tâche finie ! » |
-| `session_message_sent` | `to`, le nom d'une session | Le personnage lance une lettre au personnage de cette session |
+| `session_message_sent` | `to`, le nom d'une session | Le personnage lance une lettre au personnage de cette session. Son tour fini, il attend la réponse tant que cette session travaille |
 | `session_mail` | `mail` | Boîte aux lettres tant que des messages d'autres sessions attendent d'être lus. Lecture de la lettre quand l'une sort |
+| `session_turn` | `origin` (`human`, `peer`, `task-notification`…), `from` | Un tour lancé par une autre session finit par un hochement de tête, pas par un saut de joie |
 | `session_needs_you` | `detail` | Bulle |
 | `session_finished` | | Saut, bulle, son |
 | `session_tests_passed` | | Saut, bulle, son |

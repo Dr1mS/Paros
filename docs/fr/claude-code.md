@@ -16,6 +16,7 @@ Paros suit les sessions Claude Code interactives de la machine, pour l'utilisate
 | Attend une tâche qu'elle a lancée en arrière-plan | Assis, regarde un sablier : le sable coule, le sablier se retourne |
 | Écrit à une autre session | Lance une lettre, qui vole jusqu'au personnage de cette session |
 | A reçu un message d'une autre session pendant son travail | Une boîte aux lettres à côté du personnage, drapeau levé. Avec le nombre de lettres quand plusieurs attendent |
+| A écrit à une autre session, qui y travaille encore | Assis près du sablier, tourné vers le personnage de cette session |
 | Lit ce message | La boîte aux lettres s'en va. Le personnage tient la lettre devant lui et la lit |
 | Au repos | Se promène, s'assoit, dort |
 | Contexte rempli à 75 % ou plus | La tête fume |
@@ -27,7 +28,8 @@ Paros suit les sessions Claude Code interactives de la machine, pour l'utilisate
 |---|---|
 | Outil lancé | Légende au-dessus de la tête : « Edit · pet.gd », « Bash · Lance les tests ». Sur plusieurs lignes si besoin |
 | Demande de permission | Bulle avec le message de Claude |
-| Fin de tour | Saut, cœurs, bulle « Tâche finie ! », deux notes montantes |
+| Fin d'un tour que tu as demandé | Saut, cœurs, bulle « Tâche finie ! », deux notes montantes |
+| Fin d'un tour demandé par une autre session | Deux hochements de tête. Ni bulle, ni son |
 | Sous-agent lancé | Un petit personnage part du grand en courant, une feuille à la main, et reste à côté. Quatre au plus |
 | Tests réussis | Saut, bulle « Tests verts ! » |
 | Tests échoués | Tremble, bulle « Tests rouges », deux notes descendantes |
@@ -55,7 +57,9 @@ Une session peut écrire à une autre avec l'outil `SendMessage`. Le personnage 
 
 Une session au repos lit le message tout de suite : son personnage tient la lettre devant lui et la lit. Une session au travail le lit plus tard, entre deux étapes ou à la fin de son tour. D'ici là, la lettre attend dans une boîte aux lettres à côté du personnage, drapeau levé. La carte de survol indique « Lettres à lire ». Sur l'écran de verrouillage, le nombre de lettres n'est pas affiché.
 
-Paros le lit dans les transcripts : l'appel `SendMessage` de l'expéditeur, avec le nom du destinataire, et la file d'attente du destinataire, où le message entre puis sort.
+Une session qui a écrit à une autre et fini son tour attend la réponse, pas toi : son personnage s'assoit près du sablier, tourné vers l'autre personnage, tant que l'autre session travaille. La carte de survol indique « Attend la réponse de », avec le nom. Pas de « Tâche finie ! » à ce moment : il vient quand la réponse est arrivée et le travail fini. Un tour lancé par une autre session, que tu n'as pas demandé, finit par un hochement de tête.
+
+Paros le lit dans les transcripts : ce qui a lancé chaque tour (toi, une autre session, la fin d'une tâche en arrière-plan), l'appel `SendMessage` de l'expéditeur, avec le nom du destinataire, et la file d'attente du destinataire, où le message entre puis sort.
 
 ### État git du dossier de la session
 

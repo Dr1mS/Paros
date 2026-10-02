@@ -5,7 +5,7 @@ extends Node2D
 
 enum State {
 	IDLE, SIT, WALK, SLEEP, STRETCH, THINK, ALERT, CHEER, GREET, GLARE, HIGH_FIVE, WORRY, ROAST,
-	KNOCK, SWEEP, CLIMB, CARRIED, FALL, WAIT, THROW, READ,
+	KNOCK, SWEEP, CLIMB, CARRIED, FALL, WAIT, THROW, READ, NOD,
 }
 ## Standing order from the brain. The pet obeys as soon as it is idle.
 enum Wish { ROAM, SLEEP, THINK, ALERT, WAIT }
@@ -30,6 +30,7 @@ const TIMED := {
 	State.CLIMB: 0.7,
 	State.THROW: 0.5,
 	State.READ: 1.6,
+	State.NOD: 0.8,
 }
 ## States slow enough for a low frame rate.
 const CALM: Array[State] = [State.IDLE, State.SIT, State.SLEEP, State.THINK, State.WAIT]
@@ -212,7 +213,7 @@ func _process(delta: float) -> void:
 		State.THINK, State.ALERT, State.WAIT:
 			if WISH_STATE.get(wish) != state:
 				_enter(State.IDLE)
-		State.STRETCH, State.CHEER, State.GLARE, State.HIGH_FIVE, State.WORRY, State.ROAST, State.KNOCK, State.SWEEP, State.THROW, State.READ:
+		State.STRETCH, State.CHEER, State.GLARE, State.HIGH_FIVE, State.WORRY, State.ROAST, State.KNOCK, State.SWEEP, State.THROW, State.READ, State.NOD:
 			if state_time >= TIMED[state]:
 				_enter(State.IDLE)
 		State.GREET:
@@ -386,6 +387,17 @@ func high_five(side: float) -> void:
 ## Sweeps the floor in front of itself.
 func sweep() -> void:
 	_play(State.SWEEP)
+
+
+## Nods twice: done, with nothing to celebrate.
+func nod() -> void:
+	_play(State.NOD)
+
+
+## Turns toward the given screen x while it stays in place.
+func look_toward(feet_x: float) -> void:
+	if state in CALM and not is_equal_approx(feet_x, feet().x):
+		facing = signf(feet_x - feet().x)
 
 
 ## Throws a letter to a pet on the given side.

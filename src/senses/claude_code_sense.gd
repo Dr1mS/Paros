@@ -15,7 +15,10 @@ extends Node
 ##   session_tool_failed {tool, detail, kind}, session_tests_passed,
 ##   session_message_sent {to}: the session wrote to the session of that name,
 ##   session_mail {mail}: messages of other sessions that wait in its queue.
-##     A busy session reads them later, a session at rest at once.
+##     A busy session reads them later, a session at rest at once,
+##   session_turn {origin, from}: a turn starts. origin: &"human" for a prompt
+##     of the user, &"peer" for a message of another session, named by from,
+##     &"task-notification" for the end of a background task, and others.
 ##
 ## Reads three kinds of local files:
 ## - <claude dir>/sessions/<pid>.json: one per live session, with its name and
@@ -50,6 +53,9 @@ const STOP_MARK := '"name":"TaskStop"'
 const QUEUE_LINE := '{"type":"queue-operation","operation":"'
 ## In the queue line of a message of another session.
 const LETTER_MARK := '"content":"<cross-session-message '
+## In the transcript line of what starts a turn, before who did: the user,
+## another session, a notice.
+const ORIGIN_MARK := '"origin":{"kind":"'
 ## In the transcript line of an answer that writes to another session.
 const SEND_MARK := '"name":"SendMessage"'
 const SEND_TOOL := "SendMessage"
@@ -71,7 +77,8 @@ var _log_offset := 0
 ## transcript_offset, heard (time of the last hook event), quiet, tasks
 ## (background task id -> Unix time of its start), background, queue (one
 ## entry per thing the session has yet to read: true for a message of another
-## session), mail, known (false until its transcript was read once).
+## session), mail, known (false until its transcript was read once), origin
+## and asker (what started the last turn, and the name of the session if one did).
 var _sessions := {}
 var _task_started := RegEx.create_from_string('"(?:backgroundTaskId|agentId)":"([^"]+)"')
 var _task_ended := RegEx.create_from_string("<task-id>([^<]+)</task-id>")
@@ -143,6 +150,7 @@ func _update(id: String, entry: Dictionary) -> void:
 			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0,
 			"phase": &"", "asking": false, "subagents": 0, "transcript": "", "transcript_offset": 0,
 			"heard": _now(), "quiet": 0, "tasks": {}, "background": 0, "queue": [], "mail": 0, "known": false,
+			"origin": &"", "asker": "",
 		}
 	var session: Dictionary = _sessions[id]
 	var before := _shown(session)
@@ -155,6 +163,9 @@ func _update(id: String, entry: Dictionary) -> void:
 	if opened or shown != before:
 		shown.session = id
 		Events.post(&"session_opened" if opened else &"session_changed", shown)
+	# The turn in progress when the session is first seen.
+	if opened and not session.origin.is_empty():
+		_post_turn(id, session)
 	var now := Time.get_unix_time_from_system()
 	var background: int = session.tasks.values().filter(func(started: float) -> bool: return now - started < BACKGROUND_MAX_SECONDS).size()
 	if background != session.background:
@@ -186,6 +197,8 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 		if SEND_MARK in line and session.known:
 			for name in _recipients(line):
 				Events.post(&"session_message_sent", {"session": id, "to": name})
+		if ORIGIN_MARK in line and _read_origin(line, session) and session.known:
+			_post_turn(id, session)
 		if line.begins_with(COLOR_LINE):
 			session.color = _json_field(line, "agentColor")
 		elif line.begins_with(PROMPT_LINE):
@@ -200,6 +213,20 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 		elif USAGE_MARK in line:
 			session.context = _count_tokens(line)
 	session.transcript_offset = file.get_position()
+
+
+## Notes what started the turn of the given transcript line. False: nothing did.
+func _read_origin(line: String, session: Dictionary) -> bool:
+	var parsed: Variant = JSON.parse_string(line)
+	if not (parsed is Dictionary and parsed.get("origin") is Dictionary):
+		return false
+	session.origin = StringName(str(parsed.origin.get("kind", "")))
+	session.asker = str(parsed.origin.get("name", ""))
+	return true
+
+
+func _post_turn(id: String, session: Dictionary) -> void:
+	Events.post(&"session_turn", {"session": id, "origin": session.origin, "from": session.asker})
 
 
 ## Applies a change of the queue of the session.

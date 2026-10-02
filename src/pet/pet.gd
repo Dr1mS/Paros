@@ -5,15 +5,16 @@ extends Node2D
 
 enum State {
 	IDLE, SIT, WALK, SLEEP, STRETCH, THINK, ALERT, CHEER, GREET, GLARE, HIGH_FIVE, WORRY, ROAST,
-	KNOCK, SWEEP, CLIMB, CARRIED, FALL,
+	KNOCK, SWEEP, CLIMB, CARRIED, FALL, WAIT,
 }
 ## Standing order from the brain. The pet obeys as soon as it is idle.
-enum Wish { ROAM, SLEEP, THINK, ALERT }
+enum Wish { ROAM, SLEEP, THINK, ALERT, WAIT }
 
 const WISH_STATE := {
 	Wish.SLEEP: State.SLEEP,
 	Wish.THINK: State.THINK,
 	Wish.ALERT: State.ALERT,
+	Wish.WAIT: State.WAIT,
 }
 ## States that end on their own, with their duration in seconds.
 const TIMED := {
@@ -29,7 +30,7 @@ const TIMED := {
 	State.CLIMB: 0.7,
 }
 ## States slow enough for a low frame rate.
-const CALM: Array[State] = [State.IDLE, State.SIT, State.SLEEP, State.THINK]
+const CALM: Array[State] = [State.IDLE, State.SIT, State.SLEEP, State.THINK, State.WAIT]
 const DEFAULT_COLOR := Color("#d97757")
 ## Number of entries in the accessory list of the body, "none" included.
 const ACCESSORY_COUNT := 7
@@ -204,7 +205,7 @@ func _process(delta: float) -> void:
 		State.SLEEP:
 			if wish != Wish.SLEEP:
 				_enter(State.STRETCH)
-		State.THINK, State.ALERT:
+		State.THINK, State.ALERT, State.WAIT:
 			if WISH_STATE.get(wish) != state:
 				_enter(State.IDLE)
 		State.STRETCH, State.CHEER, State.GLARE, State.HIGH_FIVE, State.WORRY, State.ROAST, State.KNOCK, State.SWEEP:

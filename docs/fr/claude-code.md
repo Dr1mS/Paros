@@ -13,6 +13,7 @@ Paros suit les sessions Claude Code interactives de la machine, pour l'utilisate
 | Ouverte | Un personnage apparaît, avec le nom et la couleur de la session |
 | Travaille | Reste sur place, regarde en l'air, trois points se remplissent au-dessus de sa tête |
 | Attend une permission ou une réponse | Agite les bras à tour de rôle, « ! » clignotant |
+| Attend une tâche qu'elle a lancée en arrière-plan | Assis, regarde un sablier : le sable coule, le sablier se retourne |
 | Au repos | Se promène, s'assoit, dort |
 | Contexte rempli à 75 % ou plus | La tête fume |
 | Fermée | Le personnage disparaît |
@@ -39,6 +40,12 @@ Le silence des hooks ne dit pas pourquoi la session se tait : réflexion longue 
 
 Le rappel d'attente et le toc-toc n'ont lieu que si le terminal de la session n'a pas le focus. Sans l'[extension GNOME](extension-gnome.md), le focus est inconnu : Paros considère que le terminal ne l'a pas.
 
+### Attente d'une tâche en arrière-plan
+
+Une session peut finir son tour alors qu'une commande ou un agent qu'elle a lancé en arrière-plan tourne encore : un serveur qui démarre, une longue compilation. Elle attend alors cette tâche, pas toi. Le personnage ne dit pas « Tâche finie ! » : il s'assoit près d'un sablier jusqu'à la fin de la tâche et la reprise de la session. La fiche au survol indique « Attend une tâche en arrière-plan ». Une telle session ne rejoint pas la tour.
+
+Paros le lit dans le transcript : le résultat d'une commande ou d'un agent lancé en arrière-plan, puis l'avis de sa fin.
+
 ### État git du dossier de la session
 
 Lu toutes les 10 secondes (`git status --porcelain=v2 --branch` et `git diff --shortstat HEAD`), sans prendre de verrou sur le dépôt.
@@ -58,7 +65,7 @@ Le retard sur la branche amont date du dernier `git fetch`. Paros n'en lance pas
 | Source | Donne | Remarque |
 |---|---|---|
 | `~/.claude/sessions/<pid>.json` | Sessions ouvertes, nom, dossier, statut (`busy`, `waiting`, `idle`) | Format interne à Claude Code, non documenté : une mise à jour peut le changer |
-| Transcript de la session, dans `~/.claude/projects/` | Couleur (`/color`), dernier prompt, tokens de contexte | Seules les lignes ajoutées depuis la dernière lecture sont lues |
+| Transcript de la session, dans `~/.claude/projects/` | Couleur (`/color`), dernier prompt, tokens de contexte, tâches en arrière-plan | Seules les lignes ajoutées depuis la dernière lecture sont lues |
 | `$XDG_RUNTIME_DIR/paros/claude-events.log` | Outils, sous-agents, échecs, fin de tour, demandes de permission | Écrit par `hooks/claude-hook.sh` |
 | Dossier de la session | État git | Par la commande `git` |
 
@@ -112,6 +119,7 @@ Le fichier `$XDG_RUNTIME_DIR/paros/claude-events.log` contient en clair les noms
 
 ## Limites
 
+- Une tâche en arrière-plan sans avis de fin au bout de 30 minutes est oubliée, par exemple un serveur laissé allumé : le personnage retourne au repos.
 - `Stop` se déclenche aussi sur `/clear` et sur un compactage : le personnage saute alors sans qu'une tâche soit finie.
 - Le compte des sous-agents suit les événements `SubagentStart` et `SubagentStop`. Un événement manqué le fausse jusqu'à la fermeture de la session.
 - Le script demande un shell POSIX. Sous Windows, Claude Code lance les hooks avec Git Bash.

@@ -18,10 +18,12 @@ const CROWD_DISTANCE := 120.0
 const CROWD_SECONDS := 2.0
 const CROWD_GAP := 170.0
 ## States of a pet that stays in place.
-const SETTLED: Array[Pet.State] = [Pet.State.IDLE, Pet.State.SIT, Pet.State.SLEEP, Pet.State.THINK, Pet.State.ALERT]
+const SETTLED: Array[Pet.State] = [
+	Pet.State.IDLE, Pet.State.SIT, Pet.State.SLEEP, Pet.State.THINK, Pet.State.ALERT, Pet.State.WAIT,
+]
 ## The pet that moves is the one with the wish that comes first here: a
 ## sleeping pet stays asleep, and so on.
-const CROWD_MOVERS: Array[Pet.Wish] = [Pet.Wish.ROAM, Pet.Wish.THINK, Pet.Wish.ALERT, Pet.Wish.SLEEP]
+const CROWD_MOVERS: Array[Pet.Wish] = [Pet.Wish.ROAM, Pet.Wish.WAIT, Pet.Wish.THINK, Pet.Wish.ALERT, Pet.Wish.SLEEP]
 ## Frames per second. Rendering is the main CPU cost: slow down while every pet
 ## is calm (still, asleep or thinking).
 const LIVELY_FPS := 30

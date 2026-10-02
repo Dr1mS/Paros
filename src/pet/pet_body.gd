@@ -78,6 +78,15 @@ const UMBRELLA: Array[Array] = [
 	[Rect2(-5, -17.5, 10, 1), HEART], [Rect2(-3, -18.3, 6, 0.8), HEART],
 ]
 const CAMPFIRE_X := 10.0
+## Hourglass a waiting pet watches: middle of its base from the feet, in grid
+## units, then half its height and the half width of each row of a bulb, from
+## the neck out.
+const HOURGLASS_X := 10.5
+const HOURGLASS_HALF := 2.6
+const HOURGLASS_ROWS: Array[float] = [0.3, 0.7, 1.1, 1.4]
+## Seconds the sand takes to run down, then the hourglass to turn over.
+const HOURGLASS_RUN := 5.0
+const HOURGLASS_TURN := 0.7
 const SHADES: Array[Array] = [
 	[Rect2(-5.6, -8.2, 4.2, 2.4), EYE], [Rect2(1.4, -8.2, 4.2, 2.4), EYE], [Rect2(-1.4, -7.8, 2.8, 0.6), EYE],
 	[Rect2(-5.0, -7.8, 1.0, 0.5), PAPER], [Rect2(2.0, -7.8, 1.0, 0.5), PAPER],
@@ -184,9 +193,9 @@ func _draw() -> void:
 	var state := _pet.state
 	var airborne := _pet.is_airborne() or state == Pet.State.CLIMB
 	var meditating := state == Pet.State.THINK and _pet.meditating
-	var seated := meditating or state in [Pet.State.SLEEP, Pet.State.SIT, Pet.State.ROAST]
+	var seated := meditating or state in [Pet.State.SLEEP, Pet.State.SIT, Pet.State.ROAST, Pet.State.WAIT]
 	var still := state in [Pet.State.IDLE, Pet.State.SIT]
-	var grooving := _pet.grooving and (still or (state == Pet.State.THINK and not meditating))
+	var grooving := _pet.grooving and (still or state == Pet.State.WAIT or (state == Pet.State.THINK and not meditating))
 	# Index of the arm on the side the pet faces, and of the other one.
 	var front := 1 if _pet.facing > 0.0 else 0
 	# Pixels. hop lifts the whole mascot, rise lifts only the body (legs stretch).
@@ -290,6 +299,8 @@ func _draw() -> void:
 		_blocks(UMBRELLA, body_offset, false)
 	if state == Pet.State.ROAST:
 		_draw_campfire(body_offset)
+	if state == Pet.State.WAIT:
+		_draw_hourglass()
 	if _pet.lost and still:
 		# A map held out in front.
 		_blocks([[Rect2(6.5, -8.5, 3, 2.4), PAPER], [Rect2(7, -7.8, 2, 0.4), Color("#46a758")], [Rect2(7.6, -7.1, 1.2, 0.4), HEART]], body_offset, true)
@@ -359,6 +370,9 @@ func _draw_eyes(state: Pet.State, body_offset: Vector2, meditating: bool) -> voi
 		Pet.State.THINK:
 			# Up while thinking, down at its foot while it taps.
 			look = Vector2(_pet.facing * 0.5, 0.5) if _pet.tapping else Vector2(0, -0.6)
+		Pet.State.WAIT:
+			# Down at the hourglass.
+			look = Vector2(_pet.facing, 0.6)
 		Pet.State.WORRY:
 			look = Vector2.ZERO
 			wide = true
@@ -423,6 +437,40 @@ func _draw_campfire(body_offset: Vector2) -> void:
 		[Rect2(7.5, -6.2, CAMPFIRE_X - 7.2, 0.3), WOOD],
 		[Rect2(CAMPFIRE_X - 0.1, -6.8, 1.3, 1.3), PAPER.lerp(WOOD, done * 0.8)],
 	], body_offset, true)
+
+
+## Hourglass on the ground in front of the pet. The sand runs down, then the
+## hourglass turns over and it runs again.
+func _draw_hourglass() -> void:
+	var moment := fmod(_time, HOURGLASS_RUN + HOURGLASS_TURN)
+	var run := minf(moment / HOURGLASS_RUN, 1.0)
+	var turn := maxf(moment - HOURGLASS_RUN, 0.0) / HOURGLASS_TURN
+	var center := GROUND + Vector2(HOURGLASS_X * signf(_pet.facing), -HOURGLASS_HALF - 0.5) * UNIT
+	# Drawn around its middle, so that it turns on itself. Upside down it looks
+	# the same, with the sand back at the top.
+	draw_set_transform(center, turn * PI)
+	var row := HOURGLASS_HALF / HOURGLASS_ROWS.size()
+	for side: float in [-1.0, 1.0]:
+		draw_rect(Rect2(Vector2(-1.8, side * (HOURGLASS_HALF + 0.25) - 0.25) * UNIT, Vector2(3.6, 0.5) * UNIT), WOOD)
+		# Sand left in the top bulb, against the neck. Sand fallen in the bottom
+		# one, against the base. Height from the middle, in grid units.
+		var sand := Vector2(0.0, (1.0 - run) * HOURGLASS_HALF) if side < 0.0 else Vector2((1.0 - run) * HOURGLASS_HALF, HOURGLASS_HALF)
+		for i in HOURGLASS_ROWS.size():
+			var half_width := HOURGLASS_ROWS[i]
+			var from := i * row
+			_draw_band(side, from, from + row, half_width, Color(PAPER, 0.85))
+			_draw_band(side, maxf(from, sand.x), minf(from + row, sand.y), half_width, GOLD)
+	if run > 0.0 and run < 1.0:
+		# The thread of sand that falls.
+		draw_rect(Rect2(Vector2(-0.1, 0.0) * UNIT, Vector2(0.2, (1.0 - run) * HOURGLASS_HALF) * UNIT), GOLD)
+	draw_set_transform(Vector2.ZERO)
+
+
+## Band of a bulb of the hourglass, between two heights from its middle, in
+## grid units. side: -1 for the top bulb, 1 for the bottom one.
+func _draw_band(side: float, from: float, to: float, half_width: float, color: Color) -> void:
+	if to > from:
+		draw_rect(Rect2(Vector2(-half_width, from if side > 0.0 else -to) * UNIT, Vector2(half_width * 2.0, to - from) * UNIT), color)
 
 
 func _draw_smoke(body_top: Vector2) -> void:

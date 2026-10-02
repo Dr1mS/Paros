@@ -190,6 +190,29 @@ func test_clean_commit_is_reported_once() -> void:
 	sense.free()
 
 
+func test_background_tasks_run_until_their_notice() -> void:
+	var sense := claude_sense()
+	var transcript := folder.path_join("claude/projects/-work").path_join(SESSION + ".jsonl")
+	var now := Time.get_datetime_string_from_system(true)
+	write(folder.path_join("claude/sessions/1.json"), registry(OS.get_process_id(), "idle"))
+	write(transcript, "\n".join([
+		'{"type":"user","timestamp":"%s.123Z","toolUseResult":{"stdout":"","backgroundTaskId":"b1"}}' % now,
+		'{"type":"user","timestamp":"%s.123Z","toolUseResult":{"isAsync":true,"status":"async_launched","agentId":"a1"}}' % now,
+		'{"type":"user","timestamp":"2020-01-01T00:00:00.000Z","toolUseResult":{"backgroundTaskId":"old"}}',
+		'{"type":"user","timestamp":"%s.123Z","message":"quotes {\\"backgroundTaskId\\":\\"quoted\\"}"}' % now,
+	]) + "\n")
+	sense._poll()
+	check_equal(last_event(&"session_background").get("background"), 2, "a command and an agent, not the old one nor the quoted one")
+
+	var file := FileAccess.open(transcript, FileAccess.READ_WRITE)
+	file.seek_end()
+	file.store_string('{"type":"queue-operation","operation":"enqueue","content":"<task-notification>\\n<task-id>b1</task-id>\\n<status>completed</status>"}\n')
+	file.close()
+	sense._poll()
+	check_equal(last_event(&"session_background").get("background"), 1, "the command ended")
+	sense.free()
+
+
 func test_music_players() -> void:
 	var sense: Node = load("res://src/senses/music_sense.gd").new()
 	var names := "(['org.freedesktop.DBus', ':1.7', 'org.mpris.MediaPlayer2.spotify', 'org.mpris.MediaPlayer2.firefox.instance_1_23'],)"

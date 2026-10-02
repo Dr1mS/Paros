@@ -200,6 +200,25 @@ func test_headlamp_at_night() -> void:
 	check(not pet.headlamp, "lamp off")
 
 
+func test_turn_that_leaves_a_task_running_is_a_wait() -> void:
+	var pet := open("s1")
+	set_phase("s1", &"working")
+	Events.post(&"session_background", {"session": "s1", "background": 1})
+	check_equal(pet.wish, Pet.Wish.THINK, "still thinks while it works")
+	set_phase("s1", &"idle", 200.0)
+	Events.post(&"session_finished", {"session": "s1"})
+	check_equal(pet.state, Pet.State.IDLE, "no cheer: not done")
+	check_equal(pet.wish, Pet.Wish.WAIT, "waits")
+	check(not brain._rests(pet), "not at rest for the tower")
+	pet.hovered = true
+	brain._refresh()
+	check("background task" in pet.get_node("../Bubble").card, "the card says so")
+	Events.post(&"session_background", {"session": "s1", "background": 0})
+	check_equal(pet.wish, Pet.Wish.ROAM, "the task ended")
+	Events.post(&"session_finished", {"session": "s1"})
+	check_equal(pet.state, Pet.State.CHEER, "done for good")
+
+
 func test_grooves_to_the_music() -> void:
 	var pet := open("s1")
 	Events.post(&"music", {"playing": true})

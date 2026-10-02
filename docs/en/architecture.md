@@ -70,14 +70,14 @@ The application runs on X11, so through XWayland under Wayland: native Wayland d
 
 ### Wish and state
 
-The brain gives a **wish** (`Pet.Wish`): `ROAM`, `SLEEP`, `THINK`, `ALERT`. It is a standing order. The pet obeys as soon as it is at rest: a cheer in progress ends first.
+The brain gives a **wish** (`Pet.Wish`): `ROAM`, `SLEEP`, `THINK`, `ALERT`, `WAIT`. It is a standing order. The pet obeys as soon as it is at rest: a cheer in progress ends first.
 
 The **state** (`Pet.State`) is what the pet does right now:
 
 | State | End |
 |---|---|
 | `IDLE`, `SIT`, `WALK` | Random duration, or change of wish |
-| `SLEEP`, `THINK`, `ALERT` | When the wish changes. `SLEEP` goes through `STRETCH` |
+| `SLEEP`, `THINK`, `ALERT`, `WAIT` | When the wish changes. `SLEEP` goes through `STRETCH` |
 | `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP` | Fixed duration, in `Pet.TIMED` |
 | `CLIMB` | Arrival on the perch |
 | `CARRIED` | When the mouse lets go |
@@ -108,6 +108,7 @@ All carry `session`, the session id.
 | `session_activity` | `tool`, `detail` | Caption |
 | `session_quiet` | `level` (0, 1, 2) | Foot tapping, meditation |
 | `session_subagents` | `count` | Small pets |
+| `session_background` | `background` | Hourglass while the turn is over and a background task still runs. No "Task done!" |
 | `session_needs_you` | `detail` | Bubble |
 | `session_finished` | | Jump, bubble, sound |
 | `session_tests_passed` | | Jump, bubble, sound |

@@ -48,7 +48,7 @@ var _user_idle := false
 var _music := false
 ## Session id -> what the senses told about it: name, color, cwd, last_prompt,
 ## pid, context, phase, since, tool, detail, count, stalled, branch, dirty,
-## behind, conflict, level. Plus "nagged", "knocked", "unfocused_since",
+## behind, conflict, level, background. Plus "nagged", "knocked", "unfocused_since",
 ## "cool_until", "lineage". Times are Unix times.
 var _sessions := {}
 ## Frame of the focused window. No size: none, or not known.
@@ -156,10 +156,12 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 		&"session_subagents":
 			pet.minis = data.count
 		&"session_finished":
-			pet.cheer()
-			pet.say(tr("Task done!"))
-			pets.celebrate(pet)
-			Sound.play(&"success")
+			# A turn that leaves a task running is a pause, not the end.
+			if not _awaits(_sessions[data.session]):
+				pet.cheer()
+				pet.say(tr("Task done!"))
+				pets.celebrate(pet)
+				Sound.play(&"success")
 		&"session_needs_you":
 			pet.say(data.detail if not data.detail.is_empty() else tr("Claude is waiting for you"))
 		&"session_tests_passed":
@@ -234,7 +236,7 @@ func _refresh() -> void:
 			_dress(pet, session)
 		var level := _tower.find(pet)
 		pet.perch = _tower_edge(level) if level > 0 else _active_window
-		pet.wish = Pet.Wish.SLEEP if pet == _cuddler else _wish(phase)
+		pet.wish = Pet.Wish.SLEEP if pet == _cuddler else _wish(session)
 		pet.tapping = session.get("level", 0) == 1
 		pet.meditating = session.get("level", 0) == 2
 		pet.pace = lerpf(PACE_RANGE.x, PACE_RANGE.y, clampf(_load, 0.0, 1.0))
@@ -264,15 +266,24 @@ func _dress(pet: Pet, session: Dictionary) -> void:
 
 
 ## Highest priority first.
-func _wish(phase: StringName) -> Pet.Wish:
+func _wish(session: Dictionary) -> Pet.Wish:
+	var phase: StringName = session.get("phase", &"idle")
 	if phase == &"waiting":
 		return Pet.Wish.ALERT
 	if phase == &"working":
 		return Pet.Wish.THINK
+	if _awaits(session):
+		return Pet.Wish.WAIT
 	# Locked, the user is idle by definition: the pets stay up to be seen.
 	if _night or (_user_idle and not _locked):
 		return Pet.Wish.SLEEP
 	return Pet.Wish.ROAM
+
+
+## True when the turn is over and a task the session started still runs: the
+## session waits for it, not for the user.
+func _awaits(session: Dictionary) -> bool:
+	return session.get("phase") == &"idle" and session.get("background", 0) > 0
 
 
 ## Sends the nearest free pet to sleep beside the still pointer.
@@ -367,7 +378,7 @@ func _fell_tower() -> void:
 ## True when the session of the pet has been at rest long enough for the tower.
 func _rests(pet: Pet) -> bool:
 	var session: Dictionary = _sessions.get(pet.key, {})
-	return session.get("phase") == &"idle" and _now() - session.since >= TOWER_AFTER_SECONDS
+	return session.get("phase") == &"idle" and not _awaits(session) and _now() - session.since >= TOWER_AFTER_SECONDS
 
 
 ## Head of the pet below, for the pet at the given level of the tower.
@@ -402,7 +413,7 @@ func _card(session: Dictionary) -> String:
 			&"waiting":
 				lines.append(tr("Waiting for you for %s") % lasted)
 			_:
-				lines.append(tr("At rest for %s") % lasted)
+				lines.append(tr("Waiting for a background task for %s" if _awaits(session) else "At rest for %s") % lasted)
 		if session.get("count", 0) > 0:
 			lines.append(tr("Subagents running: %d") % session.count)
 		if session.context > 0:

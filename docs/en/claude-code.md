@@ -13,6 +13,7 @@ Paros follows the interactive Claude Code sessions of the machine, for the curre
 | Open | A pet appears, with the name and color of the session |
 | Working | Stays in place, looks up, three dots fill up above its head |
 | Waiting for a permission or an answer | Waves its arms in turn, blinking "!" |
+| Waits for a task it started in the background | Sits and watches an hourglass: the sand runs down, the hourglass turns over |
 | At rest | Walks, sits, sleeps |
 | Context 75 % full or more | Its head smokes |
 | Closed | The pet goes away |
@@ -39,6 +40,12 @@ The silence of the hooks does not say why the session is silent: long thinking o
 
 The reminder and the knock only happen when the terminal of the session is not focused. Without the [GNOME extension](gnome-extension.md) the focus is not known: Paros assumes the terminal does not have it.
 
+### Waiting for a background task
+
+A session can end its turn while a command or an agent it started in the background still runs: a server that boots, a long build. It then waits for that task, not for you. The pet does not say "Task done!": it sits by an hourglass until the task ends and the session resumes. The hover card reads "Waiting for a background task". Such a session does not join the tower.
+
+Paros reads this from the transcript: the result of a command or an agent started in the background, then the notice of its end.
+
 ### Git status of the session folder
 
 Read every 10 seconds (`git status --porcelain=v2 --branch` and `git diff --shortstat HEAD`), without taking a lock on the repository.
@@ -58,7 +65,7 @@ Being behind upstream is as of the last `git fetch`. Paros runs none.
 | Source | Gives | Note |
 |---|---|---|
 | `~/.claude/sessions/<pid>.json` | Open sessions, name, folder, status (`busy`, `waiting`, `idle`) | Internal Claude Code format, not documented: an update may change it |
-| Session transcript, in `~/.claude/projects/` | Color (`/color`), last prompt, context tokens | Only the lines added since the last reading are read |
+| Session transcript, in `~/.claude/projects/` | Color (`/color`), last prompt, context tokens, background tasks | Only the lines added since the last reading are read |
 | `$XDG_RUNTIME_DIR/paros/claude-events.log` | Tools, subagents, failures, end of turn, permission requests | Written by `hooks/claude-hook.sh` |
 | Session folder | Git status | Through the `git` command |
 
@@ -112,6 +119,7 @@ On screen, a pet shows the session name, the git branch and the tool in use. The
 
 ## Limits
 
+- A background task with no notice of its end after 30 minutes is forgotten, such as a server left running: the pet goes back to rest.
 - `Stop` also fires on `/clear` and on a compaction: the pet then jumps although no task is done.
 - The subagent count follows the `SubagentStart` and `SubagentStop` events. A missed event makes it wrong until the session closes.
 - The script needs a POSIX shell. On Windows, Claude Code runs hooks with Git Bash.

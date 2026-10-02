@@ -6,6 +6,9 @@ extends Node
 ##   session_closed,
 ##   session_phase {phase: &"idle" | &"working" | &"waiting", since: Unix time},
 ##   session_activity {tool, detail}, session_subagents {count},
+##   session_background {background}: commands and agents the session started
+##     in the background and that still run. A turn may end before they do:
+##     the session then waits for them, not for the user,
 ##   session_quiet {level}: working with no hook event, 0: for a moment,
 ##     1: for a while, 2: for long,
 ##   session_needs_you {detail}, session_finished,
@@ -14,7 +17,8 @@ extends Node
 ## Reads three kinds of local files:
 ## - <claude dir>/sessions/<pid>.json: one per live session, with its name and
 ##   status. Internal Claude Code format, not documented: may change.
-## - the session transcript: color (/color), last prompt, token use.
+## - the session transcript: color (/color), last prompt, token use, tasks
+##   started in the background and notices of their end.
 ## - the log written by hooks/claude-hook.sh, one line per hook event.
 
 ## Fields of a hook log line, separated by tabs.
@@ -27,6 +31,15 @@ const COLOR_LINE := '{"type":"agent-color"'
 const PROMPT_LINE := '{"type":"last-prompt"'
 ## In the transcript line of each answer of the model.
 const USAGE_MARK := '"usage":{'
+## In the transcript line of the result of a command, then of an agent,
+## started in the background.
+const COMMAND_MARK := '"backgroundTaskId":"'
+const AGENT_MARK := '"status":"async_launched"'
+## Start of the transcript line of a notice put in the queue of the session.
+const NOTICE_LINE := '{"type":"queue-operation","operation":"enqueue"'
+## A background task with no notice of its end for this long is forgotten: a
+## server left running, or a task of a session closed meanwhile.
+const BACKGROUND_MAX_SECONDS := 1800.0
 ## Tokens are posted rounded to this step, to post less often.
 const TOKEN_STEP := 10000
 ## Seconds without hook event that make a working session quiet at level 1,
@@ -39,8 +52,12 @@ var _claude_dir := _home().path_join(".claude")
 var _log_path := "/tmp/paros/claude-events.log"
 var _log_offset := 0
 ## Session id -> the SHOWN fields, plus phase, asking, subagents, transcript,
-## transcript_offset, heard (time of the last hook event), quiet.
+## transcript_offset, heard (time of the last hook event), quiet, tasks
+## (background task id -> Unix time of its start), background.
 var _sessions := {}
+var _task_started := RegEx.create_from_string('"(?:backgroundTaskId|agentId)":"([^"]+)"')
+var _task_ended := RegEx.create_from_string("<task-id>([^<]+)</task-id>")
+var _timestamp := RegEx.create_from_string('"timestamp":"([^".]+)')
 ## Input token counts of an answer: fresh, written to cache, read from cache.
 var _token_counts := RegEx.create_from_string('"(?:input_tokens|cache_creation_input_tokens|cache_read_input_tokens)":(\\d+)')
 
@@ -104,7 +121,7 @@ func _update(id: String, entry: Dictionary) -> void:
 		_sessions[id] = {
 			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0,
 			"phase": &"", "asking": false, "subagents": 0, "transcript": "", "transcript_offset": 0,
-			"heard": _now(), "quiet": 0,
+			"heard": _now(), "quiet": 0, "tasks": {}, "background": 0,
 		}
 	var session: Dictionary = _sessions[id]
 	var before := _shown(session)
@@ -116,6 +133,11 @@ func _update(id: String, entry: Dictionary) -> void:
 	if opened or shown != before:
 		shown.session = id
 		Events.post(&"session_opened" if opened else &"session_changed", shown)
+	var now := Time.get_unix_time_from_system()
+	var background: int = session.tasks.values().filter(func(started: float) -> bool: return now - started < BACKGROUND_MAX_SECONDS).size()
+	if background != session.background:
+		session.background = background
+		Events.post(&"session_background", {"session": id, "background": background})
 
 
 func _shown(session: Dictionary) -> Dictionary:
@@ -139,6 +161,15 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 			session.color = _json_field(line, "agentColor")
 		elif line.begins_with(PROMPT_LINE):
 			session.last_prompt = _json_field(line, "lastPrompt")
+		elif line.begins_with(NOTICE_LINE):
+			var ended := _task_ended.search(line)
+			if ended:
+				session.tasks.erase(ended.get_string(1))
+		elif COMMAND_MARK in line or AGENT_MARK in line:
+			var started := _task_started.search(line)
+			var written := _timestamp.search(line)
+			if started and written:
+				session.tasks[started.get_string(1)] = Time.get_unix_time_from_datetime_string(written.get_string(1))
 		elif USAGE_MARK in line:
 			session.context = _count_tokens(line)
 	session.transcript_offset = file.get_position()

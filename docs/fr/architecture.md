@@ -70,14 +70,14 @@ L'application tourne en X11, donc par XWayland sous Wayland : Wayland natif inte
 
 ### Souhait et état
 
-Le cerveau donne un **souhait** (`Pet.Wish`) : `ROAM`, `SLEEP`, `THINK`, `ALERT`. C'est un ordre permanent. Le personnage y obéit dès qu'il est au repos : un saut de joie en cours se termine d'abord.
+Le cerveau donne un **souhait** (`Pet.Wish`) : `ROAM`, `SLEEP`, `THINK`, `ALERT`, `WAIT`. C'est un ordre permanent. Le personnage y obéit dès qu'il est au repos : un saut de joie en cours se termine d'abord.
 
 L'**état** (`Pet.State`) est ce que le personnage fait à l'instant :
 
 | État | Fin |
 |---|---|
 | `IDLE`, `SIT`, `WALK` | Durée tirée au hasard, ou changement de souhait |
-| `SLEEP`, `THINK`, `ALERT` | Quand le souhait change. `SLEEP` passe par `STRETCH` |
+| `SLEEP`, `THINK`, `ALERT`, `WAIT` | Quand le souhait change. `SLEEP` passe par `STRETCH` |
 | `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP` | Durée fixe, dans `Pet.TIMED` |
 | `CLIMB` | Arrivée sur le perchoir |
 | `CARRIED` | Quand la souris lâche |
@@ -108,6 +108,7 @@ Tous portent `session`, l'identifiant de la session.
 | `session_activity` | `tool`, `detail` | Légende |
 | `session_quiet` | `level` (0, 1, 2) | Tape du pied, médite |
 | `session_subagents` | `count` | Petits personnages |
+| `session_background` | `background` | Sablier tant que le tour est fini et qu'une tâche en arrière-plan tourne. Pas de « Tâche finie ! » |
 | `session_needs_you` | `detail` | Bulle |
 | `session_finished` | | Saut, bulle, son |
 | `session_tests_passed` | | Saut, bulle, son |

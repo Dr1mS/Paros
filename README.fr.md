@@ -88,7 +88,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 ./test.sh
 ```
 
-87 tests unitaires, sans affichage, en quelques secondes.
+89 tests unitaires, sans affichage, en quelques secondes.
 
 ## Licence
 

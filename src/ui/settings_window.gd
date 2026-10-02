@@ -48,9 +48,9 @@ const HEADING := Color("#d97757")
 ## the settings scroll.
 const MAX_SCREEN_SHARE := 0.8
 
-var _scroll := ScrollContainer.new()
-var _content := MarginContainer.new()
-var _autostart := CheckBox.new()
+var _scroll: ScrollContainer
+var _content: MarginContainer
+var _autostart: CheckBox
 
 
 func _ready() -> void:
@@ -59,6 +59,9 @@ func _ready() -> void:
 	close_requested.connect(hide)
 	Events.sensed.connect(_on_sensed)
 
+	_scroll = ScrollContainer.new()
+	_content = MarginContainer.new()
+	_autostart = CheckBox.new()
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(panel)

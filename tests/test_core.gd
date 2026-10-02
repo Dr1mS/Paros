@@ -111,7 +111,11 @@ func test_autostart_file() -> void:
 	check(not Autostart.is_enabled(), "off at first")
 	Autostart.set_enabled(true)
 	check(Autostart.is_enabled(), "on")
-	check("Exec=" in FileAccess.get_file_as_string(Autostart._path()), "has a command")
+	var entry := FileAccess.get_file_as_string(Autostart._path())
+	check("Exec=env XMODIFIERS=@im=none " in entry, "command, started without input method server")
+	FileAccess.open(Autostart._path(), FileAccess.WRITE).store_string("old entry")
+	Autostart.refresh()
+	check("Exec=" in FileAccess.get_file_as_string(Autostart._path()), "an old entry is written again")
 	Autostart.set_enabled(false)
 	check(not Autostart.is_enabled(), "off again")
 
@@ -123,7 +127,7 @@ func test_process_lineage() -> void:
 	check_equal(lineage[0], OS.get_process_id(), "starts with the process")
 	check(lineage.size() > 1, "then its parents")
 	check_equal(Desktop.lineage(0), [], "no process, no lineage")
-	check(" " in Desktop.read_proc("/proc/loadavg"), "proc files are read")
+	check(" " in Desktop.read_kernel_file("/proc/loadavg"), "proc files are read")
 
 
 func test_interface_language() -> void:
@@ -152,3 +156,20 @@ func test_french_texts_keep_their_placeholders() -> void:
 		var english := placeholder.search_all(text).map(func(found: RegExMatch) -> String: return found.get_string())
 		var french := placeholder.search_all(Language.FRENCH[text]).map(func(found: RegExMatch) -> String: return found.get_string())
 		check_equal(french, english, "placeholders of \"%s\"" % text)
+
+
+func test_restarts_only_under_x11_with_an_input_method_server() -> void:
+	check(InputMethod.needs_restart("X11", "@im=ibus", false), "ibus under X11")
+	check(InputMethod.needs_restart("X11", "", false), "variable not set")
+	check(not InputMethod.needs_restart("X11", "@im=none", false), "already without server")
+	check(not InputMethod.needs_restart("X11", "@im=ibus", true), "never twice")
+	check(not InputMethod.needs_restart("headless", "@im=ibus", false), "no display")
+	check(not InputMethod.needs_restart("Windows", "", false), "not X11")
+
+
+func test_kernel_files_are_read_without_garbage() -> void:
+	if OS.get_name() != "Linux":
+		return
+	var load := Desktop.read_kernel_file("/proc/loadavg")
+	check(load.ends_with("\n") and load.count("\n") == 1, "one clean line")
+	check_equal(Desktop.read_kernel_file("/proc/no-such-file"), "", "missing file")

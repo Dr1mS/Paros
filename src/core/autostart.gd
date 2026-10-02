@@ -11,6 +11,12 @@ static func is_enabled() -> bool:
 	return FileAccess.file_exists(_path())
 
 
+## Writes the entry again when it exists: it may come from an older version.
+static func refresh() -> void:
+	if is_supported() and is_enabled():
+		set_enabled(true)
+
+
 static func set_enabled(enabled: bool) -> void:
 	if not enabled:
 		DirAccess.remove_absolute(_path())
@@ -26,7 +32,9 @@ static func set_enabled(enabled: bool) -> void:
 	if OS.get_name() == "Windows":
 		file.store_string('start "" %s\r\n' % command)
 	else:
-		file.store_string("[Desktop Entry]\nType=Application\nName=Paros\nExec=%s\n" % command)
+		# Started with the variable already set: the app does not restart itself.
+		var variable := "%s=%s" % [InputMethod.VARIABLE, InputMethod.WITHOUT_SERVER]
+		file.store_string("[Desktop Entry]\nType=Application\nName=Paros\nExec=env %s %s\n" % [variable, command])
 
 
 static func _path() -> String:

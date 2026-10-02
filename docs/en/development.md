@@ -115,6 +115,18 @@ Two traps met on the way:
 - A window off screen with vertical sync waits one second per frame under OpenGL ES. So neither the main window nor the pet windows use vertical sync.
 - The engine keeps the screen from going to sleep by default (`keep_screen_on`). It is turned off in `project.godot`.
 
+## X11 input method
+
+Under X11 with an input method server (ibus, fcitx), destroying a window makes Xlib wait for an answer of that server (`XDestroyIC`). The answer can get lost, and the app then freezes for good, with no error. It happened when a pet window was removed as a session opened.
+
+Paros therefore runs with `XMODIFIERS=@im=none`: Xlib uses its built-in input method, with no server and no waiting. `run.sh` and the autostart entry set the variable. Started without it, the binary starts itself again with it and leaves (`src/core/input_method.gd`): the command returns at once and the app keeps running.
+
+To find where a frozen process waits:
+
+```sh
+sudo gdb -p <pid> -batch -ex "thread apply all bt 15"
+```
+
 ## Platforms
 
 | | Status |
@@ -147,5 +159,7 @@ What is specific to Linux is isolated: reading `/proc` and `/sys`, `gdbus`, the 
 | The pet keeps knocking | Extension missing: the terminal focus is not known | Install the extension, or untick "Knock when the terminal is not focused" |
 | The screen no longer turns off under the lock screen | Screen hold | Set "Screen on after locking" to 0 |
 | Lock screen stuck | Extension | `Ctrl+Alt+F3`, `gnome-extensions disable paros@paros.local` |
+| Every pet frozen, process still running | Version from before the input method fix | Update, then `pkill -x paros.x86_64; ./run.sh` |
+| The command returns at once when the binary is started by hand | Expected: the app starts itself again without input method server | See [X11 input method](#x11-input-method) |
 
 To see script errors: run from the sources with `./run.sh` in a terminal.

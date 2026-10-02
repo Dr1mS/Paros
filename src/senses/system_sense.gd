@@ -34,7 +34,7 @@ func _poll() -> void:
 	for zone in DirAccess.get_directories_at(THERMAL):
 		# Millidegrees.
 		hottest = maxf(hottest, _read(THERMAL.path_join(zone).path_join("temp")).to_float() / 1000.0)
-	var load := snappedf(Desktop.read_proc("/proc/loadavg").get_slice(" ", 0).to_float() / OS.get_processor_count(), 0.1)
+	var load := snappedf(Desktop.read_kernel_file("/proc/loadavg").get_slice(" ", 0).to_float() / OS.get_processor_count(), 0.1)
 	if load != _load and FileAccess.file_exists("/proc/loadavg"):
 		_load = load
 		Events.post(&"system_load", {"load": load})
@@ -58,4 +58,4 @@ func _post(event: StringName, data: Dictionary) -> void:
 
 
 func _read(path: String) -> String:
-	return FileAccess.get_file_as_string(path).strip_edges()
+	return Desktop.read_kernel_file(path).strip_edges()

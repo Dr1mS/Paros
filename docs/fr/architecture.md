@@ -20,9 +20,10 @@ Ajouter une fonctionnalité revient presque toujours à : un sens qui poste un �
 
 | Fichier | Rôle |
 |---|---|
-| `main.tscn` | Scène principale : `Pets`, `Brain`, `SettingsWindow`, et les sens sous `Senses` |
+| `main.tscn`, `src/main.gd` | Scène principale : `Pets`, `Brain`, `SettingsWindow`, et les sens sous `Senses` |
 | `project.godot` | Réglages du moteur : fenêtre transparente, pilote X11, pilote OpenGL ES, pas d'audio sous Linux |
 | **`src/core/`** | |
+| `input_method.gd` | Relance l'application sans serveur de méthode de saisie X11. Autoload `InputMethod`, le premier |
 | `events.gd` | Bus d'événements. Autoload `Events` |
 | `settings.gd` | Réglages de l'utilisateur. Autoload `Settings` |
 | `focus.gd` | Minuteur de focus. Autoload `Focus` |

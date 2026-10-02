@@ -57,7 +57,7 @@ func play(tune: StringName) -> void:
 			for sample in samples:
 				_playback.push_frame(Vector2.ONE * sample)
 	elif not _player.is_empty():
-		OS.create_process(_player, [_path(tune)])
+		Desktop.start(_player, [_path(tune)])
 
 
 ## Samples of the tune at the volume of the settings, between -1 and 1.

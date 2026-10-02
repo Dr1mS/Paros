@@ -22,6 +22,7 @@ boot_splash/bg_color=Color(0, 0, 0, 0)
 
 [autoload]
 
+InputMethod="*res://src/core/input_method.gd"
 Settings="*res://src/core/settings.gd"
 Language="*res://src/core/language.gd"
 Events="*res://src/core/events.gd"

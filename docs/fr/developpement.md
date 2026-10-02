@@ -115,6 +115,18 @@ Deux pièges rencontrés :
 - Une fenêtre hors écran avec la synchronisation verticale attend une seconde par image sous OpenGL ES. La fenêtre principale et celles des personnages n'ont donc pas de synchronisation verticale.
 - Le moteur empêche par défaut la mise en veille de l'écran (`keep_screen_on`). C'est désactivé dans `project.godot`.
 
+## Méthode de saisie X11
+
+Sous X11 avec un serveur de méthode de saisie (ibus, fcitx), détruire une fenêtre fait attendre à Xlib une réponse de ce serveur (`XDestroyIC`). La réponse peut se perdre, et l'application se fige alors pour de bon, sans erreur. C'est arrivé quand la fenêtre d'un personnage a été supprimée à l'ouverture d'une session.
+
+Paros tourne donc avec `XMODIFIERS=@im=none` : Xlib utilise sa méthode de saisie intégrée, sans serveur et sans attente. `run.sh` et l'entrée de lancement au démarrage fixent la variable. Lancé sans elle, le binaire se relance lui-même avec elle puis s'arrête (`src/core/input_method.gd`) : la commande rend la main tout de suite et l'application continue de tourner.
+
+Pour savoir où attend un processus figé :
+
+```sh
+sudo gdb -p <pid> -batch -ex "thread apply all bt 15"
+```
+
 ## Plateformes
 
 | | État |
@@ -147,5 +159,7 @@ Ce qui est propre à Linux est isolé : lecture de `/proc` et `/sys`, `gdbus`, d
 | Le personnage toque sans arrêt | Extension absente : le focus du terminal est inconnu | Installer l'extension, ou décocher « Toquer quand le terminal n'a pas le focus » |
 | L'écran ne s'éteint plus sous verrouillage | Maintien de l'écran | Régler « Écran allumé après verrouillage » à 0 |
 | Écran de verrouillage bloqué | Extension | `Ctrl+Alt+F3`, `gnome-extensions disable paros@paros.local` |
+| Tous les personnages figés, processus toujours vivant | Version d'avant le correctif de méthode de saisie | Mettre à jour, puis `pkill -x paros.x86_64; ./run.sh` |
+| La commande rend la main tout de suite quand le binaire est lancé à la main | Normal : l'application se relance sans serveur de méthode de saisie | Voir [Méthode de saisie X11](#méthode-de-saisie-x11) |
 
 Pour voir les erreurs de script : lancer depuis les sources avec `./run.sh` dans un terminal.

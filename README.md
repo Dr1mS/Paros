@@ -82,7 +82,7 @@ To run without Godot, build a standalone binary with `./build.sh` (see [Developm
 ./test.sh
 ```
 
-79 unit tests, run without a display in a few seconds.
+81 unit tests, run without a display in a few seconds.
 
 ## License
 

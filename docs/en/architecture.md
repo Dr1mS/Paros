@@ -20,9 +20,10 @@ Adding a feature nearly always comes down to: a sense that posts an event, a rul
 
 | File | Role |
 |---|---|
-| `main.tscn` | Main scene: `Pets`, `Brain`, `SettingsWindow`, and the senses under `Senses` |
+| `main.tscn`, `src/main.gd` | Main scene: `Pets`, `Brain`, `SettingsWindow`, and the senses under `Senses` |
 | `project.godot` | Engine settings: transparent window, X11 driver, OpenGL ES driver, no audio on Linux |
 | **`src/core/`** | |
+| `input_method.gd` | Starts the app again without X11 input method server. Autoload `InputMethod`, the first one |
 | `events.gd` | Event bus. Autoload `Events` |
 | `settings.gd` | User settings. Autoload `Settings` |
 | `focus.gd` | Focus timer. Autoload `Focus` |

@@ -142,3 +142,38 @@ func test_frame_rate_follows_the_pets() -> void:
 	pets._process(0.016)
 	check_equal(Engine.max_fps, Pets.UNSEEN_FPS, "unseen")
 	Settings.set_value("pet", "greetings", true)
+
+
+## Advances the letters by the given time, in small steps.
+func fly(seconds: float) -> void:
+	for i in roundi(seconds / 0.05):
+		for letter in pets._letters:
+			letter._process(0.05)
+
+
+func test_letter_flies_from_a_pet_to_another() -> void:
+	record_events()
+	pets.send_letter(a, b)
+	var letter := pets._letters[0]
+	check_equal(a.state, Pet.State.THROW, "a throws")
+	check_equal(a.facing, 1.0, "toward b")
+	check_equal(letter.recipient(), b, "in flight to b")
+	pets._process(0.016)
+	check_equal(Engine.max_fps, Pets.LIVELY_FPS, "smooth frames for the flight")
+	fly(Letter.SECONDS_RANGE.y + 0.1)
+	check_equal(last_event(&"letter_landed").get("pet"), b, "landed at b")
+	check(not letter.is_flying(), "at rest")
+	check_equal(letter.get_window().position, Pet.HIDING_PLACE, "parked off screen")
+	pets.send_letter(b, a)
+	check_equal(pets._letters.size(), 1, "the same letter serves again")
+	pets.send_letter(b, a)
+	check_equal(pets._letters.size(), 2, "a second one while the first flies")
+
+
+func test_letter_to_a_removed_pet_is_dropped() -> void:
+	record_events()
+	pets.send_letter(a, b)
+	pets.remove("b")
+	check(not pets._letters[0].is_flying(), "flight ended")
+	fly(Letter.SECONDS_RANGE.y + 0.1)
+	check(&"letter_landed" not in event_names(), "no landing")

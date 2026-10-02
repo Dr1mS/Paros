@@ -87,6 +87,22 @@ const HOURGLASS_ROWS: Array[float] = [0.3, 0.7, 1.1, 1.4]
 ## Seconds the sand takes to run down, then the hourglass to turn over.
 const HOURGLASS_RUN := 5.0
 const HOURGLASS_TURN := 0.7
+## Mailbox on the ground, on the left of the pet: post, box, slot, a letter
+## that sticks out, and the raised flag.
+const MAILBOX: Array[Array] = [
+	[Rect2(-11.9, -4.5, 0.7, 4.5), WOOD], [Rect2(-13.6, -7.5, 4.1, 3.0), Color("#3b6fd4")],
+	[Rect2(-13.6, -7.9, 4.1, 0.4), Color("#2b4f9a")], [Rect2(-12.6, -7.2, 2.1, 0.7), PAPER],
+	[Rect2(-13.0, -6.6, 2.9, 0.4), EYE], [Rect2(-9.5, -9.4, 0.4, 2.9), HEART], [Rect2(-10.7, -9.4, 1.2, 0.9), HEART],
+]
+## Middle of the mailbox from the feet, and top of the tag with the number of
+## letters, in grid units.
+const MAILBOX_X := 11.5
+const MAILBOX_TAG_Y := -12.0
+## Letter held out in front of a pet that reads it.
+const SHEET: Array[Array] = [
+	[Rect2(6.5, -9.0, 3.0, 3.4), PAPER], [Rect2(7.0, -8.3, 2.0, 0.3), SMOKE],
+	[Rect2(7.0, -7.5, 2.0, 0.3), SMOKE], [Rect2(7.0, -6.7, 1.3, 0.3), SMOKE],
+]
 const SHADES: Array[Array] = [
 	[Rect2(-5.6, -8.2, 4.2, 2.4), EYE], [Rect2(1.4, -8.2, 4.2, 2.4), EYE], [Rect2(-1.4, -7.8, 2.8, 0.6), EYE],
 	[Rect2(-5.0, -7.8, 1.0, 0.5), PAPER], [Rect2(2.0, -7.8, 1.0, 0.5), PAPER],
@@ -185,7 +201,7 @@ func _look() -> int:
 		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.minis,
 		_pet.urgent, _pet.hovered, _pet.fullness >= SMOKE_FROM, _pet.baggage, _pet.hard_hat, _pet.lost,
 		_pet.tapping, _pet.umbrella, _pet.meditating, _pet.headlamp, _pet.cool, _pet.discreet,
-		_pet.rooted, _pet.is_perched(), _pet.grooving,
+		_pet.rooted, _pet.is_perched(), _pet.grooving, _pet.mail, _pet.mailbox_side(),
 	].hash()
 
 
@@ -235,8 +251,12 @@ func _draw() -> void:
 			arm_raise[front] = 3.0
 		Pet.State.WORRY:
 			shake = sin(_time * 45.0) * 2.5
-		Pet.State.ROAST:
+		Pet.State.ROAST, Pet.State.READ:
 			arm_raise[front] = 0.5
+		Pet.State.THROW:
+			# The arm in front goes up, and the pet rises with it.
+			hop = sin(minf(_pet.state_time / Pet.TIMED[state], 1.0) * PI) * 6.0
+			arm_raise[front] = 3.0
 		Pet.State.CLIMB, Pet.State.CARRIED, Pet.State.FALL:
 			arm_raise = [2.0, 2.0]
 	if seated:
@@ -263,6 +283,8 @@ func _draw() -> void:
 		draw_rect(Rect2(GROUND + Vector2(-width / 2.0, 0), Vector2(width, 4)), SHADOW)
 	if _pet.hard_hat and not airborne:
 		_blocks(SIGN, Vector2.ZERO, false)
+	if _pet.mail > 0 and not airborne and not stacked:
+		_draw_mailbox()
 	for i in mini(_mini_born.size(), MINI_SPOTS.size()):
 		_draw_mini(i)
 
@@ -301,6 +323,8 @@ func _draw() -> void:
 		_draw_campfire(body_offset)
 	if state == Pet.State.WAIT:
 		_draw_hourglass()
+	if state == Pet.State.READ:
+		_blocks(SHEET, body_offset, true)
 	if _pet.lost and still:
 		# A map held out in front.
 		_blocks([[Rect2(6.5, -8.5, 3, 2.4), PAPER], [Rect2(7, -7.8, 2, 0.4), Color("#46a758")], [Rect2(7.6, -7.1, 1.2, 0.4), HEART]], body_offset, true)
@@ -373,6 +397,9 @@ func _draw_eyes(state: Pet.State, body_offset: Vector2, meditating: bool) -> voi
 		Pet.State.WAIT:
 			# Down at the hourglass.
 			look = Vector2(_pet.facing, 0.6)
+		Pet.State.READ:
+			# At the letter.
+			look = Vector2(_pet.facing, 0.3)
 		Pet.State.WORRY:
 			look = Vector2.ZERO
 			wide = true
@@ -402,6 +429,18 @@ func _draw_broom() -> void:
 		[Rect2(x + 2.0 * signf(stroke), -1.0 - absf(stroke), 0.6, 0.6), SMOKE],
 		[Rect2(x + 3.0 * signf(stroke), -0.6 - absf(stroke) * 1.8, 0.5, 0.5), SMOKE],
 	], Vector2.ZERO, true)
+
+
+## Mailbox beside the pet, with the number of letters when more than one waits.
+func _draw_mailbox() -> void:
+	var side := _pet.mailbox_side()
+	for entry: Array in MAILBOX:
+		var shape: Rect2 = entry[0]
+		if side > 0.0:
+			shape.position.x = -shape.end.x
+		_block(shape, Vector2.ZERO, entry[1])
+	if _pet.mail > 1 and not _pet.discreet:
+		_draw_tag(str(_pet.mail), GROUND + Vector2(side * MAILBOX_X, MAILBOX_TAG_Y) * UNIT, HEART)
 
 
 ## Signs that circle the pet, behind it then in front. Draws those of one

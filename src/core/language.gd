@@ -22,6 +22,7 @@ const FRENCH := {
 	"At rest for %s": "Au repos depuis %s",
 	"Waiting for a background task for %s": "Attend une tâche en arrière-plan depuis %s",
 	"Subagents running: %d": "Sous-agents en cours : %d",
+	"Letters to read: %d": "Lettres à lire : %d",
 	"Context: %d k tokens (%d %%)": "Contexte : %d k tokens (%d %%)",
 	"Merge or rebase to finish": "Fusion ou rebase à terminer",
 	"Uncommitted: %d lines": "Non commité : %d lignes",

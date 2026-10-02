@@ -220,6 +220,41 @@ func test_background_tasks_run_until_their_notice() -> void:
 	sense.free()
 
 
+func test_messages_between_sessions() -> void:
+	var sense := claude_sense()
+	var transcript := folder.path_join("claude/projects/-work").path_join(SESSION + ".jsonl")
+	var send := '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"SendMessage","input":{"summary":"hi","to":"%s"}}],"usage":{"input_tokens":1}}}'
+	var letter := '{"type":"queue-operation","operation":"%s","content":"<cross-session-message from=\\"uds:/run/1.sock\\" from-name=\\"Beta\\">\\nhello"}'
+	write(folder.path_join("claude/sessions/1.json"), registry(OS.get_process_id(), "busy"))
+	write(transcript, "\n".join([send % "Old", letter % "enqueue", '{"type":"queue-operation","operation":"dequeue"}']) + "\n")
+	sense._poll()
+	check(&"session_message_sent" not in event_names(), "a message sent before the first reading is old")
+	check(&"session_mail" not in event_names(), "its letter was read already")
+
+	var add := func(lines: Array) -> void:
+		var file := FileAccess.open(transcript, FileAccess.READ_WRITE)
+		file.seek_end()
+		file.store_string("\n".join(lines) + "\n")
+		file.close()
+		sense._poll()
+	add.call([send % "Beta", '{"type":"user","message":"quotes {\\"name\\":\\"SendMessage\\",\\"input\\":{\\"to\\":\\"Quoted\\"}}"}'])
+	check_equal(last_event(&"session_message_sent").get("to"), "Beta", "sent to Beta, the quoted one ignored")
+	check_equal(event_names().count(&"session_message_sent"), 1, "once")
+	add.call([
+		letter % "enqueue",
+		'{"type":"queue-operation","operation":"enqueue","content":"<task-notification>\\n<task-id>b1</task-id>"}',
+		letter % "enqueue",
+	])
+	check_equal(last_event(&"session_mail").get("mail"), 2, "two letters wait, the notice is not one")
+	add.call(['{"type":"queue-operation","operation":"dequeue"}'])
+	check_equal(last_event(&"session_mail").get("mail"), 1, "the first one was taken")
+	add.call([letter.replace('"content"', '"reason":"absorbed_mid_turn","content"') % "remove"])
+	check_equal(last_event(&"session_mail").get("mail"), 0, "the other one was read during the turn")
+	add.call([letter % "enqueue", letter % "enqueue", '{"type":"queue-operation","operation":"popAll"}'])
+	check_equal(last_event(&"session_mail").get("mail"), 0, "queue emptied")
+	sense.free()
+
+
 func test_music_players() -> void:
 	var sense: Node = load("res://src/senses/music_sense.gd").new()
 	var names := "(['org.freedesktop.DBus', ':1.7', 'org.mpris.MediaPlayer2.spotify', 'org.mpris.MediaPlayer2.firefox.instance_1_23'],)"

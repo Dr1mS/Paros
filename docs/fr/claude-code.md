@@ -14,6 +14,9 @@ Paros suit les sessions Claude Code interactives de la machine, pour l'utilisate
 | Travaille | Reste sur place, regarde en l'air, trois points se remplissent au-dessus de sa tête |
 | Attend une permission ou une réponse | Agite les bras à tour de rôle, « ! » clignotant |
 | Attend une tâche qu'elle a lancée en arrière-plan | Assis, regarde un sablier : le sable coule, le sablier se retourne |
+| Écrit à une autre session | Lance une lettre, qui vole jusqu'au personnage de cette session |
+| A reçu un message d'une autre session pendant son travail | Une boîte aux lettres à côté du personnage, drapeau levé. Avec le nombre de lettres quand plusieurs attendent |
+| Lit ce message | La boîte aux lettres s'en va. Le personnage tient la lettre devant lui et la lit |
 | Au repos | Se promène, s'assoit, dort |
 | Contexte rempli à 75 % ou plus | La tête fume |
 | Fermée | Le personnage disparaît |
@@ -46,6 +49,14 @@ Une session peut finir son tour alors qu'une commande ou un agent qu'elle a lanc
 
 Paros le lit dans le transcript : le résultat d'une commande ou d'un agent lancé en arrière-plan, puis l'avis de sa fin, ou l'ordre de l'arrêter.
 
+### Lettres entre sessions
+
+Une session peut écrire à une autre avec l'outil `SendMessage`. Le personnage de l'expéditeur lance une lettre, qui vole en cloche jusqu'au personnage du destinataire. Le cachet de la lettre a la couleur de l'expéditeur.
+
+Une session au repos lit le message tout de suite : son personnage tient la lettre devant lui et la lit. Une session au travail le lit plus tard, entre deux étapes ou à la fin de son tour. D'ici là, la lettre attend dans une boîte aux lettres à côté du personnage, drapeau levé. La carte de survol indique « Lettres à lire ». Sur l'écran de verrouillage, le nombre de lettres n'est pas affiché.
+
+Paros le lit dans les transcripts : l'appel `SendMessage` de l'expéditeur, avec le nom du destinataire, et la file d'attente du destinataire, où le message entre puis sort.
+
 ### État git du dossier de la session
 
 Lu toutes les 10 secondes (`git status --porcelain=v2 --branch` et `git diff --shortstat HEAD`), sans prendre de verrou sur le dépôt.
@@ -65,7 +76,7 @@ Le retard sur la branche amont date du dernier `git fetch`. Paros n'en lance pas
 | Source | Donne | Remarque |
 |---|---|---|
 | `~/.claude/sessions/<pid>.json` | Sessions ouvertes, nom, dossier, statut (`busy`, `waiting`, `idle`) | Format interne à Claude Code, non documenté : une mise à jour peut le changer |
-| Transcript de la session, dans `~/.claude/projects/` | Couleur (`/color`), dernier prompt, tokens de contexte, tâches en arrière-plan | Seules les lignes ajoutées depuis la dernière lecture sont lues |
+| Transcript de la session, dans `~/.claude/projects/` | Couleur (`/color`), dernier prompt, tokens de contexte, tâches en arrière-plan, messages entre sessions | Seules les lignes ajoutées depuis la dernière lecture sont lues |
 | `$XDG_RUNTIME_DIR/paros/claude-events.log` | Outils, sous-agents, échecs, fin de tour, demandes de permission | Écrit par `hooks/claude-hook.sh` |
 | Dossier de la session | État git | Par la commande `git` |
 
@@ -119,6 +130,8 @@ Le fichier `$XDG_RUNTIME_DIR/paros/claude-events.log` contient en clair les noms
 
 ## Limites
 
+- Une lettre ne vole que vers une session qui a un personnage, trouvée par son nom : un message à une session d'une autre machine, ou à un sous-agent, ne montre rien. Avec deux sessions du même nom, la lettre va à la première trouvée.
+- Le message d'une session sans personnage n'a pas de vol : la lettre est tout de suite dans la boîte aux lettres.
 - Une tâche en arrière-plan sans avis de fin au bout de 30 minutes est oubliée, par exemple un serveur laissé allumé : le personnage retourne au repos.
 - `Stop` se déclenche aussi sur `/clear` et sur un compactage : le personnage saute alors sans qu'une tâche soit finie.
 - Le compte des sous-agents suit les événements `SubagentStart` et `SubagentStop`. Un événement manqué le fausse jusqu'à la fermeture de la session.

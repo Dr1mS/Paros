@@ -14,6 +14,9 @@ Paros follows the interactive Claude Code sessions of the machine, for the curre
 | Working | Stays in place, looks up, three dots fill up above its head |
 | Waiting for a permission or an answer | Waves its arms in turn, blinking "!" |
 | Waits for a task it started in the background | Sits and watches an hourglass: the sand runs down, the hourglass turns over |
+| Writes to another session | Throws a letter, which flies to the pet of that session |
+| Got a message of another session while working | A mailbox stands beside the pet, flag up. With the number of letters when more than one waits |
+| Reads that message | The mailbox goes away. The pet holds the letter out and reads it |
 | At rest | Walks, sits, sleeps |
 | Context 75 % full or more | Its head smokes |
 | Closed | The pet goes away |
@@ -46,6 +49,14 @@ A session can end its turn while a command or an agent it started in the backgro
 
 Paros reads this from the transcript: the result of a command or an agent started in the background, then the notice of its end, or the order to stop it.
 
+### Letters between sessions
+
+A session can write to another one with the `SendMessage` tool. The pet of the sender throws a letter, which flies in an arc to the pet of the recipient. The seal of the letter has the color of the sender.
+
+A session at rest reads the message at once: its pet holds the letter out and reads it. A session at work reads it later, between two steps or at the end of its turn. Until then the letter waits in a mailbox beside the pet, with a raised flag. The hover card reads "Letters to read". On the lock screen the number of letters is not shown.
+
+Paros reads this from the transcripts: the `SendMessage` call of the sender, with the name of the recipient, and the queue of the recipient, where the message enters then leaves.
+
 ### Git status of the session folder
 
 Read every 10 seconds (`git status --porcelain=v2 --branch` and `git diff --shortstat HEAD`), without taking a lock on the repository.
@@ -65,7 +76,7 @@ Being behind upstream is as of the last `git fetch`. Paros runs none.
 | Source | Gives | Note |
 |---|---|---|
 | `~/.claude/sessions/<pid>.json` | Open sessions, name, folder, status (`busy`, `waiting`, `idle`) | Internal Claude Code format, not documented: an update may change it |
-| Session transcript, in `~/.claude/projects/` | Color (`/color`), last prompt, context tokens, background tasks | Only the lines added since the last reading are read |
+| Session transcript, in `~/.claude/projects/` | Color (`/color`), last prompt, context tokens, background tasks, messages between sessions | Only the lines added since the last reading are read |
 | `$XDG_RUNTIME_DIR/paros/claude-events.log` | Tools, subagents, failures, end of turn, permission requests | Written by `hooks/claude-hook.sh` |
 | Session folder | Git status | Through the `git` command |
 
@@ -120,6 +131,8 @@ On screen, a pet shows the session name, the git branch and the tool in use. The
 ## Limits
 
 - A background task with no notice of its end after 30 minutes is forgotten, such as a server left running: the pet goes back to rest.
+- A letter flies only to a session that has a pet, found by its name: a message to a session on another machine, or to a subagent, shows nothing. With two sessions of the same name, the letter goes to the first one found.
+- A message of a session without pet gets no flight: the letter is in the mailbox at once.
 - `Stop` also fires on `/clear` and on a compaction: the pet then jumps although no task is done.
 - The subagent count follows the `SubagentStart` and `SubagentStop` events. A missed event makes it wrong until the session closes.
 - The script needs a POSIX shell. On Windows, Claude Code runs hooks with Git Bash.

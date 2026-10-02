@@ -39,7 +39,7 @@ Settings, the autostart file and the runtime folder are redirected to a temporar
 | File | What it covers |
 |---|---|
 | `test_pet.gd` | State machine of a pet: wishes, short states, flight and bounces, umbrella, errands, perch, discreet mode |
-| `test_pets.gd` | Meetings, rivalry, high five, frame rate |
+| `test_pets.gd` | Meetings, rivalry, high five, letters, frame rate |
 | `test_brain.gd` | Rules: one pet per session, wishes, sleep, lock screen, git, context, knock, tower, card |
 | `test_senses.gd` | Reading of the Claude Code registry and transcripts, hook log, git output, desktop file, hook script |
 | `test_core.gd` | Settings, focus timer, sound synthesis and WAV file, bubble, autostart |

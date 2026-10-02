@@ -1,10 +1,11 @@
 class_name Pets
 extends Node
 ## The pets on the desktop, one window each, found by key.
-## Also handles what takes two pets: meetings, shared celebrations, and room
-## for each to be seen. And sets the frame rate.
+## Also handles what takes two pets: meetings, shared celebrations, letters,
+## and room for each to be seen. And sets the frame rate.
 
 const PET_WINDOW := preload("res://src/pet/pet_window.tscn")
+const LETTER_WINDOW := preload("res://src/pet/letter_window.tscn")
 ## Feet distance under which two pets meet, at size 1.
 const MEET_DISTANCE := 150.0
 ## Seconds before the same two pets meet again.
@@ -41,6 +42,8 @@ var _met := {}
 var _succeeded := {}
 ## Pair of pets that hide each other -> time since when, in seconds.
 var _crowded := {}
+## Letters, in flight or at rest. One at rest serves again.
+var _letters: Array[Letter] = []
 ## True while nobody can see the pets. They barely draw.
 var unseen := false
 
@@ -60,6 +63,7 @@ func _process(_delta: float) -> void:
 	var lively := all.any(func(pet: Pet) -> bool: return pet.is_lively())
 	for node in get_tree().get_nodes_in_group(SMOOTH_GROUP):
 		lively = lively or node.visible
+	lively = lively or _letters.any(func(letter: Letter) -> bool: return letter.is_flying())
 	Engine.max_fps = UNSEEN_FPS if unseen else (LIVELY_FPS if lively else CALM_FPS)
 
 	_spread(all)
@@ -125,9 +129,30 @@ func add(key: String) -> Pet:
 	return pet
 
 
+## The first pet throws a letter, which flies to the second one. Its landing
+## posts letter_landed {pet}, with the second pet.
+func send_letter(from: Pet, to: Pet) -> void:
+	from.throw_letter(_side(from, to))
+	var letter: Letter = null
+	for other in _letters:
+		if not other.is_flying():
+			letter = other
+	if letter == null:
+		var window := LETTER_WINDOW.instantiate()
+		add_child(window)
+		# No vertical sync, as for a pet window.
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED, window.get_window_id())
+		letter = window.get_node("Letter")
+		_letters.append(letter)
+	letter.send(from, to)
+
+
 func remove(key: String) -> void:
 	if _pets.has(key):
 		_succeeded.erase(_pets[key])
+		for letter in _letters:
+			if letter.recipient() == _pets[key]:
+				letter.stop()
 		_pets[key].get_window().queue_free()
 		_pets.erase(key)
 

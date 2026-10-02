@@ -349,3 +349,51 @@ func test_card_shows_while_hovered() -> void:
 	pet.hovered = false
 	Events.post(&"pointer_leave", {"pet": pet})
 	check_equal(pet.get_node("../Bubble").card, "", "gone when the mouse leaves")
+
+
+func test_message_between_sessions_is_a_letter() -> void:
+	var sender := open("s1", "Alpha")
+	var reader := open("s2", "Beta")
+	set_phase("s2", &"working")
+	Events.post(&"session_message_sent", {"session": "s1", "to": "Beta [1a2b3c]"})
+	check_equal(sender.state, Pet.State.THROW, "the sender throws")
+	var letter := pets._letters[0]
+	check_equal(letter.recipient(), reader, "the letter flies to the pet of that name")
+	Events.post(&"session_mail", {"session": "s2", "mail": 1})
+	check_equal(reader.mail, 0, "not in the mailbox while it flies")
+	letter._process(Letter.SECONDS_RANGE.y)
+	check_equal(reader.mail, 1, "in the mailbox once landed")
+	check_equal(reader.state, Pet.State.IDLE, "not read: the session is busy")
+	reader.hovered = true
+	brain._refresh()
+	check("Letters to read: 1" in reader.get_node("../Bubble").card, "the card says so")
+	Events.post(&"session_mail", {"session": "s2", "mail": 0})
+	check_equal(reader.mail, 0, "mailbox gone")
+	check_equal(reader.state, Pet.State.READ, "reads the letter")
+
+
+func test_letter_taken_before_it_lands_is_read_on_landing() -> void:
+	open("s1", "Alpha")
+	var reader := open("s2", "Beta")
+	Events.post(&"session_message_sent", {"session": "s1", "to": "Beta"})
+	Events.post(&"session_mail", {"session": "s2", "mail": 1})
+	Events.post(&"session_mail", {"session": "s2", "mail": 0})
+	check_equal(reader.state, Pet.State.IDLE, "nothing to read yet")
+	pets._letters[0]._process(Letter.SECONDS_RANGE.y)
+	check_equal(reader.state, Pet.State.READ, "reads when the letter lands")
+	check_equal(reader.mail, 0, "no mailbox")
+
+
+func test_message_to_an_unknown_name_sends_no_letter() -> void:
+	var sender := open("s1", "Alpha")
+	Events.post(&"session_message_sent", {"session": "s1", "to": "Nobody"})
+	Events.post(&"session_message_sent", {"session": "s1", "to": "Alpha"})
+	check_equal(sender.state, Pet.State.IDLE, "no throw")
+	check(pets._letters.is_empty(), "no letter")
+
+
+func test_letter_from_a_session_without_pet_goes_to_the_mailbox() -> void:
+	var reader := open("s1")
+	set_phase("s1", &"working")
+	Events.post(&"session_mail", {"session": "s1", "mail": 2})
+	check_equal(reader.mail, 2, "two letters wait")

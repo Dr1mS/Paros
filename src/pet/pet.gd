@@ -5,7 +5,7 @@ extends Node2D
 
 enum State {
 	IDLE, SIT, WALK, SLEEP, STRETCH, THINK, ALERT, CHEER, GREET, GLARE, HIGH_FIVE, WORRY, ROAST,
-	KNOCK, SWEEP, CLIMB, CARRIED, FALL, WAIT,
+	KNOCK, SWEEP, CLIMB, CARRIED, FALL, WAIT, THROW, READ,
 }
 ## Standing order from the brain. The pet obeys as soon as it is idle.
 enum Wish { ROAM, SLEEP, THINK, ALERT, WAIT }
@@ -28,6 +28,8 @@ const TIMED := {
 	State.KNOCK: 1.2,
 	State.SWEEP: 2.2,
 	State.CLIMB: 0.7,
+	State.THROW: 0.5,
+	State.READ: 1.6,
 }
 ## States slow enough for a low frame rate.
 const CALM: Array[State] = [State.IDLE, State.SIT, State.SLEEP, State.THINK, State.WAIT]
@@ -124,6 +126,8 @@ var grooving := false
 ## Screens to keep off, in screen coordinates: those under a full screen
 ## window. The pet moves to another screen. With none left, it hides.
 var avoid: Array[Rect2] = []
+## Letters that wait in the mailbox beside the pet. 0: no mailbox.
+var mail := 0
 ## Shows no text: no name, no caption, no bubble. For the lock screen.
 var discreet := false:
 	set(value):
@@ -208,7 +212,7 @@ func _process(delta: float) -> void:
 		State.THINK, State.ALERT, State.WAIT:
 			if WISH_STATE.get(wish) != state:
 				_enter(State.IDLE)
-		State.STRETCH, State.CHEER, State.GLARE, State.HIGH_FIVE, State.WORRY, State.ROAST, State.KNOCK, State.SWEEP:
+		State.STRETCH, State.CHEER, State.GLARE, State.HIGH_FIVE, State.WORRY, State.ROAST, State.KNOCK, State.SWEEP, State.THROW, State.READ:
 			if state_time >= TIMED[state]:
 				_enter(State.IDLE)
 		State.GREET:
@@ -382,6 +386,22 @@ func high_five(side: float) -> void:
 ## Sweeps the floor in front of itself.
 func sweep() -> void:
 	_play(State.SWEEP)
+
+
+## Throws a letter to a pet on the given side.
+func throw_letter(side: float) -> void:
+	facing = side
+	_play(State.THROW)
+
+
+## Reads a letter it holds out in front.
+func read_letter() -> void:
+	_play(State.READ)
+
+
+## Side of the pet where the mailbox stands: left, unless the ground ends there.
+func mailbox_side() -> float:
+	return 1.0 if _window_pos.x < _ground().position.x + SIDE_MARGIN * _size else -1.0
 
 
 ## Walks until its feet are at the given screen x, whatever the wish, then

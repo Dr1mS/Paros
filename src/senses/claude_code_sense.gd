@@ -12,13 +12,18 @@ extends Node
 ##   session_quiet {level}: working with no hook event, 0: for a moment,
 ##     1: for a while, 2: for long,
 ##   session_needs_you {detail}, session_finished,
-##   session_tool_failed {tool, detail, kind}, session_tests_passed.
+##   session_tool_failed {tool, detail, kind}, session_tests_passed,
+##   session_message_sent {to}: the session wrote to the session of that name,
+##   session_mail {mail}: messages of other sessions that wait in its queue.
+##     A busy session reads them later, a session at rest at once.
 ##
 ## Reads three kinds of local files:
 ## - <claude dir>/sessions/<pid>.json: one per live session, with its name and
 ##   status. Internal Claude Code format, not documented: may change.
 ## - the session transcript: color (/color), last prompt, token use, tasks
-##   started in the background, then stopped or told finished by a notice.
+##   started in the background, then stopped or told finished by a notice,
+##   messages sent to another session, and the queue of what the session has
+##   yet to read.
 ## - the log written by hooks/claude-hook.sh, one line per hook event.
 
 ## Fields of a hook log line, separated by tabs.
@@ -38,8 +43,16 @@ const AGENT_MARK := '"status":"async_launched"'
 ## In the transcript line of an answer that stops a background task. A task
 ## stopped this way gets no notice of its end.
 const STOP_MARK := '"name":"TaskStop"'
-## Start of the transcript line of a notice put in the queue of the session.
-const NOTICE_LINE := '{"type":"queue-operation","operation":"enqueue"'
+## Start of the transcript line of a change in the queue of the session: what
+## it has yet to read. The name of the operation follows: "enqueue" adds an
+## entry at the end, "dequeue" takes the first one, "remove" takes the one it
+## quotes, "popAll" empties the queue.
+const QUEUE_LINE := '{"type":"queue-operation","operation":"'
+## In the queue line of a message of another session.
+const LETTER_MARK := '"content":"<cross-session-message '
+## In the transcript line of an answer that writes to another session.
+const SEND_MARK := '"name":"SendMessage"'
+const SEND_TOOL := "SendMessage"
 ## A background task with no notice of its end for this long is forgotten: a
 ## server left running, or a task of a session closed meanwhile.
 const BACKGROUND_MAX_SECONDS := 1800.0
@@ -56,7 +69,9 @@ var _log_path := "/tmp/paros/claude-events.log"
 var _log_offset := 0
 ## Session id -> the SHOWN fields, plus phase, asking, subagents, transcript,
 ## transcript_offset, heard (time of the last hook event), quiet, tasks
-## (background task id -> Unix time of its start), background.
+## (background task id -> Unix time of its start), background, queue (one
+## entry per thing the session has yet to read: true for a message of another
+## session), mail, known (false until its transcript was read once).
 var _sessions := {}
 var _task_started := RegEx.create_from_string('"(?:backgroundTaskId|agentId)":"([^"]+)"')
 var _task_ended := RegEx.create_from_string("<task-id>([^<]+)</task-id>")
@@ -95,7 +110,9 @@ func _poll() -> void:
 	for id: String in live:
 		_update(id, live[id])
 	_read_hook_log()
+	# After every transcript was read: a message is sent before it waits.
 	for id: String in _sessions:
+		_update_mail(id)
 		_update_phase(id, live[id])
 
 
@@ -125,7 +142,7 @@ func _update(id: String, entry: Dictionary) -> void:
 		_sessions[id] = {
 			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0,
 			"phase": &"", "asking": false, "subagents": 0, "transcript": "", "transcript_offset": 0,
-			"heard": _now(), "quiet": 0, "tasks": {}, "background": 0,
+			"heard": _now(), "quiet": 0, "tasks": {}, "background": 0, "queue": [], "mail": 0, "known": false,
 		}
 	var session: Dictionary = _sessions[id]
 	var before := _shown(session)
@@ -133,6 +150,7 @@ func _update(id: String, entry: Dictionary) -> void:
 	session.cwd = entry.get("cwd", "")
 	session.pid = int(entry.get("pid", 0))
 	_read_transcript(id, session)
+	session.known = true
 	var shown := _shown(session)
 	if opened or shown != before:
 		shown.session = id
@@ -164,14 +182,16 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 		if STOP_MARK in line:
 			for stopped in _task_stopped.search_all(line):
 				session.tasks.erase(stopped.get_string(1))
+		# Messages sent before the first reading are old: their letters are gone.
+		if SEND_MARK in line and session.known:
+			for name in _recipients(line):
+				Events.post(&"session_message_sent", {"session": id, "to": name})
 		if line.begins_with(COLOR_LINE):
 			session.color = _json_field(line, "agentColor")
 		elif line.begins_with(PROMPT_LINE):
 			session.last_prompt = _json_field(line, "lastPrompt")
-		elif line.begins_with(NOTICE_LINE):
-			var ended := _task_ended.search(line)
-			if ended:
-				session.tasks.erase(ended.get_string(1))
+		elif line.begins_with(QUEUE_LINE):
+			_read_queue_line(line, session)
 		elif COMMAND_MARK in line or AGENT_MARK in line:
 			var started := _task_started.search(line)
 			var written := _timestamp.search(line)
@@ -180,6 +200,37 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 		elif USAGE_MARK in line:
 			session.context = _count_tokens(line)
 	session.transcript_offset = file.get_position()
+
+
+## Applies a change of the queue of the session.
+func _read_queue_line(line: String, session: Dictionary) -> void:
+	var queue: Array = session.queue
+	var letter := LETTER_MARK in line
+	match line.get_slice('"', 7):
+		"enqueue":
+			queue.append(letter)
+			# The notice of the end of a background task.
+			var ended := _task_ended.search(line)
+			if ended:
+				session.tasks.erase(ended.get_string(1))
+		"dequeue":
+			queue.pop_front()
+		"remove":
+			queue.erase(letter)
+		"popAll":
+			queue.clear()
+
+
+## Names of the sessions that the answer of the given transcript line writes to.
+func _recipients(line: String) -> PackedStringArray:
+	var names: PackedStringArray = []
+	var parsed: Variant = JSON.parse_string(line)
+	if not (parsed is Dictionary and parsed.get("message") is Dictionary and parsed.message.get("content") is Array):
+		return names
+	for block: Variant in parsed.message.content:
+		if block is Dictionary and block.get("type") == "tool_use" and block.get("name") == SEND_TOOL and block.get("input") is Dictionary:
+			names.append(str(block.input.get("to", "")))
+	return names
 
 
 ## Size of the context sent for an answer: its three input counts, added.
@@ -246,6 +297,14 @@ func _handle_hook(fields: PackedStringArray) -> void:
 			Events.post(&"session_subagents", {"session": id, "count": session.subagents})
 		"Stop":
 			Events.post(&"session_finished", {"session": id})
+
+
+func _update_mail(id: String) -> void:
+	var session: Dictionary = _sessions[id]
+	var mail: int = session.queue.count(true)
+	if mail != session.mail:
+		session.mail = mail
+		Events.post(&"session_mail", {"session": id, "mail": mail})
 
 
 func _update_phase(id: String, entry: Dictionary) -> void:

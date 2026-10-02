@@ -214,3 +214,21 @@ func test_keeps_its_area_when_every_screen_is_covered() -> void:
 	pet._area_age = Pet.AREA_REFRESH_SECONDS
 	step(pet, 0.1)
 	check(pet._hidden, "hidden meanwhile")
+
+
+func test_throws_then_reads_a_letter() -> void:
+	pet.throw_letter(-1.0)
+	check_equal(pet.state, Pet.State.THROW, "throws")
+	check_equal(pet.facing, -1.0, "toward the other pet")
+	step(pet, Pet.TIMED[Pet.State.THROW] + 0.1)
+	check_equal(pet.state, Pet.State.IDLE, "done")
+	pet.read_letter()
+	check_equal(pet.state, Pet.State.READ, "reads")
+	step(pet, Pet.TIMED[Pet.State.READ] + 0.1)
+	check_equal(pet.state, Pet.State.IDLE, "done")
+
+
+func test_mailbox_stands_where_the_ground_goes_on() -> void:
+	check_equal(pet.mailbox_side(), -1.0, "on the left")
+	pet._window_pos.x = AREA.position.x
+	check_equal(pet.mailbox_side(), 1.0, "on the right at the left end of the ground")

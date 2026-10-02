@@ -42,8 +42,9 @@ Adding a feature nearly always comes down to: a sense that posts an event, a rul
 | **`src/brain/`** | |
 | `brain.gd` | Every rule |
 | **`src/pet/`** | |
-| `pets.gd` | Creates and removes the pets. Handles what takes two pets, and the frame rate |
+| `pets.gd` | Creates and removes the pets. Handles what takes two pets, the letters, and the frame rate |
 | `pet_window.tscn` | Window of one pet: `Pet`, `Body`, `Bubble`, `Pointer`, `ContextMenu` |
+| `letter_window.tscn`, `letter.gd` | Window of a letter that flies from a pet to another |
 | `pet.gd` | State machine, window motion, flight, perch |
 | `pet_body.gd` | Drawing |
 | `pointer.gd` | Mouse on the pet |
@@ -62,6 +63,8 @@ Adding a feature nearly always comes down to: a sense that posts an event, a rul
 
 Each pet has its own system window: 300 × 272 pixels at size 1, transparent, without border, always on top, without focus. The pet does not move inside its window: the window moves across the desktop. A click shape (`mouse_passthrough_polygon`) limits the clickable area to the body.
 
+A letter between two pets has its own small window, of the same kind, which lets every click through. At rest it is parked off screen, and serves again for the next letter.
+
 The main Godot window cannot be hidden. It stays empty, parked off screen.
 
 The application runs on X11, so through XWayland under Wayland: native Wayland does not let a window choose its position.
@@ -78,14 +81,14 @@ The **state** (`Pet.State`) is what the pet does right now:
 |---|---|
 | `IDLE`, `SIT`, `WALK` | Random duration, or change of wish |
 | `SLEEP`, `THINK`, `ALERT`, `WAIT` | When the wish changes. `SLEEP` goes through `STRETCH` |
-| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP` | Fixed duration, in `Pet.TIMED` |
+| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP`, `THROW`, `READ` | Fixed duration, in `Pet.TIMED` |
 | `CLIMB` | Arrival on the perch |
 | `CARRIED` | When the mouse lets go |
 | `FALL` | Landing |
 
 ### Attributes
 
-The brain also sets attributes that the body draws on top of the state: `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
+The brain also sets attributes that the body draws on top of the state: `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `mail`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
 
 ### Floor
 
@@ -109,6 +112,8 @@ All carry `session`, the session id.
 | `session_quiet` | `level` (0, 1, 2) | Foot tapping, meditation |
 | `session_subagents` | `count` | Small pets |
 | `session_background` | `background` | Hourglass while the turn is over and a background task still runs. No "Task done!" |
+| `session_message_sent` | `to`, the name of a session | The pet throws a letter to the pet of that session |
+| `session_mail` | `mail` | Mailbox while messages of other sessions wait to be read. Reading of the letter when one leaves |
 | `session_needs_you` | `detail` | Bubble |
 | `session_finished` | | Jump, bubble, sound |
 | `session_tests_passed` | | Jump, bubble, sound |
@@ -148,6 +153,7 @@ All carry `session`, the session id.
 |---|---|---|---|
 | `pointer_tap`, `pointer_double`, `pointer_grab`, `pointer_drop` | `pet` | `pet/pointer.gd` | Cheer, terminal, carried, released |
 | `pointer_enter`, `pointer_leave` | `pet` | `pet/pointer.gd` | Card |
+| `letter_landed` | `pet` | `pet/letter.gd` | The letter goes to the mailbox, or is read if the session took it already |
 | `pointer_menu` | `pet` | `pet/pointer.gd` | Opens the menu of that pet |
 | `files_dropped` | `pet`, `files` | `pet/pointer.gd` | Clipboard |
 | `pet_landed`, `pet_knocked` | `pet` | `pet/pet.gd` | Sounds |

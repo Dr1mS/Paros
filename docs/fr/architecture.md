@@ -42,8 +42,9 @@ Ajouter une fonctionnalité revient presque toujours à : un sens qui poste un �
 | **`src/brain/`** | |
 | `brain.gd` | Toutes les règles |
 | **`src/pet/`** | |
-| `pets.gd` | Crée et supprime les personnages. Gère ce qui se fait à deux, et la fréquence d'images |
+| `pets.gd` | Crée et supprime les personnages. Gère ce qui se fait à deux, les lettres, et la fréquence d'images |
 | `pet_window.tscn` | Fenêtre d'un personnage : `Pet`, `Body`, `Bubble`, `Pointer`, `ContextMenu` |
+| `letter_window.tscn`, `letter.gd` | Fenêtre d'une lettre qui vole d'un personnage à un autre |
 | `pet.gd` | Machine à états, déplacement de la fenêtre, vol, perchoir |
 | `pet_body.gd` | Dessin |
 | `pointer.gd` | Souris sur le personnage |
@@ -62,6 +63,8 @@ Ajouter une fonctionnalité revient presque toujours à : un sens qui poste un �
 
 Chaque personnage a sa propre fenêtre du système : 300 × 272 pixels à la taille 1, transparente, sans bordure, toujours au-dessus, sans focus. Le personnage ne bouge pas dans sa fenêtre : c'est la fenêtre qui se déplace sur le bureau. Une forme de clic (`mouse_passthrough_polygon`) limite la zone cliquable au corps.
 
+Une lettre entre deux personnages a sa propre petite fenêtre, du même genre, qui laisse passer tous les clics. Au repos elle est garée hors écran, et ressert pour la lettre suivante.
+
 La fenêtre principale de Godot ne peut pas être cachée. Elle reste vide, garée hors écran.
 
 L'application tourne en X11, donc par XWayland sous Wayland : Wayland natif interdit à une fenêtre de choisir sa position.
@@ -78,14 +81,14 @@ L'**état** (`Pet.State`) est ce que le personnage fait à l'instant :
 |---|---|
 | `IDLE`, `SIT`, `WALK` | Durée tirée au hasard, ou changement de souhait |
 | `SLEEP`, `THINK`, `ALERT`, `WAIT` | Quand le souhait change. `SLEEP` passe par `STRETCH` |
-| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP` | Durée fixe, dans `Pet.TIMED` |
+| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP`, `THROW`, `READ` | Durée fixe, dans `Pet.TIMED` |
 | `CLIMB` | Arrivée sur le perchoir |
 | `CARRIED` | Quand la souris lâche |
 | `FALL` | Atterrissage |
 
 ### Attributs
 
-Le cerveau règle aussi des attributs que le corps dessine par-dessus l'état : `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
+Le cerveau règle aussi des attributs que le corps dessine par-dessus l'état : `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `mail`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
 
 ### Sol
 
@@ -109,6 +112,8 @@ Tous portent `session`, l'identifiant de la session.
 | `session_quiet` | `level` (0, 1, 2) | Tape du pied, médite |
 | `session_subagents` | `count` | Petits personnages |
 | `session_background` | `background` | Sablier tant que le tour est fini et qu'une tâche en arrière-plan tourne. Pas de « Tâche finie ! » |
+| `session_message_sent` | `to`, le nom d'une session | Le personnage lance une lettre au personnage de cette session |
+| `session_mail` | `mail` | Boîte aux lettres tant que des messages d'autres sessions attendent d'être lus. Lecture de la lettre quand l'une sort |
 | `session_needs_you` | `detail` | Bulle |
 | `session_finished` | | Saut, bulle, son |
 | `session_tests_passed` | | Saut, bulle, son |
@@ -147,6 +152,7 @@ Tous portent `session`, l'identifiant de la session.
 | Événement | Données | Émetteur | Effet |
 |---|---|---|---|
 | `pointer_tap`, `pointer_double`, `pointer_grab`, `pointer_drop` | `pet` | `pet/pointer.gd` | Joie, terminal, porté, lâché |
+| `letter_landed` | `pet` | `pet/letter.gd` | La lettre va dans la boîte aux lettres, ou est lue si la session l'a déjà prise |
 | `pointer_enter`, `pointer_leave` | `pet` | `pet/pointer.gd` | Fiche |
 | `pointer_menu` | `pet` | `pet/pointer.gd` | Ouvre le menu de ce personnage |
 | `files_dropped` | `pet`, `files` | `pet/pointer.gd` | Presse-papiers |

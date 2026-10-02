@@ -48,8 +48,9 @@ var _user_idle := false
 var _music := false
 ## Session id -> what the senses told about it: name, color, cwd, last_prompt,
 ## pid, context, phase, since, tool, detail, count, stalled, branch, dirty,
-## behind, conflict, level, background. Plus "nagged", "knocked", "unfocused_since",
-## "cool_until", "lineage". Times are Unix times.
+## behind, conflict, level, background, mail. Plus "nagged", "knocked",
+## "unfocused_since", "cool_until", "lineage", "inbound" (letters that fly to
+## its pet). Times are Unix times.
 var _sessions := {}
 ## Frame of the focused window. No size: none, or not known.
 var _active_window := Rect2()
@@ -88,6 +89,7 @@ func _ready() -> void:
 func _on_sensed(event: StringName, data: Dictionary) -> void:
 	# Session events: keep what was told, then find the pet.
 	var pet: Pet = data.get("pet")
+	var mail_before := 0
 	if data.has("session"):
 		if event == &"session_opened":
 			pets.remove(NO_SESSION)
@@ -98,6 +100,7 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			}
 		if not _sessions.has(data.session):
 			return
+		mail_before = _sessions[data.session].get("mail", 0)
 		_sessions[data.session].merge(data, true)
 		pet = pets.find(data.session)
 
@@ -162,6 +165,22 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 				pet.say(tr("Task done!"))
 				pets.celebrate(pet)
 				Sound.play(&"success")
+		&"session_message_sent":
+			var recipient := _session_named(data.to, data.session)
+			if not recipient.is_empty():
+				_sessions[recipient].inbound = _sessions[recipient].get("inbound", 0) + 1
+				pets.send_letter(pet, pets.find(recipient))
+		&"session_mail":
+			# A letter left the mailbox: the session reads it. One that still
+			# flies is read when it lands.
+			if data.mail < mail_before and _sessions[data.session].get("inbound", 0) == 0:
+				pet.read_letter()
+		&"letter_landed":
+			# No letter waits: the session took it already.
+			var session: Dictionary = _sessions.get(pet.key, {})
+			session.inbound = maxi(session.get("inbound", 0) - 1, 0)
+			if session.get("mail", 0) == 0:
+				pet.read_letter()
 		&"session_needs_you":
 			pet.say(data.detail if not data.detail.is_empty() else tr("Claude is waiting for you"))
 		&"session_tests_passed":
@@ -243,6 +262,8 @@ func _refresh() -> void:
 		pet.headlamp = _night and Settings.value("pet", "headlamp")
 		pet.cool = _now() < session.get("cool_until", 0.0)
 		pet.grooving = _music and Settings.value("pet", "groove")
+		# A letter that still flies is not in the mailbox yet.
+		pet.mail = maxi(session.get("mail", 0) - session.get("inbound", 0), 0)
 		pet.discreet = _locked
 		var no_screen: Array[Rect2] = []
 		pet.avoid = _covered if Settings.value("desktop", "leave_fullscreen") else no_screen
@@ -284,6 +305,16 @@ func _wish(session: Dictionary) -> Pet.Wish:
 ## session waits for it, not for the user.
 func _awaits(session: Dictionary) -> bool:
 	return session.get("phase") == &"idle" and session.get("background", 0) > 0
+
+
+## Id of the session with the given name, other than the given one. Empty: none.
+## The name may end with a reference in brackets, as in "Alpha [1a2b3c]".
+func _session_named(name: String, but: String) -> String:
+	var wanted := name.get_slice(" [", 0)
+	for key: String in _sessions:
+		if key != but and _sessions[key].get("name", "") == wanted:
+			return key
+	return ""
 
 
 ## Sends the nearest free pet to sleep beside the still pointer.
@@ -416,6 +447,8 @@ func _card(session: Dictionary) -> String:
 				lines.append(tr("Waiting for a background task for %s" if _awaits(session) else "At rest for %s") % lasted)
 		if session.get("count", 0) > 0:
 			lines.append(tr("Subagents running: %d") % session.count)
+		if session.get("mail", 0) > 0:
+			lines.append(tr("Letters to read: %d") % session.mail)
 		if session.context > 0:
 			lines.append(tr("Context: %d k tokens (%d %%)") % [session.context / 1000, pets.find(session.session).fullness * 100.0])
 		lines.append_array(_repo_lines(session))

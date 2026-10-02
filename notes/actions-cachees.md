@@ -77,8 +77,9 @@ Le sens d'une ligne est déduit de son contenu. Quand il n'est pas établi, c'es
 
 | Ligne | Ce qu'elle dit | Paros |
 |---|---|---|
-| `attachment` `edited_text_file` (432) | Un fichier connu de la session a changé sur disque sans elle : autre session, formateur, utilisateur | **piste** : chevauchement réel entre deux sessions, plus précis que « même dossier, même branche ». L'auteur n'est pas donné |
-| Erreur d'outil `File has been modified since read` | La session veut écrire un fichier changé entre-temps | **piste** : même signal, côté victime |
+| `attachment` `edited_text_file` (432) | Un fichier connu de la session a changé sur disque sans passer par ses outils d'écriture. L'auteur n'est pas donné : souvent la session elle-même, par une commande | — |
+| Erreur d'outil `File has been modified since read` | La session veut écrire un fichier changé depuis sa lecture. Sur les 3 cas vus le 2 octobre 2026, la session l'avait changé elle-même par `sed` ou un script | **lu** : collision, seulement si une autre session a écrit ce fichier par `Edit` ou `Write` juste avant |
+| `assistant`, outils `Edit`, `Write` | Chemin entier du fichier écrit | **lu** : auteur des écritures, pour les collisions |
 | `file-history-snapshot` (370), `file-history-delta` (464) | Sauvegardes des fichiers modifiés, pour l'annulation | — |
 | `attachment` `file`, `directory` (57) | Fichier ou dossier joint au prompt par l'utilisateur | — |
 | `attachment` `read_truncation_notice` (2) | Une lecture a été tronquée | — |

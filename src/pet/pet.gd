@@ -108,8 +108,9 @@ var hard_hat := false
 var lost := false
 ## Taps its foot while it thinks.
 var tapping := false
-## What the pet works on. Two pets with the same one are rivals.
-var repo := ""
+## File the pet fights over with another one. Two pets with the same one are
+## rivals. Empty: none.
+var dispute := ""
 ## True while the umbrella is open.
 var umbrella := false
 ## Walk speed and step rate, against the normal ones.

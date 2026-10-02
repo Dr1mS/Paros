@@ -17,6 +17,8 @@ extends Node
 ##   session_message_sent {to}: the session wrote to the session of that name,
 ##   session_mail {mail}: messages of other sessions that wait in its queue.
 ##     A busy session reads them later, a session at rest at once,
+##   session_collision {other, file, path}: the session could not write a file
+##     because the session of id other had just changed it,
 ##   session_turn {origin, from}: a turn starts. origin: &"human" for a prompt
 ##     of the user, &"peer" for a message of another session, named by from,
 ##     &"task-notification" for the end of a background task, and others.
@@ -51,6 +53,15 @@ const LAUNCH_MARK := '"run_in_background":true'
 const SHELL_TOOL := "Bash"
 ## Registry status of a session at rest with a command that still runs.
 const SHELL_STATUS := "shell"
+## Tools that write a file, and the transcript line of the refusal one of them
+## gets when the file changed since the session read it.
+const WRITE_TOOLS: Array[String] = ["Edit", "Write", "MultiEdit", "NotebookEdit"]
+const STALE_MARK := '"content":"<tool_use_error>File has been modified since read'
+## A refused write is a collision when another session wrote the file less
+## than this many seconds before.
+const COLLISION_SECONDS := 900.0
+## Writes remembered at most. Beyond, the oldest half is forgotten.
+const WRITES_MAX := 400
 ## In the transcript line of an answer that stops a background task. A task
 ## stopped this way gets no notice of its end.
 const STOP_MARK := '"name":"TaskStop"'
@@ -85,12 +96,15 @@ var _log_offset := 0
 ## transcript_offset, heard (time of the last hook event), quiet, tasks
 ## (background task id -> {since: Unix time of its start, server}), launches
 ## (id of a call that starts a command in the background -> true for a server),
-## background, servers, queue (one
+## writes (id of a call that writes a file -> path of the file), background,
+## servers, queue (one
 ## entry per thing the session has yet to read: true for a message of another
 ## session), mail, known (false until its transcript was read once), origin
 ## and asker (what started the last turn, and the name of the session if one did).
 var _sessions := {}
 var _task_started := RegEx.create_from_string('"(?:backgroundTaskId|agentId)":"([^"]+)"')
+## Path of a file -> {session id -> Unix time of its last write of that file}.
+var _written := {}
 var _task_call := RegEx.create_from_string('"tool_use_id":"([^"]+)"')
 ## A command that serves, or watches, until it is stopped.
 var _server := RegEx.create_from_string(
@@ -167,7 +181,7 @@ func _update(id: String, entry: Dictionary) -> void:
 		_sessions[id] = {
 			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0,
 			"phase": &"", "asking": false, "subagents": 0, "transcript": "", "transcript_offset": 0,
-			"heard": _now(), "quiet": 0, "tasks": {}, "launches": {}, "background": 0, "servers": 0, "queue": [], "mail": 0, "known": false,
+			"heard": _now(), "quiet": 0, "tasks": {}, "launches": {}, "writes": {}, "background": 0, "servers": 0, "queue": [], "mail": 0, "known": false,
 			"origin": &"", "asker": "",
 		}
 	var session: Dictionary = _sessions[id]
@@ -224,6 +238,11 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 		if LAUNCH_MARK in line:
 			for block in _tool_uses(line, SHELL_TOOL):
 				session.launches[block.get("id", "")] = is_server(str(block.input.get("command", "")))
+		for tool in WRITE_TOOLS:
+			if '"name":"%s"' % tool in line:
+				_note_writes(line, tool, id, session)
+		if STALE_MARK in line:
+			_check_collision(line, id, session)
 		if ORIGIN_MARK in line and _read_origin(line, session) and session.known:
 			_post_turn(id, session)
 		if line.begins_with(COLOR_LINE):
@@ -246,6 +265,41 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 		elif USAGE_MARK in line:
 			session.context = _count_tokens(line)
 	session.transcript_offset = file.get_position()
+
+
+## Remembers the files that the answer of the given transcript line writes.
+func _note_writes(line: String, tool: String, id: String, session: Dictionary) -> void:
+	var written := _timestamp.search(line)
+	for block in _tool_uses(line, tool):
+		var path := str(block.input.get("file_path", block.input.get("notebook_path", "")))
+		if path.is_empty() or written == null:
+			continue
+		if session.writes.size() >= WRITES_MAX:
+			for call: String in session.writes.keys().slice(0, WRITES_MAX / 2):
+				session.writes.erase(call)
+		session.writes[block.get("id", "")] = path
+		if not _written.has(path):
+			_written[path] = {}
+		_written[path][id] = Time.get_unix_time_from_datetime_string(written.get_string(1))
+
+
+## The given transcript line refuses a write: the file changed since the
+## session read it. Posts a collision when another session wrote it just before.
+func _check_collision(line: String, id: String, session: Dictionary) -> void:
+	var call := _task_call.search(line)
+	var refused := _timestamp.search(line)
+	var path: String = session.writes.get(call.get_string(1), "") if call else ""
+	if path.is_empty() or refused == null or not session.known:
+		return
+	var at := Time.get_unix_time_from_datetime_string(refused.get_string(1))
+	var writers: Dictionary = _written.get(path, {})
+	var other := ""
+	for writer: String in writers:
+		# Latest writer first. A session that closed meanwhile has no pet to blame.
+		if writer != id and _sessions.has(writer) and at - writers[writer] < COLLISION_SECONDS and writers[writer] > writers.get(other, 0.0):
+			other = writer
+	if not other.is_empty():
+		Events.post(&"session_collision", {"session": id, "other": other, "file": path.get_file(), "path": path})
 
 
 ## Notes what started the turn of the given transcript line. False: nothing did.

@@ -316,6 +316,33 @@ func test_server_in_the_background_is_not_a_wait() -> void:
 	sense.free()
 
 
+func test_refused_write_after_another_session_is_a_collision() -> void:
+	var other := "99999999-2222-3333-4444-555555555555"
+	var sense := claude_sense()
+	var projects := folder.path_join("claude/projects/-work")
+	var now := Time.get_datetime_string_from_system(true)
+	var edit := '{"type":"assistant","timestamp":"%s.000Z","message":{"content":[{"type":"tool_use","id":"%s","name":"%s","input":{"file_path":"%s","old_string":"a"}}]}}'
+	var refusal := '{"type":"user","message":{"content":[{"type":"tool_result","content":"<tool_use_error>File has been modified since read, either by the user or by a linter.</tool_use_error>","is_error":true,"tool_use_id":"%s"}]},"timestamp":"%s.500Z"}'
+	write(folder.path_join("claude/sessions/1.json"), registry(OS.get_process_id(), "busy"))
+	write(folder.path_join("claude/sessions/2.json"), registry(OS.get_process_id(), "busy", "Beta").replace(SESSION, other))
+	write(projects.path_join(SESSION + ".jsonl"), "")
+	write(projects.path_join(other + ".jsonl"), edit % [now, "o1", "Write", "/work/src/pet.gd"] + "\n")
+	sense._poll()
+
+	var file := FileAccess.open(projects.path_join(SESSION + ".jsonl"), FileAccess.READ_WRITE)
+	file.store_string("\n".join([
+		edit % [now, "t1", "Edit", "/work/src/pet.gd"], refusal % ["t1", now],
+		edit % [now, "t2", "Edit", "/work/src/alone.gd"], refusal % ["t2", now],
+	]) + "\n")
+	file.close()
+	sense._poll()
+	check_equal(event_names().count(&"session_collision"), 1, "one collision: nobody else wrote the second file")
+	var collision := last_event(&"session_collision")
+	check_equal([collision.get("session"), collision.get("other")], [SESSION, other], "who was refused, who wrote before")
+	check_equal(collision.get("file"), "pet.gd", "the file")
+	sense.free()
+
+
 func test_music_players() -> void:
 	var sense: Node = load("res://src/senses/music_sense.gd").new()
 	var names := "(['org.freedesktop.DBus', ':1.7', 'org.mpris.MediaPlayer2.spotify', 'org.mpris.MediaPlayer2.firefox.instance_1_23'],)"

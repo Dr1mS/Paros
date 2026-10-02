@@ -37,6 +37,8 @@ const TOWER_AFTER_SECONDS := 90.0
 ## Height of one sitting pet, and width of the head a pet stands on, at size 1.
 const TOWER_LEVEL := 72.0
 const TOWER_WIDTH := 200.0
+## Seconds two pets stay rivals after their sessions wrote the same file.
+const RIVAL_SECONDS := 600.0
 ## Seconds of sunglasses after a commit that leaves nothing to commit.
 const COOL_SECONDS := 60.0
 
@@ -50,7 +52,8 @@ var _music := false
 ## pid, context, phase, since, tool, detail, count, stalled, branch, dirty,
 ## behind, conflict, level, background, servers, mail. Plus "nagged", "knocked",
 ## "unfocused_since", "cool_until", "lineage", "inbound" (letters that fly to
-## its pet), "origin" and "from" (what started its turn), "asked" (id of the
+## its pet), "origin" and "from" (what started its turn), "dispute" and "dispute_until" (file it fights
+## over with another session, and until when), "asked" (id of the
 ## session it wrote to in that turn), "owed" (a cheer held back by a turn that
 ## ended on a wait). Times are Unix times.
 var _sessions := {}
@@ -177,6 +180,16 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			else:
 				# An answer to another session: nothing the user waits for.
 				pet.nod()
+		&"session_collision":
+			var other := pets.find(data.other)
+			var side := 1.0 if other.feet().x >= pet.feet().x else -1.0
+			pet.glare(side)
+			other.glare(-side)
+			pet.say(tr("%s: also changed by %s") % [data.file, _sessions[data.other].name])
+			Sound.play(&"failure")
+			for key: String in [data.session, data.other]:
+				_sessions[key].dispute = data.path
+				_sessions[key].dispute_until = _now() + RIVAL_SECONDS
 		&"session_turn":
 			# A new turn: what the last one asked is answered, or dropped.
 			_sessions[data.session].erase("asked")
@@ -301,8 +314,7 @@ func _dress(pet: Pet, session: Dictionary) -> void:
 	pet.baggage = BAGGAGE_LEVELS.filter(func(level: int) -> bool: return session.get("dirty", 0) >= level).size()
 	pet.hard_hat = session.get("conflict", false)
 	pet.lost = session.get("behind", 0) > 0
-	# Same folder, same branch: same work.
-	pet.repo = "" if branch.is_empty() else "%s@%s" % [session.cwd, branch]
+	pet.dispute = session.get("dispute", "") if _now() < session.get("dispute_until", 0.0) else ""
 
 
 ## Highest priority first.

@@ -19,6 +19,7 @@ Paros suit les sessions Claude Code interactives de la machine, pour l'utilisate
 | A écrit à une autre session, qui y travaille encore | Assis près du sablier, tourné vers le personnage de cette session |
 | Lit ce message | La boîte aux lettres s'en va. Le personnage tient la lettre devant lui et la lit |
 | A laissé un serveur tourner en arrière-plan | Porte une antenne sur la tête, avec une lumière verte qui clignote |
+| N'a pas pu écrire un fichier qu'une autre session venait de modifier | Les deux personnages se tournent l'un vers l'autre et se toisent. Bulle avec le fichier et l'autre session, deux notes descendantes. Pendant 10 minutes ils se toisent encore quand ils se croisent |
 | Au repos | Se promène, s'assoit, dort |
 | Contexte rempli à 75 % ou plus | La tête fume |
 | Fermée | Le personnage disparaît |
@@ -64,6 +65,12 @@ Une session qui a écrit à une autre et fini son tour attend la réponse, pas t
 
 Paros le lit dans les transcripts : ce qui a lancé chaque tour (toi, une autre session, la fin d'une tâche en arrière-plan), l'appel `SendMessage` de l'expéditeur, avec le nom du destinataire, et la file d'attente du destinataire, où le message entre puis sort.
 
+### Deux sessions sur le même fichier
+
+Claude Code refuse d'écrire un fichier qui a changé depuis que la session l'a lu. Quand une autre session a écrit ce même fichier avec `Edit` ou `Write` dans les 15 minutes d'avant, les deux sessions se marchent dessus : leurs personnages se toisent, et la bulle nomme le fichier et l'autre session.
+
+Deux sessions dans le même dossier et sur la même branche ne sont pas rivales pour autant : elles peuvent travailler ensemble.
+
 ### État git du dossier de la session
 
 Lu toutes les 10 secondes (`git status --porcelain=v2 --branch` et `git diff --shortstat HEAD`), sans prendre de verrou sur le dépôt.
@@ -74,7 +81,6 @@ Lu toutes les 10 secondes (`git status --porcelain=v2 --branch` et `git diff --s
 | Fusion, rebase ou cherry-pick à terminer | Casque de chantier, panneau d'avertissement |
 | En retard sur la branche amont | Carte à la main, se gratte la tête, « ? » |
 | Commit qui laisse l'arbre de travail propre | Trois coups de balai, puis lunettes de soleil pendant une minute |
-| Même dossier et même branche qu'une autre session | Les deux personnages se toisent quand ils se croisent |
 
 Le retard sur la branche amont date du dernier `git fetch`. Paros n'en lance pas.
 
@@ -140,6 +146,7 @@ Le fichier `$XDG_RUNTIME_DIR/paros/claude-events.log` contient en clair les noms
 - Une lettre ne vole que vers une session qui a un personnage, trouvée par son nom : un message à une session d'une autre machine, ou à un sous-agent, ne montre rien. Avec deux sessions du même nom, la lettre va à la première trouvée.
 - Le message d'une session sans personnage n'a pas de vol : la lettre est tout de suite dans la boîte aux lettres.
 - Un serveur lancé par une commande que la liste ne connaît pas compte comme une tâche : le personnage attend près du sablier.
+- Une collision n'est vue que si l'autre session a écrit le fichier avec `Edit` ou `Write`. Un fichier modifié par une commande (`sed`, un script, un formateur) n'a pas d'auteur connu : rien n'est montré.
 - Une tâche en arrière-plan sans avis de fin au bout de 30 minutes est oubliée, sauf si le registre dit qu'une commande tourne encore : le personnage retourne au repos.
 - `Stop` se déclenche aussi sur `/clear` et sur un compactage : le personnage saute alors sans qu'une tâche soit finie.
 - Le compte des sous-agents suit les événements `SubagentStart` et `SubagentStop`. Un événement manqué le fausse jusqu'à la fermeture de la session.

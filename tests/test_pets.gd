@@ -38,8 +38,8 @@ func test_two_free_pets_greet_once() -> void:
 
 
 func test_rivals_glare() -> void:
-	a.repo = "/work@main"
-	b.repo = "/work@main"
+	a.dispute = "/work/pet.gd"
+	b.dispute = "/work/pet.gd"
 	pets._process(0.016)
 	check_equal([a.state, b.state], [Pet.State.GLARE, Pet.State.GLARE], "glare")
 

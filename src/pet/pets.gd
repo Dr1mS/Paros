@@ -80,8 +80,8 @@ func _process(_delta: float) -> void:
 				continue
 			_met[pair] = _now()
 			var side := _side(a, b)
-			# Two pets on the same work are rivals.
-			if not a.repo.is_empty() and a.repo == b.repo:
+			# Two pets that fight over the same file are rivals.
+			if not a.dispute.is_empty() and a.dispute == b.dispute:
 				a.glare(side)
 				b.glare(-side)
 			else:

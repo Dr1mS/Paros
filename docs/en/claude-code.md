@@ -19,6 +19,7 @@ Paros follows the interactive Claude Code sessions of the machine, for the curre
 | Wrote to another session, which still works on it | Sits by the hourglass, turned toward the pet of that session |
 | Reads that message | The mailbox goes away. The pet holds the letter out and reads it |
 | Left a server running in the background | Carries an antenna on its head, with a green light that blinks |
+| Could not write a file that another session had just changed | The two pets turn to each other and glare. Bubble with the file and the other session, two falling notes. For 10 minutes they glare again when they meet |
 | At rest | Walks, sits, sleeps |
 | Context 75 % full or more | Its head smokes |
 | Closed | The pet goes away |
@@ -64,6 +65,12 @@ A session that wrote to another one and ended its turn waits for the answer, not
 
 Paros reads this from the transcripts: what started each turn (you, another session, the end of a background task), the `SendMessage` call of the sender, with the name of the recipient, and the queue of the recipient, where the message enters then leaves.
 
+### Two sessions on the same file
+
+Claude Code refuses to write a file that changed since the session read it. When another session wrote that same file with `Edit` or `Write` in the 15 minutes before, the two sessions step on each other: their pets glare, and the bubble names the file and the other session.
+
+Two sessions in the same folder and on the same branch are not rivals for that alone: they may work together.
+
 ### Git status of the session folder
 
 Read every 10 seconds (`git status --porcelain=v2 --branch` and `git diff --shortstat HEAD`), without taking a lock on the repository.
@@ -74,7 +81,6 @@ Read every 10 seconds (`git status --porcelain=v2 --branch` and `git diff --shor
 | Merge, rebase or cherry-pick to finish | Hard hat, warning sign |
 | Behind the upstream branch | Map in hand, scratches its head, "?" |
 | Commit that leaves the working tree clean | Three strokes of a broom, then sunglasses for a minute |
-| Same folder and same branch as another session | The two pets glare at each other when they meet |
 
 Being behind upstream is as of the last `git fetch`. Paros runs none.
 
@@ -141,6 +147,7 @@ On screen, a pet shows the session name, the git branch and the tool in use. The
 - A server started by a command that the list does not know counts as a task: the pet waits by the hourglass.
 - A letter flies only to a session that has a pet, found by its name: a message to a session on another machine, or to a subagent, shows nothing. With two sessions of the same name, the letter goes to the first one found.
 - A message of a session without pet gets no flight: the letter is in the mailbox at once.
+- A collision is seen only when the other session wrote the file with `Edit` or `Write`. A file changed by a command (`sed`, a script, a formatter) has no known author: nothing is shown.
 - `Stop` also fires on `/clear` and on a compaction: the pet then jumps although no task is done.
 - The subagent count follows the `SubagentStart` and `SubagentStop` events. A missed event makes it wrong until the session closes.
 - The script needs a POSIX shell. On Windows, Claude Code runs hooks with Git Bash.

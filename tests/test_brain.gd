@@ -113,7 +113,7 @@ func test_repo_state_dresses_the_pet() -> void:
 		Events.post(&"repo_state", {"session": "s1", "branch": "main", "dirty": case[0], "behind": 0, "conflict": false})
 		check_equal(pet.baggage, case[1], "baggage for %d lines" % case[0])
 	check_equal(pet.label, "Alpha · main", "branch in the name tag")
-	check_equal(pet.repo, "/work/Alpha@main", "work identity")
+	check_equal(pet.dispute, "", "same folder and branch as nobody: no rival")
 	check(not pet.hard_hat and not pet.lost, "nothing special")
 	Events.post(&"repo_state", {"session": "s1", "branch": "main", "dirty": 0, "behind": 2, "conflict": true})
 	check(pet.hard_hat, "hard hat during a merge")
@@ -465,3 +465,18 @@ func test_server_left_running_is_not_a_wait() -> void:
 	check("Servers running: 1" in pet.get_node("../Bubble").card, "the card says so")
 	Events.post(&"session_background", {"session": "s1", "background": 0, "servers": 0})
 	check(not pet.serving, "antenna gone with the server")
+
+
+func test_collision_on_a_file_makes_rivals() -> void:
+	var victim := open("s1", "Alpha")
+	var writer := open("s2", "Beta")
+	writer._window_pos.x = victim._window_pos.x + 700.0
+	check_equal(victim.dispute, "", "same folder is not a fight")
+	Events.post(&"session_collision", {"session": "s1", "other": "s2", "file": "pet.gd", "path": "/work/src/pet.gd"})
+	check_equal([victim.state, writer.state], [Pet.State.GLARE, Pet.State.GLARE], "glare at each other, even from afar")
+	check_equal([victim.facing, writer.facing], [1.0, -1.0], "face to face")
+	check_equal(victim.get_node("../Bubble")._message, "pet.gd: also changed by Beta", "the bubble names the file and the other session")
+	check_equal([victim.dispute, writer.dispute], ["/work/src/pet.gd", "/work/src/pet.gd"], "rivals when they meet")
+	brain._sessions["s1"].dispute_until = 0.0
+	brain._refresh()
+	check_equal(victim.dispute, "", "forgotten after a while")

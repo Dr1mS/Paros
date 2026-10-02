@@ -10,6 +10,7 @@ const FRENCH := {
 	"Task done!": "Tâche finie !",
 	"Claude is waiting for you": "Claude attend ta réponse",
 	"Claude has been waiting for %s": "Claude attend depuis %s",
+	"%s: also changed by %s": "%s : aussi modifié par %s",
 	"Green tests!": "Tests verts !",
 	"Red tests": "Tests rouges",
 	"Focus: %d min": "Focus : %d min",

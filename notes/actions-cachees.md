@@ -28,7 +28,7 @@ Le sens d'une ligne est déduit de son contenu. Quand il n'est pas établi, c'es
 | Ligne | Ce qu'elle dit | Paros |
 |---|---|---|
 | `system` `turn_duration` (1 340) | Durée du tour en millisecondes, nombre de messages | **piste** : durée du dernier tour dans la carte |
-| `system` `away_summary` (371) | Résumé de l'état de la session, écrit après quelques minutes de repos | **piste** : texte de la carte, à la place du début du dernier prompt |
+| `system` `away_summary` (371) | Résumé de l'état de la session, écrit après quelques minutes de repos | **lu** : texte de la fiche au survol, à la place du début du dernier prompt |
 | `system` `stop_hook_summary` (109) | Résultat des hooks `Stop` : nombre, erreurs, `preventedContinuation` | **piste** : un hook qui relance la session n'est pas une fin de tâche |
 | `attachment` `goal_status` (5) | Objectif fixé à la session (`condition`), atteint ou non (`met`) | **piste** : drapeau d'arrivée quand `met` passe à vrai |
 | `cost-state` (70) | Coût cumulé en dollars, durées, lignes ajoutées et retirées, tokens par modèle | **piste** : coût dans la carte |

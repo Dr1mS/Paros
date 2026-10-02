@@ -23,7 +23,7 @@ Each interactive Claude Code session open on the machine has its pet. It appears
 | Click | The pet cheers |
 | Double-click | Brings the terminal of its session to the front and rings its tab. Needs the [GNOME extension](gnome-extension.md) |
 | Drag | Carry it. Let go with a swing and it flies and bounces off the edges and the floor. Dropped from high up, it opens an umbrella |
-| Hover | Its eyes follow the mouse. A card shows the folder, the session state and how long it has lasted, the tool in use, the number of subagents, the context tokens, the git status, the last prompt, the focus time left |
+| Hover | Its eyes follow the mouse. A card shows the folder, the session state and how long it has lasted, the tool in use, the number of subagents, the context tokens, the git status, the last prompt or the summary of the session, the focus time left |
 | Drop a file on it | Copies the path to the clipboard, ready to paste into the terminal |
 | Right-click | Menu |
 

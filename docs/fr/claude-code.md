@@ -51,7 +51,7 @@ Le rappel d'attente et le toc-toc n'ont lieu que si le terminal de la session n'
 
 Une session peut finir son tour alors qu'une commande ou un agent qu'elle a lancé en arrière-plan tourne encore : un serveur qui démarre, une longue compilation. Elle attend alors cette tâche, pas toi. Le personnage ne dit pas « Tâche finie ! » : il s'assoit près d'un sablier jusqu'à la fin de la tâche et la reprise de la session. La fiche au survol indique « Attend une tâche en arrière-plan ». Une telle session ne rejoint pas la tour.
 
-Un serveur n'est pas une tâche à attendre : il tourne jusqu'à ce qu'on l'arrête. Une commande lancée en arrière-plan compte comme serveur quand elle contient `vite`, `nodemon`, `webpack-dev-server`, `http-server`, `live-server`, `browser-sync`, `uvicorn`, `gunicorn`, `dev`, `start`, `serve`, `watch` ou `preview` après `npm`, `pnpm`, `yarn` ou `bun`, `next dev`, `astro dev`, `nuxt dev`, `ng serve`, `jekyll serve`, `hugo serve`, `-m http.server`, `runserver`, `flask run`, `php -S`, `docker compose up`, `--watch` ou `tail -f`. Le tour qui le lance finit par « Tâche finie ! ». Le personnage porte une antenne tant que le serveur tourne, et la carte de survol indique « Serveurs en marche ».
+Un serveur n'est pas une tâche à attendre : il tourne jusqu'à ce qu'on l'arrête. Une commande lancée en arrière-plan compte comme serveur quand elle contient `vite`, `nodemon`, `webpack-dev-server`, `http-server`, `live-server`, `browser-sync`, `uvicorn`, `gunicorn`, `dev`, `start`, `serve`, `watch` ou `preview` après `npm`, `pnpm`, `yarn` ou `bun`, `next dev`, `astro dev`, `nuxt dev`, `ng serve`, `jekyll serve`, `hugo serve`, `-m http.server`, `runserver`, `flask run`, `php -S`, `docker compose up`, `--watch` ou `tail -f`. Le tour qui le lance finit par « Tâche finie ! ». Le personnage porte une antenne tant que le serveur tourne, et la fiche au survol indique « Serveurs en marche ».
 
 Paros le lit dans le transcript : la commande lancée en arrière-plan, son résultat, puis l'avis de sa fin, ou l'ordre de l'arrêter. Et dans le registre : le statut `shell` dit que le tour est fini et qu'une commande tourne encore.
 
@@ -59,11 +59,15 @@ Paros le lit dans le transcript : la commande lancée en arrière-plan, son rés
 
 Une session peut écrire à une autre avec l'outil `SendMessage`. Le personnage de l'expéditeur lance une lettre, qui vole en cloche jusqu'au personnage du destinataire. Le cachet de la lettre a la couleur de l'expéditeur.
 
-Une session au repos lit le message tout de suite : son personnage tient la lettre devant lui et la lit. Une session au travail le lit plus tard, entre deux étapes ou à la fin de son tour. D'ici là, la lettre attend dans une boîte aux lettres à côté du personnage, drapeau levé. La carte de survol indique « Lettres à lire ». Sur l'écran de verrouillage, le nombre de lettres n'est pas affiché.
+Une session au repos lit le message tout de suite : son personnage tient la lettre devant lui et la lit. Une session au travail le lit plus tard, entre deux étapes ou à la fin de son tour. D'ici là, la lettre attend dans une boîte aux lettres à côté du personnage, drapeau levé. La fiche au survol indique « Lettres à lire ». Sur l'écran de verrouillage, le nombre de lettres n'est pas affiché.
 
-Une session qui a écrit à une autre et fini son tour attend la réponse, pas toi : son personnage s'assoit près du sablier, tourné vers l'autre personnage, tant que l'autre session travaille. La carte de survol indique « Attend la réponse de », avec le nom. Pas de « Tâche finie ! » à ce moment : il vient quand la réponse est arrivée et le travail fini. Un tour lancé par une autre session, que tu n'as pas demandé, finit par un hochement de tête.
+Une session qui a écrit à une autre et fini son tour attend la réponse, pas toi : son personnage s'assoit près du sablier, tourné vers l'autre personnage, tant que l'autre session travaille. La fiche au survol indique « Attend la réponse de », avec le nom. Pas de « Tâche finie ! » à ce moment : il vient quand la réponse est arrivée et le travail fini. Un tour lancé par une autre session, que tu n'as pas demandé, finit par un hochement de tête.
 
 Paros le lit dans les transcripts : ce qui a lancé chaque tour (toi, une autre session, la fin d'une tâche en arrière-plan), l'appel `SendMessage` de l'expéditeur, avec le nom du destinataire, et la file d'attente du destinataire, où le message entre puis sort.
+
+### Résumé d'une session au repos
+
+Quand une session est au repos depuis quelques minutes, Claude Code écrit un résumé de là où elle en est : le but, ce qui est fait, la suite. La fiche au survol l'affiche à la place du début du dernier prompt, coupé à 220 caractères. Le résumé disparaît au tour suivant.
 
 ### Deux sessions sur le même fichier
 
@@ -89,7 +93,7 @@ Le retard sur la branche amont date du dernier `git fetch`. Paros n'en lance pas
 | Source | Donne | Remarque |
 |---|---|---|
 | `~/.claude/sessions/<pid>.json` | Sessions ouvertes, nom, dossier, statut (`busy`, `waiting`, `idle`, `shell`) | Format interne à Claude Code, non documenté : une mise à jour peut le changer |
-| Transcript de la session, dans `~/.claude/projects/` | Couleur (`/color`), dernier prompt, tokens de contexte, tâches en arrière-plan, messages entre sessions | Seules les lignes ajoutées depuis la dernière lecture sont lues |
+| Transcript de la session, dans `~/.claude/projects/` | Couleur (`/color`), dernier prompt, résumé, tokens de contexte, tâches en arrière-plan, messages entre sessions, fichiers écrits | Seules les lignes ajoutées depuis la dernière lecture sont lues |
 | `$XDG_RUNTIME_DIR/paros/claude-events.log` | Outils, sous-agents, échecs, fin de tour, demandes de permission | Écrit par `hooks/claude-hook.sh` |
 | Dossier de la session | État git | Par la commande `git` |
 
@@ -139,7 +143,7 @@ Une ligne par événement, six champs séparés par des tabulations :
 
 Le fichier `$XDG_RUNTIME_DIR/paros/claude-events.log` contient en clair les noms d'outils, les noms de fichiers touchés et les descriptions de commandes de toutes les sessions. Il est dans le dossier d'exécution de l'utilisateur, lisible par lui seul, et disparaît à la fermeture de session du système.
 
-À l'écran, un personnage affiche le nom de la session, la branche git et l'outil en cours. La fiche au survol affiche en plus le dossier et le début du dernier prompt. Sur l'écran de verrouillage, aucun texte n'est affiché.
+À l'écran, un personnage affiche le nom de la session, la branche git et l'outil en cours. La fiche au survol affiche en plus le dossier, et le début du dernier prompt ou le résumé de la session. Sur l'écran de verrouillage, aucun texte n'est affiché.
 
 ## Limites
 

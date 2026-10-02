@@ -104,7 +104,7 @@ Tous portent `session`, l'identifiant de la session.
 
 | Événement | Données | Effet dans le cerveau |
 |---|---|---|
-| `session_opened` | `name`, `color`, `cwd`, `last_prompt`, `pid`, `context` | Crée le personnage, l'habille |
+| `session_opened` | `name`, `color`, `cwd`, `last_prompt`, `pid`, `context`, `summary` | Crée le personnage, l'habille |
 | `session_changed` | les mêmes | L'habille de nouveau |
 | `session_closed` | | Supprime le personnage |
 | `session_phase` | `phase` (`idle`, `working`, `waiting`), `since` | Fixe le souhait |

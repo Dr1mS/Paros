@@ -20,6 +20,7 @@ const TICK_SECONDS := 1.0
 const NAG_REPEAT_SECONDS := 60.0
 const PATH_MAX_LENGTH := 38
 const PROMPT_MAX_LENGTH := 70
+const SUMMARY_MAX_LENGTH := 220
 ## Uncommitted lines from which the pile of folders gains a level.
 const BAGGAGE_LEVELS: Array[int] = [1, 50, 300]
 ## Distance kept from the pointer by the pet that sleeps beside it, at size 1.
@@ -49,7 +50,7 @@ var _user_idle := false
 ## True while a media player plays.
 var _music := false
 ## Session id -> what the senses told about it: name, color, cwd, last_prompt,
-## pid, context, phase, since, tool, detail, count, stalled, branch, dirty,
+## pid, context, summary, phase, since, tool, detail, count, stalled, branch, dirty,
 ## behind, conflict, level, background, servers, mail. Plus "nagged", "knocked",
 ## "unfocused_since", "cool_until", "lineage", "inbound" (letters that fly to
 ## its pet), "origin" and "from" (what started its turn), "dispute" and "dispute_until" (file it fights
@@ -494,7 +495,11 @@ func _card(session: Dictionary) -> String:
 		if session.context > 0:
 			lines.append(tr("Context: %d k tokens (%d %%)") % [session.context / 1000, pets.find(session.session).fullness * 100.0])
 		lines.append_array(_repo_lines(session))
-		if not session.last_prompt.is_empty():
+		var summary: String = session.get("summary", "")
+		if not summary.is_empty():
+			# Tells more than the start of the prompt.
+			lines.append(summary if summary.length() <= SUMMARY_MAX_LENGTH else summary.left(SUMMARY_MAX_LENGTH - 1) + "…")
+		elif not session.last_prompt.is_empty():
 			lines.append(tr("“%s”") % session.last_prompt.left(PROMPT_MAX_LENGTH).replace("\n", " "))
 	match Focus.phase:
 		Focus.Phase.FOCUS:

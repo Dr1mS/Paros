@@ -104,7 +104,7 @@ All carry `session`, the session id.
 
 | Event | Data | Effect in the brain |
 |---|---|---|
-| `session_opened` | `name`, `color`, `cwd`, `last_prompt`, `pid`, `context` | Creates the pet, dresses it |
+| `session_opened` | `name`, `color`, `cwd`, `last_prompt`, `pid`, `context`, `summary` | Creates the pet, dresses it |
 | `session_changed` | the same | Dresses it again |
 | `session_closed` | | Removes the pet |
 | `session_phase` | `phase` (`idle`, `working`, `waiting`), `since` | Sets the wish |

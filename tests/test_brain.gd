@@ -480,3 +480,17 @@ func test_collision_on_a_file_makes_rivals() -> void:
 	brain._sessions["s1"].dispute_until = 0.0
 	brain._refresh()
 	check_equal(victim.dispute, "", "forgotten after a while")
+
+
+func test_card_shows_the_summary_rather_than_the_prompt() -> void:
+	var pet := open("s1")
+	var shown := {"session": "s1", "name": "Alpha", "color": "", "cwd": "/work/Alpha", "last_prompt": "fix the bug", "pid": 0, "context": 0}
+	Events.post(&"session_changed", shown.merged({"summary": ""}))
+	pet.hovered = true
+	brain._refresh()
+	check("“fix the bug”" in pet.get_node("../Bubble").card, "the prompt, with no summary")
+	Events.post(&"session_changed", shown.merged({"summary": "Goal: fix the bug. " + "x".repeat(300)}))
+	var card: String = pet.get_node("../Bubble").card
+	check("Goal: fix the bug." in card, "the summary")
+	check("“fix the bug”" not in card, "not the prompt")
+	check(card.ends_with("…"), "cut when long")

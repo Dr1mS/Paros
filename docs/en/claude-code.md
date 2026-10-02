@@ -65,6 +65,10 @@ A session that wrote to another one and ended its turn waits for the answer, not
 
 Paros reads this from the transcripts: what started each turn (you, another session, the end of a background task), the `SendMessage` call of the sender, with the name of the recipient, and the queue of the recipient, where the message enters then leaves.
 
+### Summary of a session at rest
+
+When a session has been at rest for a few minutes, Claude Code writes a summary of where it stands: the goal, what is done, what comes next. The hover card shows it in place of the start of the last prompt, cut at 220 characters. The summary goes away with the next turn.
+
 ### Two sessions on the same file
 
 Claude Code refuses to write a file that changed since the session read it. When another session wrote that same file with `Edit` or `Write` in the 15 minutes before, the two sessions step on each other: their pets glare, and the bubble names the file and the other session.
@@ -89,7 +93,7 @@ Being behind upstream is as of the last `git fetch`. Paros runs none.
 | Source | Gives | Note |
 |---|---|---|
 | `~/.claude/sessions/<pid>.json` | Open sessions, name, folder, status (`busy`, `waiting`, `idle`, `shell`) | Internal Claude Code format, not documented: an update may change it |
-| Session transcript, in `~/.claude/projects/` | Color (`/color`), last prompt, context tokens, background tasks, messages between sessions | Only the lines added since the last reading are read |
+| Session transcript, in `~/.claude/projects/` | Color (`/color`), last prompt, summary, context tokens, background tasks, messages between sessions, files written | Only the lines added since the last reading are read |
 | `$XDG_RUNTIME_DIR/paros/claude-events.log` | Tools, subagents, failures, end of turn, permission requests | Written by `hooks/claude-hook.sh` |
 | Session folder | Git status | Through the `git` command |
 
@@ -139,7 +143,7 @@ One line per event, six fields separated by tabs:
 
 The file `$XDG_RUNTIME_DIR/paros/claude-events.log` holds, in clear text, the tool names, the names of the files touched and the descriptions of the commands of every session. It is in the runtime folder of the user, readable by that user only, and goes away when the user logs out of the system.
 
-On screen, a pet shows the session name, the git branch and the tool in use. The hover card also shows the folder and the start of the last prompt. On the lock screen, no text is shown.
+On screen, a pet shows the session name, the git branch and the tool in use. The hover card also shows the folder, and the start of the last prompt or the summary of the session. On the lock screen, no text is shown.
 
 ## Limits
 

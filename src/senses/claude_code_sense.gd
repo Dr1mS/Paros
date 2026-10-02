@@ -1,8 +1,10 @@
 extends Node
 ## Follows the Claude Code sessions running on this machine.
 ## Posts, each with {session}:
-##   session_opened, session_changed {name, color, cwd, last_prompt, pid, context},
+##   session_opened, session_changed {name, color, cwd, last_prompt, pid, context, summary},
 ##     context: tokens in the context window of the session,
+##     summary: where the session stands, written by Claude Code once it has
+##     been at rest for a while. Empty from the next turn on,
 ##   session_closed,
 ##   session_phase {phase: &"idle" | &"working" | &"waiting", since: Unix time},
 ##   session_activity {tool, detail}, session_subagents {count},
@@ -72,6 +74,10 @@ const STOP_MARK := '"name":"TaskStop"'
 const QUEUE_LINE := '{"type":"queue-operation","operation":"'
 ## In the queue line of a message of another session.
 const LETTER_MARK := '"content":"<cross-session-message '
+## In the transcript line of the summary written for a user who was away,
+## and the hint that ends its text.
+const SUMMARY_MARK := '"subtype":"away_summary"'
+const SUMMARY_HINT := " (disable recaps in /config)"
 ## In the transcript line of what starts a turn, before who did: the user,
 ## another session, a notice.
 const ORIGIN_MARK := '"origin":{"kind":"'
@@ -87,7 +93,7 @@ const TOKEN_STEP := 10000
 ## then 2. Long thinking or slow network: the two look the same from here.
 const QUIET_SECONDS: Array[float] = [8.0, 25.0]
 ## Session fields that the pet shows: a change posts session_changed.
-const SHOWN: Array[String] = ["name", "color", "cwd", "last_prompt", "pid", "context"]
+const SHOWN: Array[String] = ["name", "color", "cwd", "last_prompt", "pid", "context", "summary"]
 
 var _claude_dir := _home().path_join(".claude")
 var _log_path := "/tmp/paros/claude-events.log"
@@ -179,7 +185,7 @@ func _update(id: String, entry: Dictionary) -> void:
 	var opened := not _sessions.has(id)
 	if opened:
 		_sessions[id] = {
-			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0,
+			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0, "summary": "",
 			"phase": &"", "asking": false, "subagents": 0, "transcript": "", "transcript_offset": 0,
 			"heard": _now(), "quiet": 0, "tasks": {}, "launches": {}, "writes": {}, "background": 0, "servers": 0, "queue": [], "mail": 0, "known": false,
 			"origin": &"", "asker": "",
@@ -245,6 +251,8 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 			_check_collision(line, id, session)
 		if ORIGIN_MARK in line and _read_origin(line, session) and session.known:
 			_post_turn(id, session)
+		if SUMMARY_MARK in line:
+			session.summary = _json_field(line, "content").trim_suffix(SUMMARY_HINT)
 		if line.begins_with(COLOR_LINE):
 			session.color = _json_field(line, "agentColor")
 		elif line.begins_with(PROMPT_LINE):
@@ -309,6 +317,8 @@ func _read_origin(line: String, session: Dictionary) -> bool:
 		return false
 	session.origin = StringName(str(parsed.origin.get("kind", "")))
 	session.asker = str(parsed.origin.get("name", ""))
+	# What the summary told is no longer where the session stands.
+	session.summary = ""
 	return true
 
 

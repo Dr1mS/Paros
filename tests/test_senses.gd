@@ -343,6 +343,22 @@ func test_refused_write_after_another_session_is_a_collision() -> void:
 	sense.free()
 
 
+func test_summary_of_a_session_at_rest() -> void:
+	var sense := claude_sense()
+	var transcript := folder.path_join("claude/projects/-work").path_join(SESSION + ".jsonl")
+	write(folder.path_join("claude/sessions/1.json"), registry(OS.get_process_id(), "idle"))
+	write(transcript, '{"parentUuid":"p","type":"system","subtype":"away_summary","content":"Goal: fix the bug. Done, tests pass. (disable recaps in /config)"}\n')
+	sense._poll()
+	check_equal(last_event(&"session_opened").get("summary"), "Goal: fix the bug. Done, tests pass.", "summary, without the hint")
+	var file := FileAccess.open(transcript, FileAccess.READ_WRITE)
+	file.seek_end()
+	file.store_string('{"type":"user","message":{"content":"and now?"},"origin":{"kind":"human"}}\n')
+	file.close()
+	sense._poll()
+	check_equal(last_event(&"session_changed").get("summary"), "", "gone with the next turn")
+	sense.free()
+
+
 func test_music_players() -> void:
 	var sense: Node = load("res://src/senses/music_sense.gd").new()
 	var names := "(['org.freedesktop.DBus', ':1.7', 'org.mpris.MediaPlayer2.spotify', 'org.mpris.MediaPlayer2.firefox.instance_1_23'],)"

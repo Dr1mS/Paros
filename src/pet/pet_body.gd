@@ -79,8 +79,8 @@ const UMBRELLA: Array[Array] = [
 ]
 const CAMPFIRE_X := 10.0
 const SHADES: Array[Array] = [
-	[Rect2(-5.6, -8.6, 4.2, 2.3), EYE], [Rect2(1.4, -8.6, 4.2, 2.3), EYE], [Rect2(-1.4, -8.2, 2.8, 0.6), EYE],
-	[Rect2(-5.0, -8.2, 1.0, 0.5), PAPER], [Rect2(2.0, -8.2, 1.0, 0.5), PAPER],
+	[Rect2(-5.6, -8.2, 4.2, 2.4), EYE], [Rect2(1.4, -8.2, 4.2, 2.4), EYE], [Rect2(-1.4, -7.8, 2.8, 0.6), EYE],
+	[Rect2(-5.0, -7.8, 1.0, 0.5), PAPER], [Rect2(2.0, -7.8, 1.0, 0.5), PAPER],
 ]
 ## Lamp on the forehead, on the side the pet faces, and its strap.
 const HEADLAMP: Array[Array] = [[Rect2(-6, -9.5, 12, 0.5), EYE], [Rect2(4.4, -9.9, 1.4, 1.3), GOLD]]
@@ -262,21 +262,25 @@ func _draw() -> void:
 		for point in BEAM:
 			beam.append(GROUND + Vector2(point.x * signf(_pet.facing), point.y) * UNIT + (body_offset if point.y < 0.0 else Vector2.ZERO))
 		draw_colored_polygon(beam, LIGHT)
+	if meditating:
+		_draw_mantra(body_offset, false)
 	if not seated:
 		_draw_legs(state, body_offset, hop, airborne)
 	_draw_baggage(body_offset)
 	_block(BODY, body_offset, _pet.color)
 	for i in ARMS.size():
 		_block(ARMS[i], body_offset - Vector2(0, arm_raise[i] * UNIT), _pet.color)
-	_draw_eyes(state, body_offset, meditating)
 	if _pet.cool:
+		# The eyes move, and would show past the edge of the lenses.
 		_blocks(SHADES, body_offset, false)
+	else:
+		_draw_eyes(state, body_offset, meditating)
 	if _pet.headlamp and state != Pet.State.SLEEP:
 		_blocks(HEADLAMP, body_offset, true)
 	if state == Pet.State.SWEEP:
 		_draw_broom()
 	if meditating:
-		_draw_mantra(body_offset)
+		_draw_mantra(body_offset, true)
 
 	var worn: Dictionary = HARD_HAT
 	if not _pet.hard_hat:
@@ -386,11 +390,14 @@ func _draw_broom() -> void:
 	], Vector2.ZERO, true)
 
 
-## Signs that circle the pet, behind it then in front.
-func _draw_mantra(body_offset: Vector2) -> void:
+## Signs that circle the pet, behind it then in front. Draws those of one
+## half of the circle: the back half goes under the pet, the front half over it.
+func _draw_mantra(body_offset: Vector2, in_front: bool) -> void:
 	var center := GROUND + body_offset + Vector2(0, -6.0 * UNIT)
 	for i in MANTRA.size():
 		var angle := _time * 1.1 + TAU * i / MANTRA.size()
+		if (sin(angle) >= 0.0) != in_front:
+			continue
 		var at := center + Vector2(cos(angle) * 9.5 * UNIT, sin(angle) * 2.2 * UNIT)
 		# Smaller and paler at the back of the circle.
 		var depth := sin(angle) * 0.5 + 0.5

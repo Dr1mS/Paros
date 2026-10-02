@@ -18,7 +18,7 @@ Paros follows the interactive Claude Code sessions of the machine, for the curre
 | Got a message of another session while working | A mailbox stands beside the pet, flag up. With the number of letters when more than one waits |
 | Wrote to another session, which still works on it | Sits by the hourglass, turned toward the pet of that session |
 | Reads that message | The mailbox goes away. The pet holds the letter out and reads it |
-| Left a server running in the background | Carries an antenna on its head, with a green light that blinks |
+| Left a server running in the background | Its eyes glow green, slowly, on and off |
 | Could not write a file that another session had just changed | The two pets turn to each other and glare. Bubble with the file and the other session, two falling notes. For 10 minutes they glare again when they meet |
 | At rest | Walks, sits, sleeps |
 | Context 75 % full or more | Its head smokes |
@@ -51,7 +51,7 @@ The reminder and the knock only happen when the terminal of the session is not f
 
 A session can end its turn while a command or an agent it started in the background still runs: a server that boots, a long build. It then waits for that task, not for you. The pet does not say "Task done!": it sits by an hourglass until the task ends and the session resumes. The hover card reads "Waiting for a background task". Such a session does not join the tower.
 
-A server is not a task to wait for: it runs until it is stopped. A command started in the background counts as a server when it contains `vite`, `nodemon`, `webpack-dev-server`, `http-server`, `live-server`, `browser-sync`, `uvicorn`, `gunicorn`, `dev`, `start`, `serve`, `watch` or `preview` after `npm`, `pnpm`, `yarn` or `bun`, `next dev`, `astro dev`, `nuxt dev`, `ng serve`, `jekyll serve`, `hugo serve`, `-m http.server`, `runserver`, `flask run`, `php -S`, `docker compose up`, `--watch` or `tail -f`. The turn that starts it ends with "Task done!". The pet carries an antenna as long as the server runs, and the hover card reads "Servers running".
+A server is not a task to wait for: it runs until it is stopped. A command started in the background counts as a server when it contains `vite`, `nodemon`, `webpack-dev-server`, `http-server`, `live-server`, `browser-sync`, `uvicorn`, `gunicorn`, `dev`, `start`, `serve`, `watch` or `preview` after `npm`, `pnpm`, `yarn` or `bun`, `next dev`, `astro dev`, `nuxt dev`, `ng serve`, `jekyll serve`, `hugo serve`, `-m http.server`, `runserver`, `flask run`, `php -S`, `docker compose up`, `--watch` or `tail -f`. The turn that starts it ends with "Task done!". The eyes of the pet glow green as long as the server runs, and the hover card reads "Servers running".
 
 Paros reads this from the transcript: the command started in the background, its result, then the notice of its end, or the order to stop it. And from the registry: the status `shell` tells that the turn is over and that a command still runs.
 

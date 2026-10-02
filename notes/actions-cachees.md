@@ -38,7 +38,7 @@ Le sens d'une ligne est déduit de son contenu. Quand il n'est pas établi, c'es
 | Ligne | Ce qu'elle dit | Paros |
 |---|---|---|
 | `assistant`, outil `Bash` avec `run_in_background` | La commande lancée en arrière-plan | **lu** : serveur ou tâche |
-| `user` avec `toolUseResult.backgroundTaskId` | Une commande est lancée en arrière-plan | **lu** : sablier, ou antenne pour un serveur |
+| `user` avec `toolUseResult.backgroundTaskId` | Une commande est lancée en arrière-plan | **lu** : sablier, ou yeux verts pour un serveur |
 | `user` avec `toolUseResult.status = "async_launched"` | Un agent est lancé en arrière-plan | **lu** |
 | `queue-operation` `enqueue`, contenu `<task-notification>` | Avis de fin d'une tâche de fond, ou événement d'un `Monitor` | **lu** pour la fin. **piste** : un `Monitor` actif est une veille, pas une attente |
 | `user` avec `origin.kind = "task-notification"` (231) | Le tour est lancé par un tel avis | **piste** |

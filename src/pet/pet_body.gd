@@ -87,12 +87,11 @@ const HOURGLASS_ROWS: Array[float] = [0.3, 0.7, 1.1, 1.4]
 ## Seconds the sand takes to run down, then the hourglass to turn over.
 const HOURGLASS_RUN := 5.0
 const HOURGLASS_TURN := 0.7
-## Antenna on the back of the head, and its light. Seconds of a blink, then
-## those the light stays on.
-const ANTENNA: Array[Array] = [[Rect2(-5.3, -12.2, 0.4, 2.2), EYE], [Rect2(-5.9, -10.4, 1.6, 0.4), EYE]]
-const ANTENNA_LIGHT := Rect2(-5.7, -13.3, 1.2, 1.2)
-const ANTENNA_BLINK := Vector2(1.2, 0.8)
-const SIGNAL := Color("#46d26a")
+## Color the eyes of a pet that serves glow with, and the seconds of one
+## glow. The eyes go back to dark in between: green alone does not show on
+## every body color.
+const SIGNAL := Color("#5dff8a")
+const SIGNAL_SECONDS := 2.4
 ## Mailbox on the ground, on the left of the pet: post, box, slot, a letter
 ## that sticks out, and the raised flag.
 const MAILBOX: Array[Array] = [
@@ -317,10 +316,6 @@ func _draw() -> void:
 		_draw_eyes(state, body_offset, meditating)
 	if _pet.headlamp and state != Pet.State.SLEEP:
 		_blocks(HEADLAMP, body_offset, true)
-	if _pet.serving:
-		_blocks(ANTENNA, body_offset, true)
-		var lit := fmod(_time, ANTENNA_BLINK.x) < ANTENNA_BLINK.y
-		_blocks([[ANTENNA_LIGHT, SIGNAL if lit else SIGNAL.darkened(0.35)]], body_offset, true)
 	if state == Pet.State.SWEEP:
 		_draw_broom()
 	if meditating:
@@ -420,6 +415,9 @@ func _draw_eyes(state: Pet.State, body_offset: Vector2, meditating: bool) -> voi
 		# Follows the mouse while it is over the pet.
 		var head := GROUND + body_offset + Vector2(0, -7.0 * UNIT)
 		look = ((get_local_mouse_position() - head) / (UNIT * 3.0)).limit_length(1.0)
+	var color := EYE
+	if _pet.serving:
+		color = EYE.lerp(SIGNAL, sin(_time * TAU / SIGNAL_SECONDS) * 0.5 + 0.5)
 	for eye in EYES:
 		var shape := eye
 		shape.position += look
@@ -430,7 +428,7 @@ func _draw_eyes(state: Pet.State, body_offset: Vector2, meditating: bool) -> voi
 			shape = Rect2(shape.position.x - 0.2, shape.position.y + 1.0, 1.4, 1.0)
 		elif wide:
 			shape = shape.grow(0.3)
-		_block(shape, body_offset, EYE)
+		_block(shape, body_offset, color)
 
 
 ## Broom held in front, three strokes over the floor, with dust.

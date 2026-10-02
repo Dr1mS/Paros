@@ -128,7 +128,7 @@ var grooving := false
 ## Screens to keep off, in screen coordinates: those under a full screen
 ## window. The pet moves to another screen. With none left, it hides.
 var avoid: Array[Rect2] = []
-## Carries an antenna with a light that blinks: a server of its session runs.
+## Its eyes glow green: a server of its session runs.
 var serving := false
 ## Letters that wait in the mailbox beside the pet. 0: no mailbox.
 var mail := 0

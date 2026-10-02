@@ -18,7 +18,7 @@ Paros suit les sessions Claude Code interactives de la machine, pour l'utilisate
 | A reçu un message d'une autre session pendant son travail | Une boîte aux lettres à côté du personnage, drapeau levé. Avec le nombre de lettres quand plusieurs attendent |
 | A écrit à une autre session, qui y travaille encore | Assis près du sablier, tourné vers le personnage de cette session |
 | Lit ce message | La boîte aux lettres s'en va. Le personnage tient la lettre devant lui et la lit |
-| A laissé un serveur tourner en arrière-plan | Porte une antenne sur la tête, avec une lumière verte qui clignote |
+| A laissé un serveur tourner en arrière-plan | Ses yeux s'allument en vert, lentement, puis s'éteignent, en boucle |
 | N'a pas pu écrire un fichier qu'une autre session venait de modifier | Les deux personnages se tournent l'un vers l'autre et se toisent. Bulle avec le fichier et l'autre session, deux notes descendantes. Pendant 10 minutes ils se toisent encore quand ils se croisent |
 | Au repos | Se promène, s'assoit, dort |
 | Contexte rempli à 75 % ou plus | La tête fume |
@@ -51,7 +51,7 @@ Le rappel d'attente et le toc-toc n'ont lieu que si le terminal de la session n'
 
 Une session peut finir son tour alors qu'une commande ou un agent qu'elle a lancé en arrière-plan tourne encore : un serveur qui démarre, une longue compilation. Elle attend alors cette tâche, pas toi. Le personnage ne dit pas « Tâche finie ! » : il s'assoit près d'un sablier jusqu'à la fin de la tâche et la reprise de la session. La fiche au survol indique « Attend une tâche en arrière-plan ». Une telle session ne rejoint pas la tour.
 
-Un serveur n'est pas une tâche à attendre : il tourne jusqu'à ce qu'on l'arrête. Une commande lancée en arrière-plan compte comme serveur quand elle contient `vite`, `nodemon`, `webpack-dev-server`, `http-server`, `live-server`, `browser-sync`, `uvicorn`, `gunicorn`, `dev`, `start`, `serve`, `watch` ou `preview` après `npm`, `pnpm`, `yarn` ou `bun`, `next dev`, `astro dev`, `nuxt dev`, `ng serve`, `jekyll serve`, `hugo serve`, `-m http.server`, `runserver`, `flask run`, `php -S`, `docker compose up`, `--watch` ou `tail -f`. Le tour qui le lance finit par « Tâche finie ! ». Le personnage porte une antenne tant que le serveur tourne, et la fiche au survol indique « Serveurs en marche ».
+Un serveur n'est pas une tâche à attendre : il tourne jusqu'à ce qu'on l'arrête. Une commande lancée en arrière-plan compte comme serveur quand elle contient `vite`, `nodemon`, `webpack-dev-server`, `http-server`, `live-server`, `browser-sync`, `uvicorn`, `gunicorn`, `dev`, `start`, `serve`, `watch` ou `preview` après `npm`, `pnpm`, `yarn` ou `bun`, `next dev`, `astro dev`, `nuxt dev`, `ng serve`, `jekyll serve`, `hugo serve`, `-m http.server`, `runserver`, `flask run`, `php -S`, `docker compose up`, `--watch` ou `tail -f`. Le tour qui le lance finit par « Tâche finie ! ». Les yeux du personnage s'allument en vert tant que le serveur tourne, et la fiche au survol indique « Serveurs en marche ».
 
 Paros le lit dans le transcript : la commande lancée en arrière-plan, son résultat, puis l'avis de sa fin, ou l'ordre de l'arrêter. Et dans le registre : le statut `shell` dit que le tour est fini et qu'une commande tourne encore.
 

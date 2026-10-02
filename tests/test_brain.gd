@@ -459,12 +459,12 @@ func test_server_left_running_is_not_a_wait() -> void:
 	Events.post(&"session_finished", {"session": "s1"})
 	check_equal(pet.state, Pet.State.CHEER, "done: nobody waits for a server")
 	check_equal(pet.wish, Pet.Wish.ROAM, "no hourglass")
-	check(pet.serving, "carries the antenna")
+	check(pet.serving, "its eyes glow")
 	pet.hovered = true
 	brain._refresh()
 	check("Servers running: 1" in pet.get_node("../Bubble").card, "the card says so")
 	Events.post(&"session_background", {"session": "s1", "background": 0, "servers": 0})
-	check(not pet.serving, "antenna gone with the server")
+	check(not pet.serving, "no more glow once the server stops")
 
 
 func test_collision_on_a_file_makes_rivals() -> void:

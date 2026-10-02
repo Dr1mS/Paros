@@ -18,6 +18,7 @@ Paros suit les sessions Claude Code interactives de la machine, pour l'utilisate
 | A reçu un message d'une autre session pendant son travail | Une boîte aux lettres à côté du personnage, drapeau levé. Avec le nombre de lettres quand plusieurs attendent |
 | A écrit à une autre session, qui y travaille encore | Assis près du sablier, tourné vers le personnage de cette session |
 | Lit ce message | La boîte aux lettres s'en va. Le personnage tient la lettre devant lui et la lit |
+| A laissé un serveur tourner en arrière-plan | Porte une antenne sur la tête, avec une lumière verte qui clignote |
 | Au repos | Se promène, s'assoit, dort |
 | Contexte rempli à 75 % ou plus | La tête fume |
 | Fermée | Le personnage disparaît |
@@ -49,7 +50,9 @@ Le rappel d'attente et le toc-toc n'ont lieu que si le terminal de la session n'
 
 Une session peut finir son tour alors qu'une commande ou un agent qu'elle a lancé en arrière-plan tourne encore : un serveur qui démarre, une longue compilation. Elle attend alors cette tâche, pas toi. Le personnage ne dit pas « Tâche finie ! » : il s'assoit près d'un sablier jusqu'à la fin de la tâche et la reprise de la session. La fiche au survol indique « Attend une tâche en arrière-plan ». Une telle session ne rejoint pas la tour.
 
-Paros le lit dans le transcript : le résultat d'une commande ou d'un agent lancé en arrière-plan, puis l'avis de sa fin, ou l'ordre de l'arrêter.
+Un serveur n'est pas une tâche à attendre : il tourne jusqu'à ce qu'on l'arrête. Une commande lancée en arrière-plan compte comme serveur quand elle contient `vite`, `nodemon`, `webpack-dev-server`, `http-server`, `live-server`, `browser-sync`, `uvicorn`, `gunicorn`, `dev`, `start`, `serve`, `watch` ou `preview` après `npm`, `pnpm`, `yarn` ou `bun`, `next dev`, `astro dev`, `nuxt dev`, `ng serve`, `jekyll serve`, `hugo serve`, `-m http.server`, `runserver`, `flask run`, `php -S`, `docker compose up`, `--watch` ou `tail -f`. Le tour qui le lance finit par « Tâche finie ! ». Le personnage porte une antenne tant que le serveur tourne, et la carte de survol indique « Serveurs en marche ».
+
+Paros le lit dans le transcript : la commande lancée en arrière-plan, son résultat, puis l'avis de sa fin, ou l'ordre de l'arrêter. Et dans le registre : le statut `shell` dit que le tour est fini et qu'une commande tourne encore.
 
 ### Lettres entre sessions
 
@@ -79,7 +82,7 @@ Le retard sur la branche amont date du dernier `git fetch`. Paros n'en lance pas
 
 | Source | Donne | Remarque |
 |---|---|---|
-| `~/.claude/sessions/<pid>.json` | Sessions ouvertes, nom, dossier, statut (`busy`, `waiting`, `idle`) | Format interne à Claude Code, non documenté : une mise à jour peut le changer |
+| `~/.claude/sessions/<pid>.json` | Sessions ouvertes, nom, dossier, statut (`busy`, `waiting`, `idle`, `shell`) | Format interne à Claude Code, non documenté : une mise à jour peut le changer |
 | Transcript de la session, dans `~/.claude/projects/` | Couleur (`/color`), dernier prompt, tokens de contexte, tâches en arrière-plan, messages entre sessions | Seules les lignes ajoutées depuis la dernière lecture sont lues |
 | `$XDG_RUNTIME_DIR/paros/claude-events.log` | Outils, sous-agents, échecs, fin de tour, demandes de permission | Écrit par `hooks/claude-hook.sh` |
 | Dossier de la session | État git | Par la commande `git` |
@@ -136,7 +139,8 @@ Le fichier `$XDG_RUNTIME_DIR/paros/claude-events.log` contient en clair les noms
 
 - Une lettre ne vole que vers une session qui a un personnage, trouvée par son nom : un message à une session d'une autre machine, ou à un sous-agent, ne montre rien. Avec deux sessions du même nom, la lettre va à la première trouvée.
 - Le message d'une session sans personnage n'a pas de vol : la lettre est tout de suite dans la boîte aux lettres.
-- Une tâche en arrière-plan sans avis de fin au bout de 30 minutes est oubliée, par exemple un serveur laissé allumé : le personnage retourne au repos.
+- Un serveur lancé par une commande que la liste ne connaît pas compte comme une tâche : le personnage attend près du sablier.
+- Une tâche en arrière-plan sans avis de fin au bout de 30 minutes est oubliée, sauf si le registre dit qu'une commande tourne encore : le personnage retourne au repos.
 - `Stop` se déclenche aussi sur `/clear` et sur un compactage : le personnage saute alors sans qu'une tâche soit finie.
 - Le compte des sous-agents suit les événements `SubagentStart` et `SubagentStop`. Un événement manqué le fausse jusqu'à la fermeture de la session.
 - Le script demande un shell POSIX. Sous Windows, Claude Code lance les hooks avec Git Bash.

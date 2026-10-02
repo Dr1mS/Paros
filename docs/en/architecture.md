@@ -88,7 +88,7 @@ The **state** (`Pet.State`) is what the pet does right now:
 
 ### Attributes
 
-The brain also sets attributes that the body draws on top of the state: `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `mail`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
+The brain also sets attributes that the body draws on top of the state: `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `mail`, `serving`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
 
 ### Floor
 
@@ -111,7 +111,7 @@ All carry `session`, the session id.
 | `session_activity` | `tool`, `detail` | Caption |
 | `session_quiet` | `level` (0, 1, 2) | Foot tapping, meditation |
 | `session_subagents` | `count` | Small pets |
-| `session_background` | `background` | Hourglass while the turn is over and a background task still runs. No "Task done!" |
+| `session_background` | `background`, `servers` | Hourglass while the turn is over and a background task still runs. No "Task done!". Antenna while a server runs |
 | `session_message_sent` | `to`, the name of a session | The pet throws a letter to the pet of that session. Once its turn is over, it waits for the answer while that session works |
 | `session_mail` | `mail` | Mailbox while messages of other sessions wait to be read. Reading of the letter when one leaves |
 | `session_turn` | `origin` (`human`, `peer`, `task-notification`…), `from` | A turn started by another session ends with a nod, not a cheer |

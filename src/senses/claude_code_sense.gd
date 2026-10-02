@@ -6,9 +6,10 @@ extends Node
 ##   session_closed,
 ##   session_phase {phase: &"idle" | &"working" | &"waiting", since: Unix time},
 ##   session_activity {tool, detail}, session_subagents {count},
-##   session_background {background}: commands and agents the session started
-##     in the background and that still run. A turn may end before they do:
-##     the session then waits for them, not for the user,
+##   session_background {background, servers}: commands and agents the
+##     session started in the background and that still run. A turn may end
+##     before they do: the session then waits for them, not for the user.
+##     servers: those that are servers. They never end: nobody waits for them,
 ##   session_quiet {level}: working with no hook event, 0: for a moment,
 ##     1: for a while, 2: for long,
 ##   session_needs_you {detail}, session_finished,
@@ -22,7 +23,9 @@ extends Node
 ##
 ## Reads three kinds of local files:
 ## - <claude dir>/sessions/<pid>.json: one per live session, with its name and
-##   status. Internal Claude Code format, not documented: may change.
+##   status: "busy", "waiting", "idle", or "shell" when the turn is over and a
+##   command of the session still runs in the background. Internal Claude Code
+##   format, not documented: may change.
 ## - the session transcript: color (/color), last prompt, token use, tasks
 ##   started in the background, then stopped or told finished by a notice,
 ##   messages sent to another session, and the queue of what the session has
@@ -43,6 +46,11 @@ const USAGE_MARK := '"usage":{'
 ## started in the background.
 const COMMAND_MARK := '"backgroundTaskId":"'
 const AGENT_MARK := '"status":"async_launched"'
+## In the transcript line of an answer that starts a command in the background.
+const LAUNCH_MARK := '"run_in_background":true'
+const SHELL_TOOL := "Bash"
+## Registry status of a session at rest with a command that still runs.
+const SHELL_STATUS := "shell"
 ## In the transcript line of an answer that stops a background task. A task
 ## stopped this way gets no notice of its end.
 const STOP_MARK := '"name":"TaskStop"'
@@ -59,8 +67,8 @@ const ORIGIN_MARK := '"origin":{"kind":"'
 ## In the transcript line of an answer that writes to another session.
 const SEND_MARK := '"name":"SendMessage"'
 const SEND_TOOL := "SendMessage"
-## A background task with no notice of its end for this long is forgotten: a
-## server left running, or a task of a session closed meanwhile.
+## A background task with no notice of its end for this long is forgotten,
+## unless the registry tells that a command still runs.
 const BACKGROUND_MAX_SECONDS := 1800.0
 ## Tokens are posted rounded to this step, to post less often.
 const TOKEN_STEP := 10000
@@ -75,12 +83,22 @@ var _log_path := "/tmp/paros/claude-events.log"
 var _log_offset := 0
 ## Session id -> the SHOWN fields, plus phase, asking, subagents, transcript,
 ## transcript_offset, heard (time of the last hook event), quiet, tasks
-## (background task id -> Unix time of its start), background, queue (one
+## (background task id -> {since: Unix time of its start, server}), launches
+## (id of a call that starts a command in the background -> true for a server),
+## background, servers, queue (one
 ## entry per thing the session has yet to read: true for a message of another
 ## session), mail, known (false until its transcript was read once), origin
 ## and asker (what started the last turn, and the name of the session if one did).
 var _sessions := {}
 var _task_started := RegEx.create_from_string('"(?:backgroundTaskId|agentId)":"([^"]+)"')
+var _task_call := RegEx.create_from_string('"tool_use_id":"([^"]+)"')
+## A command that serves, or watches, until it is stopped.
+var _server := RegEx.create_from_string(
+	"(?:^|[\\s;&|(/])(?:vite|nodemon|webpack-dev-server|http-server|live-server|browser-sync|uvicorn|gunicorn)(?:$|[\\s;&|)])"
+	+ "|\\b(?:npm|pnpm|yarn|bun)(?: run)? (?:dev|start|serve|watch|preview)\\b"
+	+ "|\\b(?:next|astro|nuxt) dev\\b|\\b(?:ng|jekyll|hugo) serve|-m http\\.server|\\brunserver\\b|\\bflask run\\b"
+	+ "|\\bphp -S |\\bdocker compose up\\b|--watch\\b|\\btail -f\\b"
+)
 var _task_ended := RegEx.create_from_string("<task-id>([^<]+)</task-id>")
 var _task_stopped := RegEx.create_from_string('"name":"TaskStop","input":\\{[^}]*"(?:task_id|shell_id)":"([^"]+)"')
 var _timestamp := RegEx.create_from_string('"timestamp":"([^".]+)')
@@ -149,7 +167,7 @@ func _update(id: String, entry: Dictionary) -> void:
 		_sessions[id] = {
 			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0,
 			"phase": &"", "asking": false, "subagents": 0, "transcript": "", "transcript_offset": 0,
-			"heard": _now(), "quiet": 0, "tasks": {}, "background": 0, "queue": [], "mail": 0, "known": false,
+			"heard": _now(), "quiet": 0, "tasks": {}, "launches": {}, "background": 0, "servers": 0, "queue": [], "mail": 0, "known": false,
 			"origin": &"", "asker": "",
 		}
 	var session: Dictionary = _sessions[id]
@@ -167,10 +185,16 @@ func _update(id: String, entry: Dictionary) -> void:
 	if opened and not session.origin.is_empty():
 		_post_turn(id, session)
 	var now := Time.get_unix_time_from_system()
-	var background: int = session.tasks.values().filter(func(started: float) -> bool: return now - started < BACKGROUND_MAX_SECONDS).size()
-	if background != session.background:
-		session.background = background
-		Events.post(&"session_background", {"session": id, "background": background})
+	# While the registry tells that a command runs, none is too old to be true.
+	var running: bool = entry.get("status") == SHELL_STATUS
+	var counts := {false: 0, true: 0}
+	for task: Dictionary in session.tasks.values():
+		if running or now - task.since < BACKGROUND_MAX_SECONDS:
+			counts[task.server] += 1
+	if counts[false] != session.background or counts[true] != session.servers:
+		session.background = counts[false]
+		session.servers = counts[true]
+		Events.post(&"session_background", {"session": id, "background": session.background, "servers": session.servers})
 
 
 func _shown(session: Dictionary) -> Dictionary:
@@ -197,6 +221,9 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 		if SEND_MARK in line and session.known:
 			for name in _recipients(line):
 				Events.post(&"session_message_sent", {"session": id, "to": name})
+		if LAUNCH_MARK in line:
+			for block in _tool_uses(line, SHELL_TOOL):
+				session.launches[block.get("id", "")] = is_server(str(block.input.get("command", "")))
 		if ORIGIN_MARK in line and _read_origin(line, session) and session.known:
 			_post_turn(id, session)
 		if line.begins_with(COLOR_LINE):
@@ -209,7 +236,13 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 			var started := _task_started.search(line)
 			var written := _timestamp.search(line)
 			if started and written:
-				session.tasks[started.get_string(1)] = Time.get_unix_time_from_datetime_string(written.get_string(1))
+				var call := _task_call.search(line)
+				var launch := call.get_string(1) if call else ""
+				session.tasks[started.get_string(1)] = {
+					"since": Time.get_unix_time_from_datetime_string(written.get_string(1)),
+					"server": session.launches.get(launch, false),
+				}
+				session.launches.erase(launch)
 		elif USAGE_MARK in line:
 			session.context = _count_tokens(line)
 	session.transcript_offset = file.get_position()
@@ -251,13 +284,28 @@ func _read_queue_line(line: String, session: Dictionary) -> void:
 ## Names of the sessions that the answer of the given transcript line writes to.
 func _recipients(line: String) -> PackedStringArray:
 	var names: PackedStringArray = []
+	for block in _tool_uses(line, SEND_TOOL):
+		names.append(str(block.input.get("to", "")))
+	return names
+
+
+## Calls of the given tool in the answer of the given transcript line, each
+## with its "id" and its "input".
+func _tool_uses(line: String, tool: String) -> Array[Dictionary]:
+	var uses: Array[Dictionary] = []
 	var parsed: Variant = JSON.parse_string(line)
 	if not (parsed is Dictionary and parsed.get("message") is Dictionary and parsed.message.get("content") is Array):
-		return names
+		return uses
 	for block: Variant in parsed.message.content:
-		if block is Dictionary and block.get("type") == "tool_use" and block.get("name") == SEND_TOOL and block.get("input") is Dictionary:
-			names.append(str(block.input.get("to", "")))
-	return names
+		if block is Dictionary and block.get("type") == "tool_use" and block.get("name") == tool and block.get("input") is Dictionary:
+			uses.append(block)
+	return uses
+
+
+## True when the command is one that serves or watches until it is stopped,
+## such as "npm run dev".
+func is_server(command: String) -> bool:
+	return _server.search(command) != null
 
 
 ## Size of the context sent for an answer: its three input counts, added.

@@ -48,7 +48,7 @@ var _user_idle := false
 var _music := false
 ## Session id -> what the senses told about it: name, color, cwd, last_prompt,
 ## pid, context, phase, since, tool, detail, count, stalled, branch, dirty,
-## behind, conflict, level, background, mail. Plus "nagged", "knocked",
+## behind, conflict, level, background, servers, mail. Plus "nagged", "knocked",
 ## "unfocused_since", "cool_until", "lineage", "inbound" (letters that fly to
 ## its pet), "origin" and "from" (what started its turn), "asked" (id of the
 ## session it wrote to in that turn), "owed" (a cheer held back by a turn that
@@ -280,6 +280,7 @@ func _refresh() -> void:
 		pet.grooving = _music and Settings.value("pet", "groove")
 		if _awaits_peer(session):
 			pet.look_toward(pets.find(session.asked).feet().x)
+		pet.serving = session.get("servers", 0) > 0
 		# A letter that still flies is not in the mailbox yet.
 		pet.mail = maxi(session.get("mail", 0) - session.get("inbound", 0), 0)
 		pet.discreet = _locked
@@ -474,6 +475,8 @@ func _card(session: Dictionary) -> String:
 				lines.append(tr("Waiting for a background task for %s" if _awaits(session) else "At rest for %s") % lasted)
 		if session.get("count", 0) > 0:
 			lines.append(tr("Subagents running: %d") % session.count)
+		if session.get("servers", 0) > 0:
+			lines.append(tr("Servers running: %d") % session.servers)
 		if session.get("mail", 0) > 0:
 			lines.append(tr("Letters to read: %d") % session.mail)
 		if session.context > 0:

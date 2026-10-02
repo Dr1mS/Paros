@@ -449,3 +449,19 @@ func test_no_wait_for_a_session_that_stopped_working() -> void:
 	check_equal(asker.wish, Pet.Wish.WAIT, "waits while the other works")
 	set_phase("s2", &"idle")
 	check_equal(asker.wish, Pet.Wish.ROAM, "the other stopped without an answer")
+
+
+func test_server_left_running_is_not_a_wait() -> void:
+	var pet := open("s1")
+	set_phase("s1", &"working")
+	Events.post(&"session_background", {"session": "s1", "background": 0, "servers": 1})
+	set_phase("s1", &"idle")
+	Events.post(&"session_finished", {"session": "s1"})
+	check_equal(pet.state, Pet.State.CHEER, "done: nobody waits for a server")
+	check_equal(pet.wish, Pet.Wish.ROAM, "no hourglass")
+	check(pet.serving, "carries the antenna")
+	pet.hovered = true
+	brain._refresh()
+	check("Servers running: 1" in pet.get_node("../Bubble").card, "the card says so")
+	Events.post(&"session_background", {"session": "s1", "background": 0, "servers": 0})
+	check(not pet.serving, "antenna gone with the server")

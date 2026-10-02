@@ -282,6 +282,40 @@ func test_what_started_the_turn() -> void:
 	sense.free()
 
 
+func test_server_in_the_background_is_not_a_wait() -> void:
+	var sense := claude_sense()
+	var transcript := folder.path_join("claude/projects/-work").path_join(SESSION + ".jsonl")
+	var now := Time.get_datetime_string_from_system(true)
+	var launch := '{"type":"assistant","message":{"content":[{"type":"tool_use","id":"%s","name":"Bash","input":{"command":"%s","run_in_background":true}}]}}'
+	var result := '{"type":"user","timestamp":"%s.123Z","message":{"content":[{"tool_use_id":"%s","type":"tool_result"}]},"toolUseResult":{"backgroundTaskId":"%s"}}'
+	write(folder.path_join("claude/sessions/1.json"), registry(OS.get_process_id(), "idle"))
+	write(transcript, "\n".join([
+		launch % ["t1", "npm run dev"], result % [now, "t1", "b1"],
+		launch % ["t2", "node scripts/sweep.mjs 40000"], result % [now, "t2", "b2"],
+		launch % ["t3", "python3 -m http.server 8000"], result % ["2020-01-01T00:00:00", "t3", "old"],
+	]) + "\n")
+	sense._poll()
+	check_equal(last_event(&"session_background").get("background"), 1, "one task to wait for")
+	check_equal(last_event(&"session_background").get("servers"), 1, "one server, the old one forgotten")
+
+	write(folder.path_join("claude/sessions/1.json"), registry(OS.get_process_id(), "shell"))
+	sense._poll()
+	check_equal(last_event(&"session_background").get("servers"), 2, "the registry tells a command runs: the old one counts")
+	check_equal(last_event(&"session_phase").get("phase"), &"idle", "at rest meanwhile")
+
+	var file := FileAccess.open(transcript, FileAccess.READ_WRITE)
+	file.seek_end()
+	file.store_string('{"type":"queue-operation","operation":"enqueue","content":"<task-notification>\\n<task-id>b1</task-id>"}\n')
+	file.close()
+	sense._poll()
+	check_equal(last_event(&"session_background").get("servers"), 1, "the server was stopped")
+	for command: String in ["vite", "cd web && pnpm dev", "npx vite --port 5173", "tsc --watch", "uvicorn app:app", "docker compose up -d"]:
+		check(sense.is_server(command), "server: " + command)
+	for command: String in ["npm test", "npm run build", "node scripts/devtools.mjs", "cargo build", "sleep 5 && curl localhost"]:
+		check(not sense.is_server(command), "not a server: " + command)
+	sense.free()
+
+
 func test_music_players() -> void:
 	var sense: Node = load("res://src/senses/music_sense.gd").new()
 	var names := "(['org.freedesktop.DBus', ':1.7', 'org.mpris.MediaPlayer2.spotify', 'org.mpris.MediaPlayer2.firefox.instance_1_23'],)"

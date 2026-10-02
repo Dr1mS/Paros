@@ -87,6 +87,12 @@ const HOURGLASS_ROWS: Array[float] = [0.3, 0.7, 1.1, 1.4]
 ## Seconds the sand takes to run down, then the hourglass to turn over.
 const HOURGLASS_RUN := 5.0
 const HOURGLASS_TURN := 0.7
+## Antenna on the back of the head, and its light. Seconds of a blink, then
+## those the light stays on.
+const ANTENNA: Array[Array] = [[Rect2(-5.3, -12.2, 0.4, 2.2), EYE], [Rect2(-5.9, -10.4, 1.6, 0.4), EYE]]
+const ANTENNA_LIGHT := Rect2(-5.7, -13.3, 1.2, 1.2)
+const ANTENNA_BLINK := Vector2(1.2, 0.8)
+const SIGNAL := Color("#46d26a")
 ## Mailbox on the ground, on the left of the pet: post, box, slot, a letter
 ## that sticks out, and the raised flag.
 const MAILBOX: Array[Array] = [
@@ -201,7 +207,7 @@ func _look() -> int:
 		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.minis,
 		_pet.urgent, _pet.hovered, _pet.fullness >= SMOKE_FROM, _pet.baggage, _pet.hard_hat, _pet.lost,
 		_pet.tapping, _pet.umbrella, _pet.meditating, _pet.headlamp, _pet.cool, _pet.discreet,
-		_pet.rooted, _pet.is_perched(), _pet.grooving, _pet.mail, _pet.mailbox_side(),
+		_pet.rooted, _pet.is_perched(), _pet.grooving, _pet.mail, _pet.mailbox_side(), _pet.serving,
 	].hash()
 
 
@@ -311,6 +317,10 @@ func _draw() -> void:
 		_draw_eyes(state, body_offset, meditating)
 	if _pet.headlamp and state != Pet.State.SLEEP:
 		_blocks(HEADLAMP, body_offset, true)
+	if _pet.serving:
+		_blocks(ANTENNA, body_offset, true)
+		var lit := fmod(_time, ANTENNA_BLINK.x) < ANTENNA_BLINK.y
+		_blocks([[ANTENNA_LIGHT, SIGNAL if lit else SIGNAL.darkened(0.35)]], body_offset, true)
 	if state == Pet.State.SWEEP:
 		_draw_broom()
 	if meditating:

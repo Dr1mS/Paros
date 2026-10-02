@@ -18,6 +18,7 @@ Paros follows the interactive Claude Code sessions of the machine, for the curre
 | Got a message of another session while working | A mailbox stands beside the pet, flag up. With the number of letters when more than one waits |
 | Wrote to another session, which still works on it | Sits by the hourglass, turned toward the pet of that session |
 | Reads that message | The mailbox goes away. The pet holds the letter out and reads it |
+| Left a server running in the background | Carries an antenna on its head, with a green light that blinks |
 | At rest | Walks, sits, sleeps |
 | Context 75 % full or more | Its head smokes |
 | Closed | The pet goes away |
@@ -49,7 +50,9 @@ The reminder and the knock only happen when the terminal of the session is not f
 
 A session can end its turn while a command or an agent it started in the background still runs: a server that boots, a long build. It then waits for that task, not for you. The pet does not say "Task done!": it sits by an hourglass until the task ends and the session resumes. The hover card reads "Waiting for a background task". Such a session does not join the tower.
 
-Paros reads this from the transcript: the result of a command or an agent started in the background, then the notice of its end, or the order to stop it.
+A server is not a task to wait for: it runs until it is stopped. A command started in the background counts as a server when it contains `vite`, `nodemon`, `webpack-dev-server`, `http-server`, `live-server`, `browser-sync`, `uvicorn`, `gunicorn`, `dev`, `start`, `serve`, `watch` or `preview` after `npm`, `pnpm`, `yarn` or `bun`, `next dev`, `astro dev`, `nuxt dev`, `ng serve`, `jekyll serve`, `hugo serve`, `-m http.server`, `runserver`, `flask run`, `php -S`, `docker compose up`, `--watch` or `tail -f`. The turn that starts it ends with "Task done!". The pet carries an antenna as long as the server runs, and the hover card reads "Servers running".
+
+Paros reads this from the transcript: the command started in the background, its result, then the notice of its end, or the order to stop it. And from the registry: the status `shell` tells that the turn is over and that a command still runs.
 
 ### Letters between sessions
 
@@ -79,7 +82,7 @@ Being behind upstream is as of the last `git fetch`. Paros runs none.
 
 | Source | Gives | Note |
 |---|---|---|
-| `~/.claude/sessions/<pid>.json` | Open sessions, name, folder, status (`busy`, `waiting`, `idle`) | Internal Claude Code format, not documented: an update may change it |
+| `~/.claude/sessions/<pid>.json` | Open sessions, name, folder, status (`busy`, `waiting`, `idle`, `shell`) | Internal Claude Code format, not documented: an update may change it |
 | Session transcript, in `~/.claude/projects/` | Color (`/color`), last prompt, context tokens, background tasks, messages between sessions | Only the lines added since the last reading are read |
 | `$XDG_RUNTIME_DIR/paros/claude-events.log` | Tools, subagents, failures, end of turn, permission requests | Written by `hooks/claude-hook.sh` |
 | Session folder | Git status | Through the `git` command |
@@ -134,7 +137,8 @@ On screen, a pet shows the session name, the git branch and the tool in use. The
 
 ## Limits
 
-- A background task with no notice of its end after 30 minutes is forgotten, such as a server left running: the pet goes back to rest.
+- A background task with no notice of its end after 30 minutes is forgotten, unless the registry tells that a command still runs: the pet goes back to rest.
+- A server started by a command that the list does not know counts as a task: the pet waits by the hourglass.
 - A letter flies only to a session that has a pet, found by its name: a message to a session on another machine, or to a subagent, shows nothing. With two sessions of the same name, the letter goes to the first one found.
 - A message of a session without pet gets no flight: the letter is in the mailbox at once.
 - `Stop` also fires on `/clear` and on a compaction: the pet then jumps although no task is done.

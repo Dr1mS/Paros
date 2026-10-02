@@ -88,7 +88,7 @@ L'**état** (`Pet.State`) est ce que le personnage fait à l'instant :
 
 ### Attributs
 
-Le cerveau règle aussi des attributs que le corps dessine par-dessus l'état : `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `mail`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
+Le cerveau règle aussi des attributs que le corps dessine par-dessus l'état : `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `mail`, `serving`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
 
 ### Sol
 
@@ -111,7 +111,7 @@ Tous portent `session`, l'identifiant de la session.
 | `session_activity` | `tool`, `detail` | Légende |
 | `session_quiet` | `level` (0, 1, 2) | Tape du pied, médite |
 | `session_subagents` | `count` | Petits personnages |
-| `session_background` | `background` | Sablier tant que le tour est fini et qu'une tâche en arrière-plan tourne. Pas de « Tâche finie ! » |
+| `session_background` | `background`, `servers` | Sablier tant que le tour est fini et qu'une tâche en arrière-plan tourne. Pas de « Tâche finie ! ». Antenne tant qu'un serveur tourne |
 | `session_message_sent` | `to`, le nom d'une session | Le personnage lance une lettre au personnage de cette session. Son tour fini, il attend la réponse tant que cette session travaille |
 | `session_mail` | `mail` | Boîte aux lettres tant que des messages d'autres sessions attendent d'être lus. Lecture de la lettre quand l'une sort |
 | `session_turn` | `origin` (`human`, `peer`, `task-notification`…), `from` | Un tour lancé par une autre session finit par un hochement de tête, pas par un saut de joie |

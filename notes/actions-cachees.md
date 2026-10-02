@@ -17,7 +17,7 @@ Le sens d'une ligne est déduit de son contenu. Quand il n'est pas établi, c'es
 | `queue-operation` `dequeue` (1 120) | La session prend la première entrée de la file | **lu** |
 | `queue-operation` `remove`, raison `absorbed_mid_turn` (1 099) | Le message est lu pendant le tour, entre deux étapes | **lu** |
 | `queue-operation` `popAll` (1) | La file est vidée d'un coup | **lu** |
-| `user` avec `origin.kind = "peer"` (748) | Le tour est lancé par une autre session, pas par l'utilisateur. `origin.name` donne son nom | **piste** : carte « Tour demandé par … », pas de « Tâche finie ! » quand un pair attend la réponse |
+| `user` avec `origin.kind = "peer"` (748) | Le tour est lancé par une autre session, pas par l'utilisateur. `origin.name` donne son nom | **lu** : hochement de tête à la fin, pas de « Tâche finie ! » |
 | `user` avec `origin.kind = "auto-continuation"` (3) | La session reprend seule, sans prompt | **piste** |
 | `[Cross-session idle notice] "<nom>" …` (au moins 67) | Avis qu'une session surveillée est passée au repos | **piste** : le personnage qui attendait se tourne vers l'autre |
 | `system` `informational` (156) | Texte du genre « Concepteur is idle — finished a turn at 11:22 · … » | **piste** : même signal, avec le résumé du tour |
@@ -37,7 +37,8 @@ Le sens d'une ligne est déduit de son contenu. Quand il n'est pas établi, c'es
 
 | Ligne | Ce qu'elle dit | Paros |
 |---|---|---|
-| `user` avec `toolUseResult.backgroundTaskId` | Une commande est lancée en arrière-plan | **lu** : sablier |
+| `assistant`, outil `Bash` avec `run_in_background` | La commande lancée en arrière-plan | **lu** : serveur ou tâche |
+| `user` avec `toolUseResult.backgroundTaskId` | Une commande est lancée en arrière-plan | **lu** : sablier, ou antenne pour un serveur |
 | `user` avec `toolUseResult.status = "async_launched"` | Un agent est lancé en arrière-plan | **lu** |
 | `queue-operation` `enqueue`, contenu `<task-notification>` | Avis de fin d'une tâche de fond, ou événement d'un `Monitor` | **lu** pour la fin. **piste** : un `Monitor` actif est une veille, pas une attente |
 | `user` avec `origin.kind = "task-notification"` (231) | Le tour est lancé par un tel avis | **piste** |
@@ -117,6 +118,6 @@ Textes que Claude Code ajoute au contexte sans les montrer.
 | Source | Ce qu'elle dit | Paros |
 |---|---|---|
 | `~/.claude/sessions/<pid>.json` | Session ouverte, nom, dossier, statut `busy`, `waiting`, `idle` | **lu** |
-| Même fichier, statut `shell` (vu le 2 octobre 2026) | Le tour est fini et une commande lancée en arrière-plan tourne encore | **piste** : signal direct de l'attente, sans lire le transcript. Aujourd'hui Paros le prend pour du repos, et montre le sablier grâce au transcript |
+| Même fichier, statut `shell` (vu le 2 octobre 2026) | Le tour est fini et une commande lancée en arrière-plan tourne encore | **lu** : tant qu'il dure, aucune tâche de fond n'est oubliée |
 | Même fichier, `messagingSocketPath`, `peerFeatures` | Socket des messages entre sessions | — |
 | Hooks | Outil lancé, fini, raté ; sous-agents ; fin de tour ; demande de permission | **lu** |

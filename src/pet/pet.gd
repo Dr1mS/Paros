@@ -118,6 +118,8 @@ var meditating := false
 var headlamp := false
 ## Wears sunglasses.
 var cool := false
+## Nods to the music while it stands, sits or thinks.
+var grooving := false
 ## Screens to keep off, in screen coordinates: those under a full screen
 ## window. The pet moves to another screen. With none left, it hides.
 var avoid: Array[Rect2] = []

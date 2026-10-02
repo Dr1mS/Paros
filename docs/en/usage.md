@@ -53,6 +53,7 @@ The first two entries exist only for a pet tied to a session.
 | Stretches | When it wakes up |
 | Strolls or trots | Follows the load average of the machine: slow when nothing runs, fast when every core is busy |
 | Headlamp | At night, when it is awake |
+| Nods, with a small note | While a media player plays (Spotify, browser, VLC…), and it stands, sits or thinks |
 | Greets | When it meets another pet. Both walk away afterwards |
 | Glares | When it meets a pet whose session works in the same folder and on the same branch |
 | High five | When its neighbor and itself both just succeeded (end of turn or green tests, within 20 seconds and 200 pixels) |
@@ -99,6 +100,7 @@ Right-click, "Settings…". Each change applies and is saved at once. Settings a
 | Pets greet each other | yes | `pet/greetings` | Greetings and glares between pets that meet |
 | Tower of resting sessions | yes | `pet/tower` | Stacking of resting pets |
 | Headlamp at night | yes | `pet/headlamp` | |
+| Groove to the music | yes | `pet/groove` | Needs `gdbus` and a player that speaks MPRIS |
 
 ### Sounds
 

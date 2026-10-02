@@ -1,5 +1,6 @@
 extends "res://tests/test_case.gd"
-## What the senses read: Claude Code files, hook log, git output, desktop file.
+## What the senses read: Claude Code files, hook log, git output, desktop file,
+## media players.
 
 const SESSION := "11111111-2222-3333-4444-555555555555"
 
@@ -186,6 +187,20 @@ func test_clean_commit_is_reported_once() -> void:
 	_events.clear()
 	sense._report("s1", state.duplicate())
 	check(event_names().is_empty(), "nothing new: nothing posted")
+	sense.free()
+
+
+func test_music_players() -> void:
+	var sense: Node = load("res://src/senses/music_sense.gd").new()
+	var names := "(['org.freedesktop.DBus', ':1.7', 'org.mpris.MediaPlayer2.spotify', 'org.mpris.MediaPlayer2.firefox.instance_1_23'],)"
+	check_equal(Array(sense.players(names)), ["org.mpris.MediaPlayer2.spotify", "org.mpris.MediaPlayer2.firefox.instance_1_23"], "players among the bus names")
+	check_equal(Array(sense.players("(['org.freedesktop.DBus'],)")), [], "no player")
+	sense._report(true)
+	sense._report(true)
+	check_equal(event_names().count(&"music"), 1, "posted once")
+	check_equal(last_event(&"music").get("playing"), true, "playing")
+	sense._report(false)
+	check_equal(last_event(&"music").get("playing"), false, "stopped")
 	sense.free()
 
 

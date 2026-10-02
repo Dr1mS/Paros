@@ -44,6 +44,8 @@ const COOL_SECONDS := 60.0
 
 var _night := false
 var _user_idle := false
+## True while a media player plays.
+var _music := false
 ## Session id -> what the senses told about it: name, color, cwd, last_prompt,
 ## pid, context, phase, since, tool, detail, count, stalled, branch, dirty,
 ## behind, conflict, level. Plus "nagged", "knocked", "unfocused_since",
@@ -111,6 +113,8 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			Sound.play(&"knock")
 		&"system_load":
 			_load = data.load
+		&"music":
+			_music = data.playing
 		&"screen_locked":
 			_locked = data.locked
 			_screen_held_until = _now() + Settings.value("desktop", "lock_screen_minutes") * 60.0
@@ -236,6 +240,7 @@ func _refresh() -> void:
 		pet.pace = lerpf(PACE_RANGE.x, PACE_RANGE.y, clampf(_load, 0.0, 1.0))
 		pet.headlamp = _night and Settings.value("pet", "headlamp")
 		pet.cool = _now() < session.get("cool_until", 0.0)
+		pet.grooving = _music and Settings.value("pet", "groove")
 		pet.discreet = _locked
 		var no_screen: Array[Rect2] = []
 		pet.avoid = _covered if Settings.value("desktop", "leave_fullscreen") else no_screen

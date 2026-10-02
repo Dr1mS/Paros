@@ -26,6 +26,12 @@ Godot 4.7, GDScript. Aucun fichier image ni son : tout est dessiné et synthéti
 
 L'interface (bulles, menu, réglages) est en français ou en anglais. Elle suit la langue du système, et se règle dans les réglages.
 
+## Musique
+
+Quand un lecteur joue de la musique, les personnages bougent un peu : ils hochent la tête en rythme, penchent d'un côté puis de l'autre, et une petite note monte à côté de leur tête. Seulement debout, assis ou en réflexion : l'état de la session reste lisible.
+
+Paros interroge les lecteurs par MPRIS, que parlent Spotify, VLC et les navigateurs. Il faut `gdbus`, présent sur la plupart des bureaux Linux. Une vidéo en lecture dans un navigateur compte comme de la musique. Pour couper : « Réglages… », décocher « Bouger en musique ».
+
 ## Démarrage rapide
 
 ```sh
@@ -82,7 +88,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 ./test.sh
 ```
 
-81 tests unitaires, sans affichage, en quelques secondes.
+83 tests unitaires, sans affichage, en quelques secondes.
 
 ## Licence
 

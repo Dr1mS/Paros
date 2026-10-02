@@ -38,6 +38,7 @@ Ajouter une fonctionnalité revient presque toujours à : un sens qui poste un �
 | `system_sense.gd` | Température, charge, batterie |
 | `clock_sense.gd` | Nuit et jour |
 | `idle_sense.gd` | Inactivité de l'utilisateur, demandée à GNOME |
+| `music_sense.gd` | Lecteurs multimédias en lecture, demandés à MPRIS |
 | **`src/brain/`** | |
 | `brain.gd` | Toutes les règles |
 | **`src/pet/`** | |
@@ -84,7 +85,7 @@ L'**état** (`Pet.State`) est ce que le personnage fait à l'instant :
 
 ### Attributs
 
-Le cerveau règle aussi des attributs que le corps dessine par-dessus l'état : `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
+Le cerveau règle aussi des attributs que le corps dessine par-dessus l'état : `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
 
 ### Sol
 
@@ -138,6 +139,7 @@ Tous portent `session`, l'identifiant de la session.
 | `cpu_hot` | | `system_sense.gd` | Feu de camp |
 | `battery_low` | `percent` | `system_sense.gd` | Bulle |
 | `system_load` | `load` | `system_sense.gd` | Vitesse de marche |
+| `music` | `playing` | `music_sense.gd` | Hochement et note |
 
 ### Personnages et interface
 

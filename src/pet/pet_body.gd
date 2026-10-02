@@ -99,6 +99,19 @@ const HEART_ROWS: PackedStringArray = [
 	"...X...",
 ]
 const HEART_PIXEL := 3.0
+const NOTE_ROWS: PackedStringArray = [
+	"..XXX",
+	"..X..",
+	"..X..",
+	"XXX..",
+	"XXX..",
+]
+const NOTE_PIXEL := 3.0
+## Nods per second of a pet that grooves, then the height of a nod and the
+## width of the sway, in pixels.
+const GROOVE_BEATS := 2.0
+const GROOVE_NOD := 2.5
+const GROOVE_SWAY := 1.5
 
 const BLINK_SECONDS := 0.12
 ## Animation steps per second while the pet is calm. Between two steps the
@@ -163,7 +176,7 @@ func _look() -> int:
 		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.minis,
 		_pet.urgent, _pet.hovered, _pet.fullness >= SMOKE_FROM, _pet.baggage, _pet.hard_hat, _pet.lost,
 		_pet.tapping, _pet.umbrella, _pet.meditating, _pet.headlamp, _pet.cool, _pet.discreet,
-		_pet.rooted, _pet.is_perched(),
+		_pet.rooted, _pet.is_perched(), _pet.grooving,
 	].hash()
 
 
@@ -173,6 +186,7 @@ func _draw() -> void:
 	var meditating := state == Pet.State.THINK and _pet.meditating
 	var seated := meditating or state in [Pet.State.SLEEP, Pet.State.SIT, Pet.State.ROAST]
 	var still := state in [Pet.State.IDLE, Pet.State.SIT]
+	var grooving := _pet.grooving and (still or (state == Pet.State.THINK and not meditating))
 	# Index of the arm on the side the pet faces, and of the other one.
 	var front := 1 if _pet.facing > 0.0 else 0
 	# Pixels. hop lifts the whole mascot, rise lifts only the body (legs stretch).
@@ -219,6 +233,10 @@ func _draw() -> void:
 	if seated:
 		# On the ground: the legs fold under the body.
 		rise = (sin(_time * 1.2) * 0.5 + 0.5) * 2.0 - LEG_HEIGHT * UNIT
+	if grooving:
+		# Nods on each beat, and leans to one side then the other.
+		rise += absf(sin(_time * PI * GROOVE_BEATS)) * GROOVE_NOD
+		shake = sin(_time * PI * GROOVE_BEATS) * GROOVE_SWAY
 	if _pet.lost and still:
 		# Scratches its head.
 		arm_raise[1 - front] = 2.0 + 0.5 * float(sin(_time * 8.0) > 0.0)
@@ -302,6 +320,8 @@ func _draw() -> void:
 		draw_string(_font, body_top + Vector2(-5, -8), "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 20, _pet.color)
 	if _pet.fullness >= SMOKE_FROM and state != Pet.State.SLEEP:
 		_draw_smoke(body_top)
+	if grooving:
+		_draw_note(body_top)
 
 
 func _draw_legs(state: Pet.State, body_offset: Vector2, hop: float, airborne: bool) -> void:
@@ -414,16 +434,27 @@ func _draw_snore(from: Vector2) -> void:
 
 
 func _draw_hearts(body_top: Vector2) -> void:
-	var size := Vector2(HEART_ROWS[0].length(), HEART_ROWS.size()) * HEART_PIXEL
 	for i in 3:
 		var phase := fmod(_time * 0.9 + i / 3.0, 1.0)
 		var center := body_top + Vector2((i - 1) * 40.0 + sin(_time * 4.0 + i) * 4.0, -16.0 - phase * 36.0)
-		var color := Color(HEART, sin(phase * PI))
-		for row in HEART_ROWS.size():
-			for column in HEART_ROWS[row].length():
-				if HEART_ROWS[row][column] == "X":
-					var at := center - size / 2.0 + Vector2(column, row) * HEART_PIXEL
-					draw_rect(Rect2(at, Vector2.ONE * HEART_PIXEL), color)
+		_draw_pixels(HEART_ROWS, HEART_PIXEL, center, Color(HEART, sin(phase * PI)))
+
+
+## One note at a time, that rises beside the head: right, then left.
+func _draw_note(body_top: Vector2) -> void:
+	var phase := fmod(_time * 0.5, 1.0)
+	var side := 1.0 if int(_time * 0.5) % 2 == 0 else -1.0
+	var center := body_top + Vector2(side * (BODY.end.x + 2.5) * UNIT + sin(_time * 3.0) * 3.0, -phase * 26.0)
+	_draw_pixels(NOTE_ROWS, NOTE_PIXEL, center, Color(_pet.color.darkened(0.2), sin(phase * PI)))
+
+
+## Fills the "X" of the rows with squares of the given size, around a center.
+func _draw_pixels(rows: PackedStringArray, pixel: float, center: Vector2, color: Color) -> void:
+	var size := Vector2(rows[0].length(), rows.size()) * pixel
+	for row in rows.size():
+		for column in rows[row].length():
+			if rows[row][column] == "X":
+				draw_rect(Rect2(center - size / 2.0 + Vector2(column, row) * pixel, Vector2.ONE * pixel), color)
 
 
 ## Small copy of the mascot, one per running subagent. A new one runs from the

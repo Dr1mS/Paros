@@ -26,6 +26,12 @@ Built with Godot 4.7 and GDScript. No image file and no sound file: everything i
 
 The interface (bubbles, menu, settings) is in English or in French. It follows the language of the system, and can be set in the settings.
 
+## Music
+
+While a media player plays, the pets groove a little: they nod on the beat, lean from side to side, and a small note rises beside their head. Only while they stand, sit or think, so it never hides what a session is doing.
+
+Paros asks the players through MPRIS, which Spotify, VLC and the browsers speak. It needs `gdbus`, present on most Linux desktops. A video that plays in a browser counts as music. To turn it off: "Settings…", untick "Groove to the music".
+
 ## Quick start
 
 ```sh
@@ -82,7 +88,7 @@ To run without Godot, build a standalone binary with `./build.sh` (see [Developm
 ./test.sh
 ```
 
-81 unit tests, run without a display in a few seconds.
+83 unit tests, run without a display in a few seconds.
 
 ## License
 

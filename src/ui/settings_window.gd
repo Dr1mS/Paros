@@ -14,6 +14,7 @@ const FIELDS := [
 	["pet", "greetings", "Pets greet each other"],
 	["pet", "tower", "Tower of resting sessions"],
 	["pet", "headlamp", "Headlamp at night"],
+	["pet", "groove", "Groove to the music"],
 	["Sounds"],
 	["sound", "enabled", "Enable sounds"],
 	["sound", "volume", "Volume", 0, 100, 5, "%"],

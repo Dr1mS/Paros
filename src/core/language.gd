@@ -44,6 +44,7 @@ const FRENCH := {
 	"Pets greet each other": "Les personnages se saluent",
 	"Tower of resting sessions": "Tour des sessions au repos",
 	"Headlamp at night": "Lampe frontale la nuit",
+	"Groove to the music": "Bouger en musique",
 	"Sounds": "Sons",
 	"Enable sounds": "Activer les sons",
 	"Bubbles": "Bulles",

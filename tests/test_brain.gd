@@ -200,6 +200,17 @@ func test_headlamp_at_night() -> void:
 	check(not pet.headlamp, "lamp off")
 
 
+func test_grooves_to_the_music() -> void:
+	var pet := open("s1")
+	Events.post(&"music", {"playing": true})
+	check(pet.grooving, "grooves while a player plays")
+	Settings.set_value("pet", "groove", false)
+	check(not pet.grooving, "not when the setting is off")
+	Settings.set_value("pet", "groove", true)
+	Events.post(&"music", {"playing": false})
+	check(not pet.grooving, "stops with the music")
+
+
 func test_leaves_covered_screens() -> void:
 	var pet := open("s1")
 	var screen := Rect2(0, 0, 1920, 1080)

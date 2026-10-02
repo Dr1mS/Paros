@@ -38,6 +38,7 @@ Adding a feature nearly always comes down to: a sense that posts an event, a rul
 | `system_sense.gd` | Temperature, load, battery |
 | `clock_sense.gd` | Night and day |
 | `idle_sense.gd` | User inactivity, asked from GNOME |
+| `music_sense.gd` | Media players that play, asked from MPRIS |
 | **`src/brain/`** | |
 | `brain.gd` | Every rule |
 | **`src/pet/`** | |
@@ -84,7 +85,7 @@ The **state** (`Pet.State`) is what the pet does right now:
 
 ### Attributes
 
-The brain also sets attributes that the body draws on top of the state: `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
+The brain also sets attributes that the body draws on top of the state: `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `discreet`, `rooted`, `pace`, `repo`, `perch`, `avoid`.
 
 ### Floor
 
@@ -138,6 +139,7 @@ All carry `session`, the session id.
 | `cpu_hot` | | `system_sense.gd` | Campfire |
 | `battery_low` | `percent` | `system_sense.gd` | Bubble |
 | `system_load` | `load` | `system_sense.gd` | Walk speed |
+| `music` | `playing` | `music_sense.gd` | Nod and note |
 
 ### Pets and interface
 

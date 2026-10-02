@@ -53,6 +53,7 @@ Les deux premières entrées n'existent que pour un personnage lié à une sessi
 | S'étire | Au réveil |
 | Flâne ou trottine | Selon la charge moyenne de la machine : lent quand rien ne tourne, rapide quand tous les cœurs sont occupés |
 | Lampe frontale | La nuit, quand il est éveillé |
+| Hoche la tête, avec une petite note | Quand un lecteur joue de la musique (Spotify, navigateur, VLC…), et qu'il est debout, assis ou en réflexion |
 | Salue | Quand il croise un autre personnage. Les deux s'éloignent ensuite |
 | Toise | Quand il croise un personnage dont la session travaille dans le même dossier et la même branche |
 | Tape dans la main | Quand son voisin et lui viennent tous deux de réussir (fin de tour ou tests verts, à moins de 20 secondes et 200 pixels) |
@@ -99,6 +100,7 @@ Clic droit, « Réglages… ». Chaque changement s'applique et s'enregistre tou
 | Les personnages se saluent | oui | `pet/greetings` | Saluts et regards entre personnages qui se croisent |
 | Tour des sessions au repos | oui | `pet/tower` | Empilement des personnages au repos |
 | Lampe frontale la nuit | oui | `pet/headlamp` | |
+| Bouger en musique | oui | `pet/groove` | Demande `gdbus` et un lecteur qui parle MPRIS |
 
 ### Sons
 

@@ -9,7 +9,7 @@ const DEFAULTS := {
 	"interface": {"language": "auto"},
 	"pet": {
 		"size": 1.0, "walk_speed": 70.0, "show_name": true, "accessories": true, "greetings": true,
-		"tower": true, "headlamp": true,
+		"tower": true, "headlamp": true, "groove": true,
 	},
 	"sound": {"enabled": true, "volume": 50},
 	"sleep": {"night_start_hour": 23, "night_end_hour": 7, "idle_minutes": 5.0},

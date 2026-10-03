@@ -45,7 +45,7 @@ A command counts as a test when it contains `pytest`, `jest`, `vitest`, `phpunit
 
 The silence of the hooks does not say why the session is silent: long thinking of the model and a slow network look the same.
 
-The reminder and the knock only happen when the terminal of the session is not focused. Without the [GNOME extension](gnome-extension.md) the focus is not known: Paros assumes the terminal does not have it.
+The reminder and the knock only happen when the terminal of the session is not focused. Without the [GNOME extension](gnome-extension.md) (on Windows: the PowerShell helper, started by the app) the focus is not known: Paros assumes the terminal does not have it.
 
 ### Waiting for a background task
 
@@ -121,6 +121,8 @@ In `~/.claude/settings.json`, declare the script for each of these events: `User
   }
 }
 ```
+
+On Windows, write the command as `sh "C:/path/to/Paros/hooks/claude-hook.sh"` (forward slashes, run by Git Bash).
 
 Repeat the same block for the six other events. Hooks in `~/.claude/settings.json` apply to every session of the user, whatever the project. A session that is already open picks them up without a restart.
 

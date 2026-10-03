@@ -25,7 +25,7 @@ const PLAYERS: Array[String] = ["pw-play", "paplay", "aplay"]
 
 ## System player to call. Empty: play through the engine.
 var _player := ""
-var _folder := OS.get_environment("XDG_RUNTIME_DIR").path_join("paros")
+var _folder := Desktop.runtime_dir().path_join("paros")
 var _playback: AudioStreamGeneratorPlayback
 
 

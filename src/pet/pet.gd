@@ -587,7 +587,19 @@ func _screen_rect(screen: int) -> Rect2i:
 	return Rect2i(DisplayServer.screen_get_position(screen), DisplayServer.screen_get_size(screen))
 
 
+## Is this screen point on the body? Where the click shape cannot be a polygon
+## (see _hit_polygon), Pointer asks this to let the other clicks through.
+func hit_test(screen_point: Vector2) -> bool:
+	var local := (screen_point - Vector2(_window.position)) / _size
+	return ((local - HIT_CENTER) / HIT_RADIUS).length_squared() <= 1.0
+
+
 func _hit_polygon() -> PackedVector2Array:
+	# Windows turns the polygon into a window region: it would also cut the
+	# drawing (arms, tags, bubble). The whole window, then, and Pointer does the rest.
+	if OS.get_name() == "Windows":
+		var size := Vector2(_window.size)
+		return PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)])
 	var points := PackedVector2Array()
 	for i in 24:
 		var angle := TAU * i / 24.0

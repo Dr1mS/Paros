@@ -4,7 +4,7 @@ extends "res://tests/test_case.gd"
 
 const SESSION := "11111111-2222-3333-4444-555555555555"
 
-var folder := OS.get_environment("XDG_RUNTIME_DIR").path_join("test-senses")
+var folder := (OS.get_environment("XDG_RUNTIME_DIR") if OS.has_environment("XDG_RUNTIME_DIR") else OS.get_temp_dir()).path_join("test-senses")
 
 
 func before_each() -> void:
@@ -34,7 +34,19 @@ func registry(pid: int, status: String, name := "Alpha", kind := "interactive") 
 	})
 
 
+## Windows: the process list the desktop helper writes, with only this process
+## in it. Nothing to do elsewhere.
+func seed_processes() -> void:
+	if OS.get_name() != "Windows":
+		return
+	write(Desktop.runtime_dir().path_join("paros/processes.json"), JSON.stringify({
+		"updated": Time.get_unix_time_from_system(), "processes": {str(OS.get_process_id()): [1, "777"]},
+	}))
+	Desktop._processes_read_at = -1.0
+
+
 func test_live_session_opens_then_closes() -> void:
+	seed_processes()
 	var sense := claude_sense()
 	write(folder.path_join("claude/sessions/1.json"), registry(OS.get_process_id(), "busy"))
 	sense._poll()
@@ -47,7 +59,21 @@ func test_live_session_opens_then_closes() -> void:
 	sense.free()
 
 
+func test_process_of_a_session_still_runs() -> void:
+	if OS.get_name() == "Linux":
+		check(Desktop.is_process_running(OS.get_process_id()), "this process runs")
+		check(not Desktop.is_process_running(999999999), "no such process")
+	elif OS.get_name() == "Windows":
+		seed_processes()
+		var pid := OS.get_process_id()
+		check(Desktop.is_process_running(pid), "this process runs")
+		check(Desktop.is_process_running(pid, "777"), "same creation time")
+		check(not Desktop.is_process_running(pid, "888"), "same pid, other process: the pid was reused")
+		check(not Desktop.is_process_running(999999999), "no such process")
+
+
 func test_dead_or_background_sessions_are_ignored() -> void:
+	seed_processes()
 	var sense := claude_sense()
 	write(folder.path_join("claude/sessions/1.json"), registry(999999999, "busy"))
 	write(folder.path_join("claude/sessions/2.json"), registry(OS.get_process_id(), "busy", "Agent", "background"))
@@ -409,6 +435,8 @@ func test_hook_script_writes_one_line_per_event() -> void:
 	var script := ProjectSettings.globalize_path("res://hooks/claude-hook.sh")
 	var runs := [
 		'{"session_id":"s1","cwd":"/y","hook_event_name":"PreToolUse","tool_name":"Edit","tool_input":{"file_path":"/home/u/src/pet.gd","old_string":"a \\"session_id\\":\\"evil\\" b"}}',
+		# A Windows path: backslashes are doubled in the JSON of the hooks.
+		'{"session_id":"s1","hook_event_name":"PreToolUse","tool_name":"Write","tool_input":{"file_path":"C:\\\\Users\\\\u\\\\src\\\\pet_body.gd"}}',
 		'{"session_id":"s1","hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":{"command":"cd x && npm run test","description":"Run unit tests"}}',
 		'{"session_id":"s1","hook_event_name":"Notification","message":"Claude needs your permission","notification_type":"permission_prompt"}',
 		'{"session_id":"s1","hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":{"command":"ls","description":"%s"}}' % "x".repeat(300),
@@ -417,8 +445,9 @@ func test_hook_script_writes_one_line_per_event() -> void:
 		write(folder.path_join("input.json"), input)
 		OS.execute("sh", ["-c", "XDG_RUNTIME_DIR='%s' '%s' < '%s'" % [folder, script, folder.path_join("input.json")]])
 	var lines := FileAccess.get_file_as_string(folder.path_join("paros/claude-events.log")).split("\n", false)
-	check_equal(lines.size(), 4, "one line per event")
+	check_equal(lines.size(), 5, "one line per event")
 	check_equal(Array(lines[0].split("\t")), ["PreToolUse", "s1", "", "Edit", "pet.gd", ""], "file name of an edit")
-	check_equal(Array(lines[1].split("\t")), ["PostToolUse", "s1", "", "Bash", "Run unit tests", "test"], "a test command")
-	check_equal(Array(lines[2].split("\t")), ["Notification", "s1", "permission_prompt", "", "Claude needs your permission", ""], "a question")
-	check_equal(lines[3].split("\t")[4].length(), 120, "long detail cut")
+	check_equal(Array(lines[1].split("\t")), ["PreToolUse", "s1", "", "Write", "pet_body.gd", ""], "file name of a Windows path")
+	check_equal(Array(lines[2].split("\t")), ["PostToolUse", "s1", "", "Bash", "Run unit tests", "test"], "a test command")
+	check_equal(Array(lines[3].split("\t")), ["Notification", "s1", "permission_prompt", "", "Claude needs your permission", ""], "a question")
+	check_equal(lines[4].split("\t")[4].length(), 120, "long detail cut")

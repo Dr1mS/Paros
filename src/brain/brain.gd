@@ -103,6 +103,8 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			_sessions[data.session] = {
 				"phase": &"idle", "since": _now(), "nagged": 0.0, "knocked": 0.0, "unfocused_since": _now(),
 				"lineage": Desktop.lineage(data.pid),
+					# Windows: the list of processes may come after the session. Asked again later.
+					"lineage_pending": OS.get_name() == "Windows" and Desktop.lineage(data.pid).size() < 2,
 			}
 		if not _sessions.has(data.session):
 			return
@@ -255,6 +257,12 @@ func _tick() -> void:
 	for key: String in _sessions:
 		var session: Dictionary = _sessions[key]
 		var waited: float = _now() - session.since
+		# Windows: the process list may not have been there when the session opened.
+		if session.get("lineage_pending", false):
+			var lineage := Desktop.lineage(session.pid)
+			if lineage.size() > 1:
+				session.lineage = lineage
+				session.lineage_pending = false
 		if session.phase != &"waiting" or _active_pid in session.lineage:
 			session.unfocused_since = _now()
 			continue
@@ -470,7 +478,7 @@ func _activity(session: Dictionary) -> String:
 func _card(session: Dictionary) -> String:
 	var lines: PackedStringArray = []
 	if not session.is_empty():
-		var folder: String = session.cwd.replace(OS.get_environment("HOME"), "~")
+		var folder: String = session.cwd.replace(Desktop.home(), "~")
 		if folder.length() > PATH_MAX_LENGTH:
 			folder = "…" + folder.right(PATH_MAX_LENGTH - 1)
 		lines.append(folder)

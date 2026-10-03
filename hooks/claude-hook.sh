@@ -16,6 +16,8 @@ field() {
 
 detail=$(field file_path)
 detail=${detail##*/}
+# Windows paths: the JSON holds them with doubled backslashes.
+detail=${detail##*\\}
 [ -z "$detail" ] && detail=$(field description)
 [ -z "$detail" ] && detail=$(field message)
 

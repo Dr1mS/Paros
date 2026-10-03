@@ -45,7 +45,7 @@ Une commande compte comme un test quand elle contient `pytest`, `jest`, `vitest`
 
 Le silence des hooks ne dit pas pourquoi la session se tait : réflexion longue du modèle et réseau lent se ressemblent.
 
-Le rappel d'attente et le toc-toc n'ont lieu que si le terminal de la session n'a pas le focus. Sans l'[extension GNOME](extension-gnome.md), le focus est inconnu : Paros considère que le terminal ne l'a pas.
+Le rappel d'attente et le toc-toc n'ont lieu que si le terminal de la session n'a pas le focus. Sans l'[extension GNOME](extension-gnome.md) (sous Windows : le script PowerShell, lancé par l'application), le focus est inconnu : Paros considère que le terminal ne l'a pas.
 
 ### Attente d'une tâche en arrière-plan
 
@@ -121,6 +121,8 @@ Dans `~/.claude/settings.json`, déclarer le script pour chacun de ces événeme
   }
 }
 ```
+
+Sous Windows, écrire la commande `sh "C:/chemin/vers/Paros/hooks/claude-hook.sh"` (barres obliques, lancée par Git Bash).
 
 Le même bloc est à répéter pour les six autres événements. Les hooks de `~/.claude/settings.json` valent pour toutes les sessions de l'utilisateur, quel que soit le projet. Une session déjà ouverte les prend en compte sans redémarrage.
 

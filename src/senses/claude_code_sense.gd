@@ -130,10 +130,7 @@ func _ready() -> void:
 	if OS.has_environment("CLAUDE_CONFIG_DIR"):
 		_claude_dir = OS.get_environment("CLAUDE_CONFIG_DIR")
 	# Same folder as the hook script: the runtime folder, else the temporary one.
-	for variable: String in ["XDG_RUNTIME_DIR", "TEMP"]:
-		if OS.has_environment(variable):
-			_log_path = OS.get_environment(variable).path_join("paros/claude-events.log")
-			break
+	_log_path = Desktop.runtime_dir().path_join("paros/claude-events.log")
 	# Skip history: only hook events from now on matter.
 	var file := FileAccess.open(_log_path, FileAccess.READ)
 	if file:
@@ -176,9 +173,7 @@ func _read_registry() -> Dictionary:
 
 ## A crashed session leaves its registry file behind.
 func _is_running(entry: Dictionary) -> bool:
-	if OS.get_name() != "Linux":
-		return true
-	return DirAccess.dir_exists_absolute("/proc/%d" % entry.get("pid", 0))
+	return Desktop.is_process_running(int(entry.get("pid", 0)), str(entry.get("procStart", "")))
 
 
 func _update(id: String, entry: Dictionary) -> void:
@@ -476,4 +471,4 @@ func _now() -> float:
 
 
 func _home() -> String:
-	return OS.get_environment("USERPROFILE" if OS.get_name() == "Windows" else "HOME")
+	return Desktop.home()

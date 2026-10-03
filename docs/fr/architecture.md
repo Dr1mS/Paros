@@ -34,7 +34,7 @@ Ajouter une fonctionnalité revient presque toujours à : un sens qui poste un �
 | **`src/senses/`** | |
 | `claude_code_sense.gd` | Sessions Claude Code : registre, transcripts, journal des hooks |
 | `git_sense.gd` | État git du dossier de chaque session |
-| `desktop_sense.gd` | Fichier écrit par l'extension GNOME : fenêtre active, curseur, verrouillage, plein écran |
+| `desktop_sense.gd` | Fichier écrit par l'extension GNOME, ou par le script Windows : fenêtre active, curseur, verrouillage, plein écran |
 | `system_sense.gd` | Température, charge, batterie |
 | `clock_sense.gd` | Nuit et jour |
 | `idle_sense.gd` | Inactivité de l'utilisateur, demandée à GNOME |
@@ -68,6 +68,14 @@ Une lettre entre deux personnages a sa propre petite fenêtre, du même genre, q
 La fenêtre principale de Godot ne peut pas être cachée. Elle reste vide, garée hors écran.
 
 L'application tourne en X11, donc par XWayland sous Wayland : Wayland natif interdit à une fenêtre de choisir sa position.
+
+Sous Windows, une forme de clic (`mouse_passthrough_polygon`) est aussi une région de fenêtre : elle couperait le dessin. Le polygone est alors la fenêtre entière, et `Pointer` laisse passer les clics à la main (`mouse_passthrough`) quand la souris n'est pas sur le corps. La fenêtre principale n'a pas de bouton dans la barre des tâches.
+
+## Script Windows
+
+`windows/paros-desktop.ps1` est à Windows ce que l'extension GNOME est à GNOME. `Desktop.start_helper()` le copie dans le dossier d'exécution (`%TEMP%\paros`) et le lance masqué ; il s'arrête avec l'application. Il écrit `desktop.json`, au format de l'extension (plus `idle_ms`, `music`, `cpu`, `battery`), et `processes.json` (pid → parent, heure de création). Les sens lisent ces fichiers : `DesktopSense`, `IdleSense`, `MusicSense`, `SystemSense`, et `Desktop.lineage` / `Desktop.is_process_running` à la place de `/proc`.
+
+Les demandes vont dans l'autre sens, un fichier par demande dans `requests/` : `focus` (amener au premier plan le terminal d'une session : la fenêtre qui porte sa console, trouvée par le titre de la console, puis par les processus ancêtres) et `ring` (sonnerie de sa console).
 
 ## Le personnage
 

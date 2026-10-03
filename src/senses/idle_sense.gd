@@ -2,6 +2,7 @@ extends Node
 ## Posts: user_idle, user_active.
 ## Asks GNOME (Mutter IdleMonitor) for the time since the last keyboard or
 ## mouse input. On other desktops the query fails and this sense stays silent.
+## Windows: read from the file of the desktop helper.
 
 const POLL_SECONDS := 5.0
 const QUERY: PackedStringArray = [
@@ -31,6 +32,12 @@ func _exit_tree() -> void:
 
 # The query runs in a thread: OS.execute blocks, and a blocked frame freezes the pet.
 func _poll() -> void:
+	if OS.get_name() == "Windows":
+		# The desktop helper reads the time since the last input.
+		var state := Desktop.windows_state()
+		if state.has("idle_ms"):
+			_report(int(state.idle_ms))
+		return
 	if _thread:
 		if _thread.is_alive():
 			return

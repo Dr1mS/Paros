@@ -15,7 +15,7 @@ const STALE_SECONDS := 30.0
 ## Seconds without pointer motion before pointer_idle.
 const IDLE_AFTER_SECONDS := 60.0
 
-var _path := OS.get_environment("XDG_RUNTIME_DIR").path_join("paros/desktop.json")
+var _path := Desktop.runtime_dir().path_join("paros/desktop.json")
 var _active := Rect2()
 var _fullscreen := false
 var _pid := -1
@@ -27,6 +27,8 @@ var _idle := false
 
 
 func _ready() -> void:
+	# Windows: the helper takes the place of the GNOME extension, same file.
+	Desktop.start_helper()
 	var timer := Timer.new()
 	timer.wait_time = POLL_SECONDS
 	timer.autostart = true

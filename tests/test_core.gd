@@ -112,10 +112,14 @@ func test_autostart_file() -> void:
 	Autostart.set_enabled(true)
 	check(Autostart.is_enabled(), "on")
 	var entry := FileAccess.get_file_as_string(Autostart._path())
-	check("Exec=env XMODIFIERS=@im=none " in entry, "command, started without input method server")
+	var windows := OS.get_name() == "Windows"
+	if windows:
+		check(entry.begins_with('start "" "'), "command, started detached")
+	else:
+		check("Exec=env XMODIFIERS=@im=none " in entry, "command, started without input method server")
 	FileAccess.open(Autostart._path(), FileAccess.WRITE).store_string("old entry")
 	Autostart.refresh()
-	check("Exec=" in FileAccess.get_file_as_string(Autostart._path()), "an old entry is written again")
+	check(("start " if windows else "Exec=") in FileAccess.get_file_as_string(Autostart._path()), "an old entry is written again")
 	Autostart.set_enabled(false)
 	check(not Autostart.is_enabled(), "off again")
 

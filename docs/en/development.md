@@ -133,7 +133,7 @@ sudo gdb -p <pid> -batch -ex "thread apply all bt 15"
 |---|---|
 | Linux, GNOME, Wayland | Tested |
 | Linux, other desktop | The core works. Inactivity sense and extension missing |
-| Windows | Binary built, never run. Inactivity sense, system alerts, terminal bell and extension missing. Hooks need Git Bash |
+| Windows | Run from the sources, tested by hand: double-click raising the terminal, perch, hooks. Needs Git Bash for the hooks and the tests (`./test.ps1`). The PowerShell helper in `windows/` replaces the extension. Not available: pets on the lock screen, temperature alert. The exported binary was not tested again |
 
 What is specific to Linux is isolated: reading `/proc` and `/sys`, `gdbus`, the `$XDG_RUNTIME_DIR` folder, the audio players. Elsewhere these parts stay silent.
 

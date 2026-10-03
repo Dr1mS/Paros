@@ -36,7 +36,11 @@ var _seal := Pet.DEFAULT_COLOR
 
 func _ready() -> void:
 	# Clicks go through to the desktop.
-	_window.mouse_passthrough_polygon = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN])
+	if OS.get_name() == "Windows":
+		# A polygon would cut the drawing there: the whole window lets clicks through.
+		_window.mouse_passthrough = true
+	else:
+		_window.mouse_passthrough_polygon = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN])
 	stop()
 
 

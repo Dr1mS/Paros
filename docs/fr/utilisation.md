@@ -21,7 +21,7 @@ Chaque session Claude Code interactive ouverte sur la machine a son personnage. 
 | Geste | Effet |
 |---|---|
 | Clic gauche | Le personnage saute de joie |
-| Double-clic | Met le terminal de sa session au premier plan et fait sonner son onglet. Demande l'[extension GNOME](extension-gnome.md) |
+| Double-clic | Met le terminal de sa session au premier plan et fait sonner son onglet. Demande l'[extension GNOME](extension-gnome.md) sous Linux. Sous Windows, le script PowerShell s'en charge et choisit la bonne fenêtre même avec plusieurs terminaux |
 | Glisser | Le porter. Lâché avec élan, il vole et rebondit sur les bords et le sol. Lâché de haut, il ouvre un parapluie |
 | Survol | Ses yeux suivent la souris. Une fiche affiche le dossier, l'état de la session et sa durée, l'outil en cours, le nombre de sous-agents, les tokens de contexte, l'état git, le dernier prompt ou le résumé de la session, le temps de focus restant |
 | Déposer un fichier dessus | Copie le chemin dans le presse-papiers, prêt à coller dans le terminal |
@@ -101,7 +101,7 @@ Clic droit, « Réglages… ». Chaque changement s'applique et s'enregistre tou
 | Les personnages se saluent | oui | `pet/greetings` | Saluts et regards entre personnages qui se croisent |
 | Tour des sessions au repos | oui | `pet/tower` | Empilement des personnages au repos |
 | Lampe frontale la nuit | oui | `pet/headlamp` | |
-| Bouger en musique | oui | `pet/groove` | Demande `gdbus` et un lecteur qui parle MPRIS |
+| Bouger en musique | oui | `pet/groove` | Linux : demande `gdbus` et un lecteur qui parle MPRIS. Windows : toute application qui affiche des commandes média |
 
 ### Sons
 

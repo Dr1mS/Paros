@@ -34,7 +34,7 @@ Adding a feature nearly always comes down to: a sense that posts an event, a rul
 | **`src/senses/`** | |
 | `claude_code_sense.gd` | Claude Code sessions: registry, transcripts, hook log |
 | `git_sense.gd` | Git status of the folder of each session |
-| `desktop_sense.gd` | File written by the GNOME extension: focused window, pointer, lock, full screen |
+| `desktop_sense.gd` | File written by the GNOME extension, or by the Windows helper: focused window, pointer, lock, full screen |
 | `system_sense.gd` | Temperature, load, battery |
 | `clock_sense.gd` | Night and day |
 | `idle_sense.gd` | User inactivity, asked from GNOME |
@@ -68,6 +68,14 @@ A letter between two pets has its own small window, of the same kind, which lets
 The main Godot window cannot be hidden. It stays empty, parked off screen.
 
 The application runs on X11, so through XWayland under Wayland: native Wayland does not let a window choose its position.
+
+On Windows, a click shape (`mouse_passthrough_polygon`) is also a window region: it would cut the drawing. The polygon is then the whole window, and `Pointer` lets the clicks through by hand (`mouse_passthrough`) when the mouse is not over the body. The main window has no taskbar button.
+
+## Windows helper
+
+`windows/paros-desktop.ps1` is to Windows what the GNOME extension is to GNOME. `Desktop.start_helper()` copies it to the runtime folder (`%TEMP%\paros`) and starts it hidden; it ends with the app. It writes `desktop.json`, in the format of the extension (plus `idle_ms`, `music`, `cpu`, `battery`), and `processes.json` (pid → parent, creation time). Senses read these files: `DesktopSense`, `IdleSense`, `MusicSense`, `SystemSense`, and `Desktop.lineage` / `Desktop.is_process_running` instead of `/proc`.
+
+Requests go the other way, as one file per request in `requests/`: `focus` (raise the terminal of a session: the window that holds its console, found by the console title, then by ancestor processes) and `ring` (bell of its console).
 
 ## The pet
 

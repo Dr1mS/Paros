@@ -3,6 +3,7 @@ extends Node
 ## playing: a media player plays, as told by MPRIS on the session bus. A video
 ## in a browser counts too.
 ## Without gdbus, or without a player, this sense says that nothing plays.
+## Windows: read from the file of the desktop helper (media sessions of the system).
 
 const POLL_SECONDS := 3.0
 ## Seconds given to a player to answer. One that hangs must not hold the others.
@@ -36,6 +37,10 @@ func _exit_tree() -> void:
 func _poll() -> void:
 	if not Settings.value("pet", "groove"):
 		_report(false)
+		return
+	if OS.get_name() == "Windows":
+		# The desktop helper asks the media sessions of Windows.
+		_report(Desktop.windows_state().get("music", false))
 		return
 	if _thread:
 		if _thread.is_alive():

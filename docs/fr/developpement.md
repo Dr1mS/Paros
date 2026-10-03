@@ -133,7 +133,7 @@ sudo gdb -p <pid> -batch -ex "thread apply all bt 15"
 |---|---|
 | Linux, GNOME, Wayland | Testé |
 | Linux, autre bureau | Cœur fonctionnel. Sens d'inactivité et extension absents |
-| Windows | Binaire produit, jamais lancé. Sens d'inactivité, alertes système, sonnerie du terminal et extension absents. Les hooks demandent Git Bash |
+| Windows | Lancé depuis les sources, testé à la main : double-clic qui amène le terminal, perchoir, hooks. Demande Git Bash pour les hooks et les tests (`./test.ps1`). Le script PowerShell de `windows/` remplace l'extension. Indisponibles : pets sur l'écran de verrouillage, alerte de température. Le binaire exporté n'a pas été retesté |
 
 Ce qui est propre à Linux est isolé : lecture de `/proc` et `/sys`, `gdbus`, dossier `$XDG_RUNTIME_DIR`, lecteurs audio. Ailleurs, ces parties restent muettes.
 

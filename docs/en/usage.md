@@ -21,7 +21,7 @@ Each interactive Claude Code session open on the machine has its pet. It appears
 | Gesture | Effect |
 |---|---|
 | Click | The pet cheers |
-| Double-click | Brings the terminal of its session to the front and rings its tab. Needs the [GNOME extension](gnome-extension.md) |
+| Double-click | Brings the terminal of its session to the front and rings its tab. Needs the [GNOME extension](gnome-extension.md) on Linux. On Windows the PowerShell helper does it, and picks the right window even with several terminals |
 | Drag | Carry it. Let go with a swing and it flies and bounces off the edges and the floor. Dropped from high up, it opens an umbrella |
 | Hover | Its eyes follow the mouse. A card shows the folder, the session state and how long it has lasted, the tool in use, the number of subagents, the context tokens, the git status, the last prompt or the summary of the session, the focus time left |
 | Drop a file on it | Copies the path to the clipboard, ready to paste into the terminal |
@@ -101,7 +101,7 @@ Right-click, "Settings…". Each change applies and is saved at once. Settings a
 | Pets greet each other | yes | `pet/greetings` | Greetings and glares between pets that meet |
 | Tower of resting sessions | yes | `pet/tower` | Stacking of resting pets |
 | Headlamp at night | yes | `pet/headlamp` | |
-| Groove to the music | yes | `pet/groove` | Needs `gdbus` and a player that speaks MPRIS |
+| Groove to the music | yes | `pet/groove` | Linux: needs `gdbus` and a player that speaks MPRIS. Windows: any app that shows media controls |
 
 ### Sounds
 

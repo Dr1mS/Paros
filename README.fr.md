@@ -30,7 +30,7 @@ L'interface (bulles, menu, réglages) est en français ou en anglais. Elle suit 
 
 Quand un lecteur joue de la musique, les personnages bougent un peu : ils hochent la tête en rythme, penchent d'un côté puis de l'autre, et une petite note monte à côté de leur tête. Seulement debout, assis ou en réflexion : l'état de la session reste lisible.
 
-Paros interroge les lecteurs par MPRIS, que parlent Spotify, VLC et les navigateurs. Il faut `gdbus`, présent sur la plupart des bureaux Linux. Une vidéo en lecture dans un navigateur compte comme de la musique. Pour couper : « Réglages… », décocher « Bouger en musique ».
+Paros interroge les lecteurs par MPRIS, que parlent Spotify, VLC et les navigateurs. Sous Linux, il faut `gdbus`, présent sur la plupart des bureaux. Sous Windows, Paros interroge les sessions média du système (Spotify, navigateurs, VLC…). Une vidéo en lecture dans un navigateur compte comme de la musique. Pour couper : « Réglages… », décocher « Bouger en musique ».
 
 ## Démarrage rapide
 
@@ -80,7 +80,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 |---|---|
 | Linux, GNOME, Wayland | Testé |
 | Linux, autre bureau | Le cœur fonctionne. Les parties propres à GNOME restent muettes |
-| Windows | Un binaire est produit, jamais testé |
+| Windows | Testé depuis les sources (Godot 4.7, Git Bash pour les hooks, `./test.ps1` pour les tests). Un script PowerShell (`windows/`) remplace l'extension GNOME : focus du terminal, perchoir, plein écran, inactivité, musique, batterie. Pas de pets sur l'écran de verrouillage, pas d'alerte de température |
 
 ## Tests
 

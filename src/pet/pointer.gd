@@ -13,10 +13,25 @@ var _pressed_at := Vector2i.ZERO
 
 
 func _ready() -> void:
+	# Windows: the click shape is made by hand, see _process.
+	if OS.get_name() == "Windows":
+		return
 	get_window().mouse_entered.connect(_on_hover.bind(true))
 	get_window().mouse_exited.connect(_on_hover.bind(false))
 	get_window().files_dropped.connect(func(files: PackedStringArray) -> void:
 		Events.post(&"files_dropped", {"pet": pet, "files": files}))
+
+
+## Windows only. A window region would cut the drawing, so the window takes
+## every click and lets them through itself, except over the body (or while a
+## button is held: the drag must not lose the window).
+func _process(_delta: float) -> void:
+	if OS.get_name() != "Windows" or pet == null:
+		return
+	var inside := pet.hit_test(Vector2(DisplayServer.mouse_get_position()))
+	get_window().mouse_passthrough = not inside and not _pressed
+	if inside != pet.hovered and not _pressed:
+		_on_hover(inside)
 
 
 func _on_hover(inside: bool) -> void:

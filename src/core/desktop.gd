@@ -1,10 +1,111 @@
 class_name Desktop
-## Actions on the desktop around Paros. Linux only.
+## Actions on the desktop around Paros. Linux (GNOME extension, /proc) and
+## Windows (helper script, see windows/paros-desktop.ps1).
 ## Without a display (headless run, as in the tests) the actions do nothing.
 
+const HELPER_SCRIPT := "res://windows/paros-desktop.ps1"
+## The helper rewrites its files more often than this. Older: it is gone.
+const STALE_SECONDS := 30.0
 
 ## Programs started and not yet seen finished.
 static var _helpers: Array[int] = []
+## Windows: pid -> [parent pid, creation time], read from the helper.
+static var _processes := {}
+static var _processes_read_at := -1.0
+static var _processes_fresh := false
+static var _requests := 0
+
+
+## Folder of the files shared with the hook script and the desktop helper: the
+## runtime folder, else the temporary one (Windows has no XDG_RUNTIME_DIR).
+static func runtime_dir() -> String:
+	for variable: String in ["XDG_RUNTIME_DIR", "TEMP"]:
+		if OS.has_environment(variable):
+			return OS.get_environment(variable)
+	return "/tmp"
+
+
+static func home() -> String:
+	return OS.get_environment("USERPROFILE" if OS.get_name() == "Windows" else "HOME")
+
+
+## Windows: starts the helper that tells the desktop (focused window, idle time,
+## media, battery) and does what Windows allows only from inside (raising a
+## terminal). It ends when this app ends.
+static func start_helper() -> void:
+	if OS.get_name() != "Windows" or _is_headless():
+		return
+	var folder := runtime_dir().path_join("paros")
+	DirAccess.make_dir_recursive_absolute(folder.path_join("requests"))
+	# The script lives in the project, or in the exported package: a program cannot run it from there.
+	var script := folder.path_join("paros-desktop.ps1")
+	var file := FileAccess.open(script, FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string(FileAccess.get_file_as_string(HELPER_SCRIPT))
+	file.close()
+	start("powershell.exe", [
+		"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
+		"-ParentPid", str(OS.get_process_id()), "-Dir", folder,
+	])
+
+
+## Windows: what the helper last wrote about the desktop. Empty without helper.
+static func windows_state() -> Dictionary:
+	var path := runtime_dir().path_join("paros/desktop.json")
+	if Time.get_unix_time_from_system() - FileAccess.get_modified_time(path) >= STALE_SECONDS:
+		return {}
+	var text := FileAccess.get_file_as_string(path)
+	var state: Variant = JSON.parse_string(text) if not text.is_empty() else null
+	return state if state is Dictionary else {}
+
+
+## Windows: the processes known to the helper, pid (as text) -> [parent pid,
+## creation time as text]. Empty when the helper does not run (yet): callers
+## must then assume nothing. Read at most once a second.
+static func processes() -> Dictionary:
+	var now := Time.get_ticks_msec() / 1000.0
+	if _processes_read_at >= 0.0 and now - _processes_read_at < 1.0:
+		return _processes if _processes_fresh else {}
+	_processes_read_at = now
+	var path := runtime_dir().path_join("paros/processes.json")
+	# Not there yet while the helper starts: no error, nothing known.
+	var text := FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
+	var parsed: Variant = JSON.parse_string(text) if not text.is_empty() else null
+	_processes_fresh = parsed is Dictionary and Time.get_unix_time_from_system() - float(parsed.get("updated", 0)) < STALE_SECONDS
+	if _processes_fresh:
+		_processes = parsed.get("processes", {})
+	return _processes if _processes_fresh else {}
+
+
+## Does the process of a session still run? A crashed session leaves its
+## registry file behind. created: the "procStart" of that file, the creation
+## time of the process: the same number with another process means the pid was reused.
+static func is_process_running(pid: int, created := "") -> bool:
+	match OS.get_name():
+		"Linux":
+			return DirAccess.dir_exists_absolute("/proc/%d" % pid)
+		"Windows":
+			var known := processes()
+			if known.is_empty():
+				return true
+			var entry: Variant = known.get(str(pid))
+			return entry != null and (created.is_empty() or str(entry[1]) == "0" or str(entry[1]) == created)
+	return true
+
+
+## Asks the helper for something. One file per request, written then renamed
+## so that the helper never reads half of it.
+static func _request(fields: PackedStringArray) -> void:
+	var folder := runtime_dir().path_join("paros/requests")
+	_requests += 1
+	var name := "%d-%d" % [Time.get_ticks_usec(), _requests]
+	var file := FileAccess.open(folder.path_join(name + ".part"), FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string("\t".join(fields))
+	file.close()
+	DirAccess.rename_absolute(folder.path_join(name + ".part"), folder.path_join(name + ".txt"))
 
 
 ## Starts a program without waiting for it.
@@ -35,6 +136,10 @@ static func set_screen_power(on: bool) -> void:
 static func focus_terminal(pid: int, title: String) -> void:
 	if _is_headless():
 		return
+	if OS.get_name() == "Windows":
+		# The helper raises the window, and the tab when the terminal has tabs.
+		_request(["focus", str(pid), ",".join(PackedStringArray(Array(lineage(pid)).map(func(ancestor: int) -> String: return str(ancestor)))), title])
+		return
 	start("gdbus", [
 		"call", "--session", "--dest", "org.gnome.Shell", "--object-path", "/org/paros/Desktop",
 		"--method", "org.paros.Desktop.Activate", str(lineage(pid)), title,
@@ -62,7 +167,10 @@ static func screen_at(point: Vector2) -> Rect2:
 
 ## Rings the bell of the terminal that runs a process: its tab gets a mark.
 static func ring_terminal(pid: int) -> void:
-	if _is_headless():
+	if _is_headless() or pid <= 0:
+		return
+	if OS.get_name() == "Windows":
+		_request(["ring", str(pid)])
 		return
 	var terminal := FileAccess.open("/proc/%d/fd/0" % pid, FileAccess.WRITE)
 	if terminal:
@@ -82,6 +190,9 @@ static func _is_headless() -> bool:
 
 
 static func _parent(pid: int) -> int:
+	if OS.get_name() == "Windows":
+		var entry: Variant = processes().get(str(pid))
+		return int(entry[0]) if entry != null else 0
 	# "pid (name) state ppid ...": the name may hold spaces, so split after it.
 	var stat := read_kernel_file("/proc/%d/stat" % pid)
 	var after_name := stat.substr(stat.rfind(")") + 2).split(" ")

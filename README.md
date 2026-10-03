@@ -30,7 +30,7 @@ The interface (bubbles, menu, settings) is in English or in French. It follows t
 
 While a media player plays, the pets groove a little: they nod on the beat, lean from side to side, and a small note rises beside their head. Only while they stand, sit or think, so it never hides what a session is doing.
 
-Paros asks the players through MPRIS, which Spotify, VLC and the browsers speak. It needs `gdbus`, present on most Linux desktops. A video that plays in a browser counts as music. To turn it off: "Settings…", untick "Groove to the music".
+Paros asks the players through MPRIS, which Spotify, VLC and the browsers speak. On Linux it needs `gdbus`, present on most desktops. On Windows it asks the media sessions of the system (Spotify, browsers, VLC…). A video that plays in a browser counts as music. To turn it off: "Settings…", untick "Groove to the music".
 
 ## Quick start
 
@@ -80,7 +80,7 @@ To run without Godot, build a standalone binary with `./build.sh` (see [Developm
 |---|---|
 | Linux, GNOME, Wayland | Tested |
 | Linux, other desktops | The core works. GNOME-only parts stay silent |
-| Windows | A binary is built, never tested |
+| Windows | Tested from the sources (Godot 4.7, Git Bash for the hooks, `./test.ps1` for the tests). A PowerShell helper (`windows/`) replaces the GNOME extension: terminal focus, perch, full screen, inactivity, music, battery. No pets on the lock screen, no temperature alert |
 
 ## Tests
 

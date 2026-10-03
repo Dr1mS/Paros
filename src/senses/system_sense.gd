@@ -2,8 +2,8 @@ extends Node
 ## Posts: cpu_hot, battery_low {percent}, system_load {load}.
 ## load: runnable tasks per core over the last minute. 1: every core busy.
 ## cpu_hot: the processor is very hot, or every core has been busy for a minute.
-## Reads Linux sysfs. On other systems the files do not exist and this sense
-## stays silent.
+## Reads Linux sysfs, or on Windows the file of the desktop helper. On other
+## systems this sense stays silent.
 
 const POLL_SECONDS := 30.0
 const HOT_CELSIUS := 92.0
@@ -21,6 +21,9 @@ var _load := -1.0
 
 
 func _ready() -> void:
+	# Reads /proc and /sys, or the file of the Windows helper: nothing to sense elsewhere.
+	if not OS.get_name() in ["Linux", "Windows"]:
+		return
 	var timer := Timer.new()
 	timer.wait_time = POLL_SECONDS
 	timer.autostart = true
@@ -29,7 +32,27 @@ func _ready() -> void:
 	_poll.call_deferred()
 
 
+## Windows: no sysfs. The helper gives the load of the processor, averaged over
+## a minute, and the battery. No temperature is available without a driver.
+func _poll_windows() -> void:
+	var state := Desktop.windows_state()
+	if state.is_empty():
+		return
+	var load := snappedf(float(state.get("cpu", 0.0)), 0.1)
+	if load != _load:
+		_load = load
+		Events.post(&"system_load", {"load": load})
+	if load >= BUSY_LOAD:
+		_post(&"cpu_hot", {})
+	var battery: Variant = state.get("battery")
+	if battery is Dictionary and battery.get("discharging", false) and int(battery.get("percent", 100)) <= LOW_BATTERY_PERCENT:
+		_post(&"battery_low", {"percent": int(battery.percent)})
+
+
 func _poll() -> void:
+	if OS.get_name() == "Windows":
+		_poll_windows()
+		return
 	var hottest := 0.0
 	for zone in DirAccess.get_directories_at(THERMAL):
 		# Millidegrees.

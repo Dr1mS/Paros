@@ -2,7 +2,7 @@
 
 [Français](../fr/claude-code.md)
 
-Paros follows the interactive Claude Code sessions of the machine, for the current user. Subagents and background sessions get no pet. Cloud sessions (claude.ai/code) and sessions on another machine are not seen.
+Paros follows the interactive Claude Code sessions of the machine, for the current user. A subagent gets a small pet, near the pet of its session. Background sessions get no pet. Cloud sessions (claude.ai/code) and sessions on another machine are not seen.
 
 ## What a pet shows
 
@@ -32,8 +32,10 @@ Paros follows the interactive Claude Code sessions of the machine, for the curre
 | Permission request | Bubble with the message of Claude |
 | End of a turn you asked for | Jump, hearts, bubble "Task done!", two rising notes |
 | End of a turn another session asked for | Nods twice. No bubble, no sound |
-| Subagent started | A small pet runs off from the big one with a sheet of paper, and stays beside it. Four at most |
-| Tool started by a subagent | Small tag above its small pet: "Read · pet.gd". Cut when it is long. The caption of the big pet does not change |
+| Subagent started | A small pet, in the color of the session, runs off from the big one with a sheet of paper. See [Subagents](#subagents) |
+| Tool started by a subagent | Short caption above its small pet: "Read · pet.gd". One line, cut when it is long. The caption of the big pet does not change |
+| Tool failed in a subagent | Its small pet shakes. No sound |
+| Subagent done | Its small pet jumps, hearts, then runs back to the big one and is gone |
 | Tests passed | Jump, bubble "Green tests!" |
 | Tests failed | Shakes, bubble "Red tests", two falling notes |
 | Other failed command | Shakes, drop of sweat, two falling notes |
@@ -88,6 +90,22 @@ Read every 10 seconds (`git status --porcelain=v2 --branch` and `git diff --shor
 | Commit that leaves the working tree clean | Three strokes of a broom, then sunglasses for a minute |
 
 Being behind upstream is as of the last `git fetch`. Paros runs none.
+
+## Subagents
+
+Each running subagent has a small pet: a pet of its own, smaller, in its own window. It has the color of its session, a little lighter, and stays in a zone around the big pet. The zone grows with the number of small pets. When the big one walks away, the small ones run to catch up. A small pet hidden behind another one, or in front of the big one, steps aside in less than a second.
+
+A subagent tells little of its work: its tools, its failures, its end. So its small pet plays like a child:
+
+- it jumps in place;
+- it runs to another small pet and waves;
+- together they build a pyramid: one on another, or one on two, on three, on four. The one at the top jumps for joy, the pyramid stands a few seconds, then falls apart.
+
+It is picked up and thrown with the mouse like a big one. A double click goes to the terminal of its session. The hover card gives the name of the subagent (the description it was started with) and the tool it uses.
+
+Sixteen small pets at most per session, fewer if the setting says so. The subagents beyond get none: the card of the big pet counts them all.
+
+Everything is set in the settings, under "Subagents": see [Usage](usage.md#subagents).
 
 ## Where the information comes from
 
@@ -157,5 +175,7 @@ On screen, a pet shows the session name, the git branch and the tool in use. The
 - A message of a session without pet gets no flight: the letter is in the mailbox at once.
 - A collision is seen only when the other session wrote the file with `Edit` or `Write`. A file changed by a command (`sed`, a script, a formatter) has no known author: nothing is shown.
 - `Stop` also fires on `/clear` and on a compaction: the pet then jumps although no task is done.
-- The subagent count follows the `SubagentStart` and `SubagentStop` events, by subagent id: a `SubagentStop` with no known `SubagentStart` is ignored, Claude Code sends some at the end of each turn. A missed `SubagentStop` leaves a small pet until the session closes.
+- Subagents are followed through the `SubagentStart` and `SubagentStop` events, by id: a `SubagentStop` with no known `SubagentStart` is ignored, Claude Code sends some at the end of each turn. A missed `SubagentStop` leaves a small pet until the session closes.
+- The name of a subagent is the description of the `Agent` tool started just before it. Two subagents started at the same time may swap their names.
+- A subagent tells neither that it waits nor that it thinks: its small pet plays, whatever it does.
 - The script needs a POSIX shell. On Windows, Claude Code runs hooks with Git Bash.

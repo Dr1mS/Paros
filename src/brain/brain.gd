@@ -1,6 +1,8 @@
 extends Node
-## Turns sensed events into pet behavior. All rules live here.
+## Turns sensed events into pet behavior. All rules live here, but the games
+## of the small pets: see small_pets.gd.
 ## One pet per Claude Code session. With no session, one pet with no name.
+## One small pet per running subagent, beside the pet of its session.
 
 ## Key of the pet shown when no session exists.
 const NO_SESSION := ""
@@ -42,6 +44,7 @@ const TOWER_WIDTH := 200.0
 const RIVAL_SECONDS := 600.0
 ## Seconds of sunglasses after a commit that leaves nothing to commit.
 const COOL_SECONDS := 60.0
+const SmallPets := preload("res://src/brain/small_pets.gd")
 
 @export var pets: Pets
 
@@ -78,12 +81,15 @@ var _locked := false
 ## Unix time until which the screen is held on, once locked.
 var _screen_held_until := 0.0
 var _screen_held := false
+var _small := SmallPets.new()
 
 
 func _ready() -> void:
 	Events.sensed.connect(_on_sensed)
 	# A setting applies at once, not at the next event.
 	Settings.changed.connect(_refresh)
+	_small.pets = pets
+	add_child(_small)
 	pets.add(NO_SESSION)
 	var timer := Timer.new()
 	timer.wait_time = TICK_SECONDS
@@ -136,7 +142,7 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 		&"pointer_tap":
 			pet.cheer()
 		&"pointer_double":
-			_go_to_terminal(pet.key)
+			_go_to_terminal(_small.session_of(pet))
 		&"pointer_grab":
 			pet.grab()
 		&"pointer_drop":
@@ -146,7 +152,7 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			DisplayServer.clipboard_set(" ".join(Array(data.files).map(func(path: String) -> String: return "'%s'" % path)))
 			pet.say(tr("Path copied: paste it in the terminal"))
 		&"locate_requested":
-			Desktop.ring_terminal(_sessions.get(pet.key, {}).get("pid", 0))
+			Desktop.ring_terminal(_sessions.get(_small.session_of(pet), {}).get("pid", 0))
 		&"night":
 			_night = true
 		&"day":
@@ -158,14 +164,13 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 		&"session_closed":
 			if pet in _tower:
 				_fell_tower()
+			_small.drop(data.session)
 			pets.remove(data.session)
 			_sessions.erase(data.session)
 			if pets.keys().is_empty():
 				pets.add(NO_SESSION)
 		&"session_phase":
 			pet.urgent = false
-		&"session_subagents":
-			pet.minis = data.count
 		&"session_finished":
 			var session: Dictionary = _sessions[data.session]
 			# A turn started by another session is not something the user asked.
@@ -221,10 +226,16 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			pets.celebrate(pet)
 			Sound.play(&"success")
 		&"session_tool_failed":
-			pet.worry()
-			Sound.play(&"failure")
-			if data.kind == "test":
-				pet.say(tr("Red tests"))
+			var agent: String = data.get("agent", "")
+			var small := _small.find(data.session, agent)
+			if small:
+				# The failure of a subagent: its own small pet worries, without a sound.
+				small.worry()
+			elif agent.is_empty():
+				pet.worry()
+				Sound.play(&"failure")
+				if data.kind == "test":
+					pet.say(tr("Red tests"))
 		&"focus_started":
 			_tell_all(tr("Focus: %d min") % Settings.value("focus", "minutes"))
 		&"focus_finished":
@@ -310,9 +321,13 @@ func _refresh() -> void:
 		pet.avoid = _covered if Settings.value("desktop", "leave_fullscreen") else no_screen
 		var shown: bool = Settings.value("claude", "show_activity")
 		pet.caption = _activity(session) if phase == &"working" and shown else ""
-		var agents: Array = session.get("agents", []) if shown else []
-		pet.mini_captions = PackedStringArray(agents.map(_activity))
 		pet.show_card(_card(session) if pet.hovered else "")
+		var agents: Array = session.get("agents", [])
+		var texts := {}
+		for agent: Dictionary in agents:
+			texts[agent.id] = [_activity(agent) if Settings.value("subagents", "show_activity") else "", _agent_line(agent)]
+		_small.sync(key, agents)
+		_small.dress(key, texts)
 
 
 ## Look of the pet, from what is known of its session.
@@ -477,6 +492,12 @@ func _activity(session: Dictionary) -> String:
 	return tool if detail.is_empty() else "%s · %s" % [tool, detail]
 
 
+## A subagent on one line: its name, then the tool it uses.
+func _agent_line(agent: Dictionary) -> String:
+	var parts := [agent.get("name", ""), _activity(agent)].filter(func(part: String) -> bool: return not part.is_empty())
+	return ": ".join(parts)
+
+
 ## Text of the card shown while the mouse is over the pet.
 func _card(session: Dictionary) -> String:
 	var lines: PackedStringArray = []
@@ -500,8 +521,8 @@ func _card(session: Dictionary) -> String:
 		if session.get("count", 0) > 0:
 			lines.append(tr("Subagents running: %d") % session.count)
 			for agent: Dictionary in session.get("agents", []):
-				if not _activity(agent).is_empty():
-					lines.append("  " + _activity(agent))
+				if not _agent_line(agent).is_empty():
+					lines.append("  " + _agent_line(agent))
 		if session.get("servers", 0) > 0:
 			lines.append(tr("Servers running: %d") % session.servers)
 		if session.get("mail", 0) > 0:

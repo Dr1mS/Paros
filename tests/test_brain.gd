@@ -150,18 +150,105 @@ func test_activity_shows_while_working_only() -> void:
 	check_equal(pet.caption, "", "cleared at rest")
 
 
-func test_subagents_show_as_small_pets() -> void:
+## Tells the subagents that run in the session, and returns their small pets,
+## standing still.
+func run_agents(session: String, agents: Array) -> Array:
+	Events.post(&"session_subagents", {"session": session, "count": agents.size(), "agents": agents})
+	var small: Array = brain._small.pets_of(session)
+	for pet: Pet in small:
+		freeze(pet)
+	return small
+
+
+func agent(id: String, tool := "", detail := "", name := "") -> Dictionary:
+	return {"id": id, "name": name, "tool": tool, "detail": detail}
+
+
+func test_each_subagent_has_a_small_pet() -> void:
+	var pet := open("s1", "Alpha", "red")
+	var small := run_agents("s1", [agent("a1", "Read", "pet.gd", "Find the bug"), agent("a2")])
+	check_equal(small.size(), 2, "two small pets")
+	check_equal(pets.keys(), ["s1"], "not counted with the pets of the sessions")
+	check_equal(small[0].stature, Settings.value("subagents", "size"), "small")
+	check_equal(small[0].color, pet.color.lightened(0.15), "in the color of the session")
+	check_equal([small[0].caption, small[1].caption], ["Read · pet.gd", ""], "each one shows its own tool")
+	check_equal(pet.caption, "", "not the pet of the session")
+	check_equal(small[0].home_x, pet.feet().x, "stays around the pet of the session")
+	small[0].hovered = true
+	run_agents("s1", [agent("a1", "Read", "pet.gd", "Find the bug"), agent("a2")])
+	check_equal(small[0].get_node("../Bubble").card, "Find the bug: Read · pet.gd", "card of a small pet")
+	Settings.set_value("subagents", "show_activity", false)
+	check_equal(small[0].caption, "", "no caption when the setting says so")
+	Settings.set_value("subagents", "show_activity", true)
+	Settings.set_value("subagents", "size", 0.6)
+	check_equal(small[0].stature, 0.6, "the setting resizes them at once")
+	Settings.set_value("subagents", "size", 0.4)
+
+	Events.post(&"session_tool_failed", {"session": "s1", "tool": "Bash", "detail": "", "kind": "", "agent": "a2"})
+	check_equal(small[1].state, Pet.State.WORRY, "the small pet of the subagent that failed worries")
+	check_equal(pet.state, Pet.State.IDLE, "not the pet of the session")
+
+
+func test_small_pet_leaves_when_its_subagent_stops() -> void:
 	var pet := open("s1")
-	Events.post(&"session_subagents", {"session": "s1", "count": 3})
-	check_equal(pet.minis, 3, "three small pets")
-	var agents := [{"tool": "Read", "detail": "pet.gd"}, {"tool": "", "detail": ""}]
-	Events.post(&"session_subagents", {"session": "s1", "count": 2, "agents": agents})
-	check_equal(Array(pet.mini_captions), ["Read · pet.gd", ""], "each small pet has its own tag")
-	check_equal(pet.caption, "", "not the caption of the big pet")
-	Settings.set_value("claude", "show_activity", false)
-	Events.post(&"session_subagents", {"session": "s1", "count": 2, "agents": agents})
-	check_equal(pet.mini_captions.size(), 0, "no tag when the tool in use is not shown")
-	Settings.set_value("claude", "show_activity", true)
+	var small := run_agents("s1", [agent("a1"), agent("a2")])
+	var first: Pet = small[0]
+	first._window_pos.x += 200.0
+	run_agents("s1", [agent("a2")])
+	check_equal(brain._small.pets_of("s1"), [small[1]], "one left")
+	check_equal(first.state, Pet.State.CHEER, "the other one cheers")
+	step(first, Pet.TIMED[Pet.State.CHEER] + 0.1)
+	brain._small._tick()
+	check_equal(first.state, Pet.State.WALK, "then runs back")
+	step(first, 5.0)
+	check_near(first.feet().x, pet.feet().x, 1.0, "to the pet of the session")
+	brain._small._tick()
+	check_equal(pets.find("s1/a1"), null, "and is gone")
+
+	Events.post(&"session_closed", {"session": "s1"})
+	check_equal(pets.find("s1/a2"), null, "a closed session takes its small pets along")
+	check_equal(pets.keys(), [""], "the unnamed pet is back")
+
+
+func test_small_pets_are_sixteen_at_most() -> void:
+	open("s1")
+	var agents := range(20).map(func(i: int) -> Dictionary: return agent("a%d" % i))
+	check_equal(run_agents("s1", agents).size(), 16, "sixteen small pets for twenty subagents")
+	pets.find("s1").hovered = true
+	brain._refresh()
+	check("Subagents running: 20" in pets.find("s1").get_node("../Bubble").card, "the card counts them all")
+	Settings.set_value("subagents", "max", 3)
+	check_equal(brain._small.pets_of("s1").size(), 3, "fewer when the setting says so")
+	Settings.set_value("subagents", "show", false)
+	check_equal(brain._small.pets_of("s1").size(), 0, "none when they are turned off")
+	Settings.set_value("subagents", "show", true)
+	Settings.set_value("subagents", "max", 16)
+	check_equal(brain._small.pets_of("s1").size(), 16, "and back")
+
+
+func test_small_pets_build_a_pyramid() -> void:
+	open("s1")
+	var small := run_agents("s1", [agent("a1"), agent("a2"), agent("a3")])
+	for i in 3:
+		small[i]._window_pos.x += i * 90.0
+	brain._small._start_pyramid("s1")
+	var floor_y: float = small[0].feet().y
+	for i in 120:
+		brain._small._build("s1")
+		for pet: Pet in small:
+			step(pet, 0.1)
+	var members: Array = brain._small._pyramids["s1"].members
+	check_equal([members[0].state, members[1].state], [Pet.State.SIT, Pet.State.SIT], "two sit side by side")
+	check(members[2].is_perched(), "the third one is on them")
+	check_near(members[2].feet().y, floor_y - 72.0 * Settings.value("subagents", "size"), 1.0, "one small pet high")
+	check_near(members[2].feet().x, (members[0].feet().x + members[1].feet().x) / 2.0, 12.0, "between the two")
+
+	brain._small._pyramids["s1"].until = 0.0
+	brain._small._build("s1")
+	for pet: Pet in small:
+		step(pet, 2.0)
+	check(not members[2].is_perched() and not members[0].rooted, "then it falls apart")
+	check_near(members[2].feet().y, floor_y, 1.0, "back on the floor")
 
 
 func test_reactions_to_results() -> void:

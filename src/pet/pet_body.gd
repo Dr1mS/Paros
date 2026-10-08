@@ -155,23 +155,15 @@ const CAPTION_WIDTH := 280.0
 const CAPTION_MAX_LENGTH := 110
 ## The head smokes from this fullness on.
 const SMOKE_FROM := 0.75
-## Small pets: size against the main one, and feet positions from GROUND.
-const MINI_SCALE := 0.28
-const MINI_SPOTS: Array[Vector2] = [Vector2(-120, 0), Vector2(120, 0), Vector2(-120, -46), Vector2(120, -46)]
-## Tag of a small pet: font size, widest text in pixels, and distance from
-## the middle of the big pet to its outer edge. Longer texts are cut.
-const MINI_FONT_SIZE := 10
-const MINI_TAG_WIDTH := 92.0
-const MINI_TAG_REACH := 148.0
-## Seconds a new small pet takes to run from the big one to its spot.
-const MINI_RUN_SECONDS := 0.7
+## Widest caption of a small pet, in pixels: one line, cut when longer.
+const SMALL_CAPTION_WIDTH := 110.0
+## Sheet of paper held above the head.
+const HELD_SHEET := Rect2(-3, -15.5, 6, 4)
 
 var _time := 0.0
 var _blink_in := 3.0
 ## What the last picture showed of the pet. A change draws at once.
 var _shown := 0
-## Time of arrival of each small pet.
-var _mini_born: Array[float] = []
 
 @onready var _pet: Pet = get_parent()
 @onready var _font := ThemeDB.fallback_font
@@ -199,16 +191,13 @@ func _process(_delta: float) -> void:
 	_time = now
 	if _blink_in < -BLINK_SECONDS:
 		_blink_in = randf_range(2.0, 5.0)
-	while _mini_born.size() < _pet.minis:
-		_mini_born.append(_time)
-	_mini_born.resize(mini(_pet.minis, _mini_born.size()))
 	queue_redraw()
 
 
 ## Everything of the pet that the picture depends on, time aside.
 func _look() -> int:
 	return [
-		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.minis, _pet.mini_captions,
+		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.sheet, _pet.stature,
 		_pet.urgent, _pet.hovered, _pet.fullness >= SMOKE_FROM, _pet.baggage, _pet.hard_hat, _pet.lost,
 		_pet.tapping, _pet.umbrella, _pet.meditating, _pet.headlamp, _pet.cool, _pet.discreet,
 		_pet.rooted, _pet.is_perched(), _pet.grooving, _pet.mail, _pet.mailbox_side(), _pet.serving,
@@ -272,6 +261,8 @@ func _draw() -> void:
 			rise = -absf(sin(_pet.state_time / Pet.TIMED[state] * TAU)) * 5.0
 		Pet.State.CLIMB, Pet.State.CARRIED, Pet.State.FALL:
 			arm_raise = [2.0, 2.0]
+	if _pet.sheet:
+		arm_raise = [2.0, 2.0]
 	if seated:
 		# On the ground: the legs fold under the body.
 		rise = (sin(_time * 1.2) * 0.5 + 0.5) * 2.0 - LEG_HEIGHT * UNIT
@@ -291,6 +282,9 @@ func _draw() -> void:
 	var stacked := _pet.rooted and _pet.is_perched()
 	if Settings.value("pet", "show_name") and not stacked and not _pet.discreet:
 		_draw_tag(_pet.label.left(LABEL_MAX_LENGTH), GROUND + Vector2(0, 7), _pet.color)
+	# The body of a small pet shrinks toward its feet. The texts keep their size.
+	var small := _pet.stature < 1.0
+	draw_set_transform(GROUND * (1.0 - _pet.stature), 0.0, Vector2.ONE * _pet.stature)
 	if not airborne and not stacked:
 		var width := 13.0 * UNIT * (1.0 - hop * 0.015)
 		draw_rect(Rect2(GROUND + Vector2(-width / 2.0, 0), Vector2(width, 4)), SHADOW)
@@ -298,8 +292,6 @@ func _draw() -> void:
 		_blocks(SIGN, Vector2.ZERO, false)
 	if _pet.mail > 0 and not airborne and not stacked:
 		_draw_mailbox()
-	for i in mini(_mini_born.size(), MINI_SPOTS.size()):
-		_draw_mini(i)
 
 	if _pet.headlamp and state != Pet.State.SLEEP and not airborne:
 		var beam := PackedVector2Array()
@@ -338,6 +330,8 @@ func _draw() -> void:
 		_draw_hourglass()
 	if state == Pet.State.READ:
 		_blocks(SHEET, body_offset, true)
+	if _pet.sheet:
+		_block(HELD_SHEET, body_offset, PAPER)
 	if _pet.lost and still:
 		# A map held out in front.
 		_blocks([[Rect2(6.5, -8.5, 3, 2.4), PAPER], [Rect2(7, -7.8, 2, 0.4), Color("#46a758")], [Rect2(7.6, -7.1, 1.2, 0.4), HEART]], body_offset, true)
@@ -352,8 +346,6 @@ func _draw() -> void:
 			# Three dots that fill up in a loop.
 			for i in int(_time * 2.5) % 4:
 				_block(Rect2(-2.4 + i * 2.0, -12.5, 0.8, 0.8), over_head, _pet.color)
-			if not _pet.discreet:
-				_draw_caption(_pet.caption.left(CAPTION_MAX_LENGTH), body_top - Vector2(0, 4.2 * UNIT))
 		Pet.State.ALERT:
 			if fmod(_time, 0.6) < 0.4:
 				_block(Rect2(-0.5, -15.5, 1, 2.5), over_head, HEART)
@@ -374,10 +366,14 @@ func _draw() -> void:
 		_draw_smoke(body_top)
 	if grooving:
 		_draw_note(body_top)
-	# Last: the tags of the small pets lie over the big one.
-	if not _pet.discreet:
-		for i in mini(mini(_mini_born.size(), MINI_SPOTS.size()), _pet.mini_captions.size()):
-			_draw_mini_tag(i)
+	draw_set_transform(Vector2.ZERO)
+	if _pet.discreet:
+		return
+	if small:
+		# A small pet always works: its caption shows whatever it does.
+		_draw_caption(_cut(_pet.caption, SMALL_CAPTION_WIDTH), _pet.body_point(body_top) - Vector2(0, 6))
+	elif state == Pet.State.THINK:
+		_draw_caption(_pet.caption.left(CAPTION_MAX_LENGTH), body_top - Vector2(0, 4.2 * UNIT))
 
 
 func _draw_legs(state: Pet.State, body_offset: Vector2, hop: float, airborne: bool) -> void:
@@ -422,8 +418,8 @@ func _draw_eyes(state: Pet.State, body_offset: Vector2, meditating: bool) -> voi
 			wide = true
 	if _pet.hovered and not closed:
 		# Follows the mouse while it is over the pet.
-		var head := GROUND + body_offset + Vector2(0, -7.0 * UNIT)
-		look = ((get_local_mouse_position() - head) / (UNIT * 3.0)).limit_length(1.0)
+		var head := _pet.body_point(GROUND + body_offset + Vector2(0, -7.0 * UNIT))
+		look = ((get_local_mouse_position() - head) / (UNIT * 3.0 * _pet.stature)).limit_length(1.0)
 	var color := EYE
 	if _pet.serving:
 		color = EYE.lerp(SIGNAL, sin(_time * TAU / SIGNAL_SECONDS) * 0.5 + 0.5)
@@ -571,45 +567,13 @@ func _draw_pixels(rows: PackedStringArray, pixel: float, center: Vector2, color:
 				draw_rect(Rect2(center - size / 2.0 + Vector2(column, row) * pixel, Vector2.ONE * pixel), color)
 
 
-## Small copy of the mascot, one per running subagent. A new one runs from the
-## big pet to its spot, with the sheet of paper it was handed.
-func _draw_mini(index: int) -> void:
-	var arrived := minf((_time - _mini_born[index]) / MINI_RUN_SECONDS, 1.0)
-	var spot := MINI_SPOTS[index] * arrived
-	var pace := 5.0 if arrived >= 1.0 else 16.0
-	var bob := Vector2(0, -absf(sin(_time * pace + index * 1.7)) * 3.0 / MINI_SCALE)
-	draw_set_transform(GROUND + spot, 0.0, Vector2.ONE * MINI_SCALE)
-	var shapes: Array[Rect2] = [BODY, ARMS[0], ARMS[1]]
-	for column in LEG_COLUMNS:
-		shapes.append(Rect2(column, -LEG_HEIGHT, 1, LEG_HEIGHT))
-	for shape in shapes:
-		draw_rect(Rect2(shape.position * UNIT + bob, shape.size * UNIT), _pet.color.lightened(0.15))
-	for eye in EYES:
-		draw_rect(Rect2(eye.position * UNIT + bob, eye.size * UNIT), EYE)
-	if arrived < 1.0:
-		draw_rect(Rect2(Vector2(-3, -15) * UNIT + bob, Vector2(6, 4) * UNIT), PAPER)
-	draw_set_transform(Vector2.ZERO)
-
-
-## What a small pet does, on a tag above it. The tag grows from the outer
-## side toward the big pet. Shown once the small pet stands on its spot.
-func _draw_mini_tag(index: int) -> void:
-	var text := _pet.mini_captions[index]
-	if text.is_empty() or _time - _mini_born[index] < MINI_RUN_SECONDS:
-		return
+## The text, cut with "…" when wider than the given pixels at the tag size.
+func _cut(text: String, width: float) -> String:
 	var cut := text
-	while _font.get_string_size(cut, HORIZONTAL_ALIGNMENT_LEFT, -1, MINI_FONT_SIZE).x > MINI_TAG_WIDTH and text.length() > 1:
+	while text.length() > 1 and _font.get_string_size(cut, HORIZONTAL_ALIGNMENT_LEFT, -1, TAG_FONT_SIZE).x > width:
 		text = text.left(-1)
 		cut = text.strip_edges() + "…"
-	var text_size := _font.get_string_size(cut, HORIZONTAL_ALIGNMENT_LEFT, -1, MINI_FONT_SIZE)
-	var spot := MINI_SPOTS[index]
-	var size := text_size + Vector2(10, 2)
-	var left := -MINI_TAG_REACH if spot.x < 0.0 else MINI_TAG_REACH - size.x
-	var head := (BODY.position.y - LEG_HEIGHT) * UNIT * MINI_SCALE
-	var box := Rect2(GROUND + Vector2(left, spot.y + head - 5.0 - size.y), size)
-	draw_rect(box, EYE)
-	draw_rect(Rect2(box.position, Vector2(4, box.size.y)), _pet.color.lightened(0.15))
-	draw_string(_font, box.position + Vector2(7, 1 + _font.get_ascent(MINI_FONT_SIZE)), cut, HORIZONTAL_ALIGNMENT_LEFT, -1, MINI_FONT_SIZE, PAPER)
+	return cut
 
 
 ## Dark tag with light text on several lines, standing on its bottom middle point.

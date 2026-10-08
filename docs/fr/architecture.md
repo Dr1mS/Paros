@@ -40,7 +40,8 @@ Ajouter une fonctionnalité revient presque toujours à : un sens qui poste un �
 | `idle_sense.gd` | Inactivité de l'utilisateur, demandée à GNOME |
 | `music_sense.gd` | Lecteurs multimédias en lecture, demandés à MPRIS |
 | **`src/brain/`** | |
-| `brain.gd` | Toutes les règles |
+| `brain.gd` | Toutes les règles, sauf les jeux des petits personnages |
+| `small_pets.gd` | Les petits personnages des sous-agents : création, zone autour du grand, jeux, pyramide, départ |
 | **`src/pet/`** | |
 | `pets.gd` | Crée et supprime les personnages. Gère ce qui se fait à deux, les lettres, et la fréquence d'images |
 | `pet_window.tscn` | Fenêtre d'un personnage : `Pet`, `Body`, `Bubble`, `Pointer`, `ContextMenu` |
@@ -118,7 +119,7 @@ Tous portent `session`, l'identifiant de la session.
 | `session_phase` | `phase` (`idle`, `working`, `waiting`), `since` | Fixe le souhait |
 | `session_activity` | `tool`, `detail` | Légende |
 | `session_quiet` | `level` (0, 1, 2) | Tape du pied, médite |
-| `session_subagents` | `count`, `agents` (`tool` et `detail` de chacun) | Petits personnages, et leur étiquette |
+| `session_subagents` | `count`, `agents` (`id`, `name`, `tool` et `detail` de chacun) | Un petit personnage par sous-agent, avec sa légende |
 | `session_background` | `background`, `servers` | Sablier tant que le tour est fini et qu'une tâche en arrière-plan tourne. Pas de « Tâche finie ! ». Yeux verts tant qu'un serveur tourne |
 | `session_message_sent` | `to`, le nom d'une session | Le personnage lance une lettre au personnage de cette session. Son tour fini, il attend la réponse tant que cette session travaille |
 | `session_mail` | `mail` | Boîte aux lettres tant que des messages d'autres sessions attendent d'être lus. Lecture de la lettre quand l'une sort |
@@ -127,7 +128,7 @@ Tous portent `session`, l'identifiant de la session.
 | `session_needs_you` | `detail` | Bulle |
 | `session_finished` | | Saut, bulle, son |
 | `session_tests_passed` | | Saut, bulle, son |
-| `session_tool_failed` | `tool`, `detail`, `kind` | Tremblement, son |
+| `session_tool_failed` | `tool`, `detail`, `kind`, `agent` | Tremblement, son. Dans un sous-agent : son petit personnage tremble, sans son |
 
 ### Git — `git_sense.gd`
 

@@ -23,7 +23,7 @@ Chaque session Claude Code interactive ouverte sur la machine a son personnage. 
 | Clic gauche | Le personnage saute de joie |
 | Double-clic | Met le terminal de sa session au premier plan et fait sonner son onglet. Demande l'[extension GNOME](extension-gnome.md) sous Linux. Sous Windows, le script PowerShell s'en charge et choisit la bonne fenêtre même avec plusieurs terminaux |
 | Glisser | Le porter. Lâché avec élan, il vole et rebondit sur les bords et le sol. Lâché de haut, il ouvre un parapluie |
-| Survol | Ses yeux suivent la souris. Une fiche affiche le dossier, l'état de la session et sa durée, l'outil en cours, le nombre de sous-agents et l'outil de chacun, les tokens de contexte, l'état git, le dernier prompt ou le résumé de la session, le temps de focus restant |
+| Survol | Ses yeux suivent la souris. Une fiche affiche le dossier, l'état de la session et sa durée, l'outil en cours, le nombre de sous-agents avec le nom et l'outil de chacun, les tokens de contexte, l'état git, le dernier prompt ou le résumé de la session, le temps de focus restant |
 | Déposer un fichier dessus | Copie le chemin dans le presse-papiers, prêt à coller dans le terminal |
 | Clic droit | Menu |
 
@@ -121,11 +121,22 @@ Clic droit, « Réglages… ». Chaque changement s'applique et s'enregistre tou
 
 | Réglage | Défaut | Clé | Effet |
 |---|---|---|---|
-| Afficher l'outil en cours | oui | `claude/show_activity` | Légende au-dessus de la tête pendant le travail, étiquette des petits personnages |
+| Afficher l'outil en cours | oui | `claude/show_activity` | Légende au-dessus de la tête pendant le travail |
 | Insister après une attente de | 2 min | `claude/nag_minutes` | Délai avant le rappel d'une session qui attend |
 | Toquer quand le terminal n'a pas le focus | oui | `claude/knock` | Toc-toc au bord de l'écran |
 | Contexte du modèle, en milliers de tokens | 1000 k | `claude/context_window_k` | Taille de la fenêtre de contexte du modèle. Sert à savoir quand la tête fume |
 | Suivre l'état git des dossiers | oui | `git/enabled` | Lance `git` toutes les 10 secondes dans le dossier de chaque session |
+
+### Sous-agents
+
+| Réglage | Défaut | Clé | Effet |
+|---|---|---|---|
+| Un petit personnage par sous-agent | oui | `subagents/show` | Sans lui, les sous-agents ne sont que comptés dans la fiche |
+| Petits personnages par session, au plus | 16 | `subagents/max` | De 1 à 16 |
+| Taille des petits personnages | 0,4 × | `subagents/size` | Taille contre un grand personnage, de 0,2 à 0,8 |
+| Afficher l'outil de chaque sous-agent | oui | `subagents/show_activity` | Légende courte au-dessus du petit personnage |
+| Les petits personnages sautent et courent l'un vers l'autre | oui | `subagents/games` | Sans lui, ils marchent et s'assoient seulement |
+| Les petits personnages font des pyramides | oui | `subagents/pyramid` | |
 
 ### Bureau (extension GNOME)
 

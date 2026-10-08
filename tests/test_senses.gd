@@ -116,9 +116,12 @@ func test_hook_lines_become_events() -> void:
 		["PreToolUse", "", "Edit", "pet.gd", "", ""],
 		["PostToolUse", "", "Bash", "Run tests", "test", ""],
 		["PostToolUseFailure", "", "Bash", "Build", "", ""],
+		["PreToolUse", "", "Agent", "Find the bug", "", ""],
+		["PreToolUse", "", "Edit", "pet.gd", "", ""],
 		["SubagentStart", "", "", "", "", "a1"],
 		["SubagentStart", "", "", "", "", "a2"],
 		["PreToolUse", "", "Read", "brain.gd", "", "a2"],
+		["PostToolUseFailure", "", "Bash", "Build", "", "a2"],
 		["PreToolUse", "", "Grep", "lost", "", "a9"],
 		["SubagentStop", "", "", "", "", "a1"],
 		["SubagentStop", "", "", "", "", ""],
@@ -134,8 +137,9 @@ func test_hook_lines_become_events() -> void:
 	check_equal(last_event(&"session_activity").get("detail"), "pet.gd", "tool in use, unknown session and subagents ignored")
 	check(&"session_tests_passed" in event_names(), "green tests")
 	check_equal(last_event(&"session_tool_failed").get("tool"), "Bash", "failed command")
+	check_equal(last_event(&"session_tool_failed").get("agent"), "a2", "the last one failed in a subagent")
 	check_equal(last_event(&"session_subagents").get("count"), 1, "two started, one stopped, the stops of unknown agents ignored")
-	check_equal(last_event(&"session_subagents").get("agents"), [{"tool": "Read", "detail": "brain.gd"}], "tool of the subagent left, none for an unknown one")
+	check_equal(last_event(&"session_subagents").get("agents"), [{"id": "a2", "name": "", "tool": "Read", "detail": "brain.gd"}], "tool of the subagent left, none for an unknown one")
 	check_equal(last_event(&"session_needs_you").get("detail"), "Claude needs your permission to use Bash", "question")
 	check_equal(last_event(&"session_phase").get("phase"), &"waiting", "waiting although the registry says busy")
 

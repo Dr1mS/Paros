@@ -40,7 +40,7 @@ Les réglages, le fichier de lancement au démarrage et le dossier d'exécution 
 |---|---|
 | `test_pet.gd` | Machine à états d'un personnage : souhaits, états courts, vol et rebonds, parapluie, courses, perchoir, mode discret |
 | `test_pets.gd` | Rencontres, rivalité, tape dans la main, lettres, fréquence d'images |
-| `test_brain.gd` | Règles : une session par personnage, souhaits, sommeil, verrouillage, git, contexte, toc-toc, tour, fiche |
+| `test_brain.gd` | Règles : une session par personnage, souhaits, sommeil, verrouillage, git, contexte, toc-toc, tour, fiche, petits personnages des sous-agents et leur pyramide |
 | `test_senses.gd` | Lecture du registre et des transcripts Claude Code, journal des hooks, sorties de git, fichier du bureau, script de hook |
 | `test_core.gd` | Réglages, minuteur de focus, synthèse des sons et fichier WAV, bulle, lancement au démarrage |
 

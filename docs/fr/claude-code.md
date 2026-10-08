@@ -2,7 +2,7 @@
 
 [English](../en/claude-code.md)
 
-Paros suit les sessions Claude Code interactives de la machine, pour l'utilisateur courant. Les sous-agents et les sessions en arrière-plan n'ont pas de personnage. Les sessions cloud (claude.ai/code) et celles d'une autre machine ne sont pas vues.
+Paros suit les sessions Claude Code interactives de la machine, pour l'utilisateur courant. Un sous-agent a un petit personnage, près de celui de sa session. Les sessions en arrière-plan n'ont pas de personnage. Les sessions cloud (claude.ai/code) et celles d'une autre machine ne sont pas vues.
 
 ## Ce que montre un personnage
 
@@ -32,8 +32,10 @@ Paros suit les sessions Claude Code interactives de la machine, pour l'utilisate
 | Demande de permission | Bulle avec le message de Claude |
 | Fin d'un tour que tu as demandé | Saut, cœurs, bulle « Tâche finie ! », deux notes montantes |
 | Fin d'un tour demandé par une autre session | Deux hochements de tête. Ni bulle, ni son |
-| Sous-agent lancé | Un petit personnage part du grand en courant, une feuille à la main, et reste à côté. Quatre au plus |
-| Outil lancé par un sous-agent | Petite étiquette au-dessus de son petit personnage : « Read · pet.gd ». Coupée si elle est longue. La légende du grand personnage ne change pas |
+| Sous-agent lancé | Un petit personnage, de la couleur de la session, part du grand en courant, une feuille à la main. Voir [Sous-agents](#sous-agents) |
+| Outil lancé par un sous-agent | Légende courte au-dessus de son petit personnage : « Read · pet.gd ». Une ligne, coupée si elle est longue. La légende du grand personnage ne change pas |
+| Outil échoué dans un sous-agent | Son petit personnage tremble. Pas de son |
+| Sous-agent fini | Son petit personnage saute, cœurs, puis court rejoindre le grand et disparaît |
 | Tests réussis | Saut, bulle « Tests verts ! » |
 | Tests échoués | Tremble, bulle « Tests rouges », deux notes descendantes |
 | Autre commande échouée | Tremble, goutte de sueur, deux notes descendantes |
@@ -88,6 +90,22 @@ Lu toutes les 10 secondes (`git status --porcelain=v2 --branch` et `git diff --s
 | Commit qui laisse l'arbre de travail propre | Trois coups de balai, puis lunettes de soleil pendant une minute |
 
 Le retard sur la branche amont date du dernier `git fetch`. Paros n'en lance pas.
+
+## Sous-agents
+
+Chaque sous-agent en cours a un petit personnage : un personnage à part entière, en plus petit, dans sa propre fenêtre. Il a la couleur de sa session, un peu plus claire, et reste dans une zone autour du grand personnage. La zone grandit avec le nombre de petits personnages. Quand le grand s'éloigne, les petits le rattrapent en courant. Un petit personnage caché derrière un autre, ou devant le grand, s'écarte en moins d'une seconde.
+
+Un sous-agent dit peu de choses de son travail : ses outils, ses échecs, sa fin. Alors son petit personnage joue comme un enfant :
+
+- il saute sur place ;
+- il court vers un autre petit personnage et lui fait signe ;
+- à plusieurs, ils montent une pyramide : deux l'un sur l'autre, ou un sur deux, sur trois, sur quatre. Celui du haut saute de joie, la pyramide tient quelques secondes puis s'écroule.
+
+Il se prend et se lance à la souris comme un grand. Un double-clic va au terminal de sa session. La fiche au survol donne le nom du sous-agent (la description donnée à son lancement) et son outil en cours.
+
+Seize petits personnages au plus par session, moins selon le réglage. Les sous-agents suivants n'en ont pas : la fiche du grand personnage les compte tous.
+
+Tout se règle dans les réglages, partie « Sous-agents » : voir [Utilisation](utilisation.md#sous-agents).
 
 ## D'où viennent les informations
 
@@ -157,5 +175,7 @@ Le fichier `$XDG_RUNTIME_DIR/paros/claude-events.log` contient en clair les noms
 - Une collision n'est vue que si l'autre session a écrit le fichier avec `Edit` ou `Write`. Un fichier modifié par une commande (`sed`, un script, un formateur) n'a pas d'auteur connu : rien n'est montré.
 - Une tâche en arrière-plan sans avis de fin au bout de 30 minutes est oubliée, sauf si le registre dit qu'une commande tourne encore : le personnage retourne au repos.
 - `Stop` se déclenche aussi sur `/clear` et sur un compactage : le personnage saute alors sans qu'une tâche soit finie.
-- Le compte des sous-agents suit les événements `SubagentStart` et `SubagentStop`, par identifiant de sous-agent : un `SubagentStop` sans `SubagentStart` connu est ignoré, Claude Code en envoie à chaque fin de tour. Un `SubagentStop` manqué laisse un petit personnage jusqu'à la fermeture de la session.
+- Les sous-agents sont suivis par les événements `SubagentStart` et `SubagentStop`, par identifiant : un `SubagentStop` sans `SubagentStart` connu est ignoré, Claude Code en envoie à chaque fin de tour. Un `SubagentStop` manqué laisse un petit personnage jusqu'à la fermeture de la session.
+- Le nom d'un sous-agent est la description de l'outil `Agent` lancé juste avant lui. Deux sous-agents lancés en même temps peuvent échanger leurs noms.
+- Un sous-agent ne dit ni qu'il attend ni qu'il réfléchit : son petit personnage joue, quoi qu'il fasse.
 - Le script demande un shell POSIX. Sous Windows, Claude Code lance les hooks avec Git Bash.

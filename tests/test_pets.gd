@@ -177,3 +177,38 @@ func test_letter_to_a_removed_pet_is_dropped() -> void:
 	check(not pets._letters[0].is_flying(), "flight ended")
 	fly(Letter.SECONDS_RANGE.y + 0.1)
 	check(&"letter_landed" not in event_names(), "no landing")
+
+
+func test_small_pets_are_apart() -> void:
+	var small := pets.add("a/1", true)
+	freeze(small)
+	check_equal(pets.keys(), ["a", "b"], "not listed with the pets")
+	check_equal(pets.find("a/1"), small, "found by key")
+	pets.remove("b")
+	small._window_pos.x = a._window_pos.x + 20.0
+	pets._process(0.016)
+	check_equal([a.state, small.state], [Pet.State.IDLE, Pet.State.IDLE], "no greeting with a small pet")
+	pets.remove("a/1")
+	check_equal(pets.find("a/1"), null, "gone")
+
+
+func test_small_pet_makes_way_at_once() -> void:
+	pets.remove("b")
+	var small := pets.add("a/1", true)
+	var other := pets.add("a/2", true)
+	for pet: Pet in [small, other]:
+		freeze(pet)
+	small._window_pos.x = a._window_pos.x + 60.0
+	other._window_pos.x = a._window_pos.x + 600.0
+	pets._spread([a, small, other])
+	pets._crowded[[a.get_instance_id(), small.get_instance_id()]] = pets._now() - Pets.SMALL_CROWD_SECONDS
+	pets._spread([a, small, other])
+	check_equal([a.state, small.state], [Pet.State.IDLE, Pet.State.WALK], "the small one steps aside, sooner than a normal pet")
+	step(small, 5.0)
+	check(absf(small.feet().x - a.feet().x) > 100.0, "clear of the normal pet")
+	stand(small)
+	other._window_pos.x = small._window_pos.x + 50.0
+	pets._spread([a, small, other])
+	pets._crowded[[small.get_instance_id(), other.get_instance_id()]] = pets._now() - Pets.SMALL_CROWD_SECONDS
+	pets._spread([a, small, other])
+	check(Pet.State.WALK in [small.state, other.state], "two small pets do not stay one behind the other")

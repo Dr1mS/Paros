@@ -8,8 +8,9 @@ extends Node
 ##   session_closed,
 ##   session_phase {phase: &"idle" | &"working" | &"waiting", since: Unix time},
 ##   session_activity {tool, detail}: tool the session itself uses,
-##   session_subagents {count, agents: [{tool, detail}]}: the running
-##     subagents, oldest first, each with the tool it uses,
+##   session_subagents {count, agents: [{id, name, tool, detail}]}: the
+##     running subagents, oldest first, each with the description it was
+##     started with and the tool it uses,
 ##   session_background {background, servers}: commands and agents the
 ##     session started in the background and that still run. A turn may end
 ##     before they do: the session then waits for them, not for the user.
@@ -17,7 +18,8 @@ extends Node
 ##   session_quiet {level}: working with no hook event, 0: for a moment,
 ##     1: for a while, 2: for long,
 ##   session_needs_you {detail}, session_finished,
-##   session_tool_failed {tool, detail, kind}, session_tests_passed,
+##   session_tool_failed {tool, detail, kind, agent: id of the subagent it
+##     comes from, empty for the session}, session_tests_passed,
 ##   session_message_sent {to}: the session wrote to the session of that name,
 ##   session_mail {mail}: messages of other sessions that wait in its queue.
 ##     A busy session reads them later, a session at rest at once,
@@ -52,6 +54,8 @@ const USAGE_MARK := '"usage":{'
 ## started in the background.
 const COMMAND_MARK := '"backgroundTaskId":"'
 const AGENT_MARK := '"status":"async_launched"'
+## Tools that start a subagent. Their description names it.
+const AGENT_TOOLS: Array[String] = ["Agent", "Task"]
 ## In the transcript line of an answer that starts a command in the background.
 const LAUNCH_MARK := '"run_in_background":true'
 const SHELL_TOOL := "Bash"
@@ -101,7 +105,8 @@ var _claude_dir := _home().path_join(".claude")
 var _log_path := "/tmp/paros/claude-events.log"
 var _log_offset := 0
 ## Session id -> the SHOWN fields, plus phase, asking, subagents (agent id ->
-## {tool, detail}, the ones running), transcript,
+## {id, name, tool, detail}, the ones running), launching (descriptions of
+## the subagents asked for and not started yet), transcript,
 ## transcript_offset, heard (time of the last hook event), quiet, tasks
 ## (background task id -> {since: Unix time of its start, server}), launches
 ## (id of a call that starts a command in the background -> true for a server),
@@ -184,7 +189,7 @@ func _update(id: String, entry: Dictionary) -> void:
 	if opened:
 		_sessions[id] = {
 			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0, "summary": "",
-			"phase": &"", "asking": false, "subagents": {}, "transcript": "", "transcript_offset": 0,
+			"phase": &"", "asking": false, "subagents": {}, "launching": [], "transcript": "", "transcript_offset": 0,
 			"heard": _now(), "quiet": 0, "tasks": {}, "launches": {}, "writes": {}, "background": 0, "servers": 0, "queue": [], "mail": 0, "known": false,
 			"origin": &"", "asker": "",
 		}
@@ -422,28 +427,34 @@ func _handle_hook(fields: PackedStringArray) -> void:
 			if session.asking:
 				Events.post(&"session_needs_you", {"session": id, "detail": fields[Field.DETAIL]})
 		"PreToolUse":
-			var activity := {"tool": fields[Field.TOOL], "detail": fields[Field.DETAIL]}
+			if fields[Field.TOOL] in AGENT_TOOLS:
+				session.launching.append(fields[Field.DETAIL])
 			if agent.is_empty():
-				Events.post(&"session_activity", activity.merged({"session": id}))
+				Events.post(&"session_activity", {"session": id, "tool": fields[Field.TOOL], "detail": fields[Field.DETAIL]})
 			elif session.subagents.has(agent):
-				session.subagents[agent] = activity
+				session.subagents[agent].tool = fields[Field.TOOL]
+				session.subagents[agent].detail = fields[Field.DETAIL]
 				_post_subagents(id)
 		"PostToolUse":
 			if fields[Field.KIND] == "test":
 				Events.post(&"session_tests_passed", {"session": id})
 		"PostToolUseFailure":
 			Events.post(&"session_tool_failed", {
-				"session": id, "tool": fields[Field.TOOL], "detail": fields[Field.DETAIL], "kind": fields[Field.KIND],
+				"session": id, "tool": fields[Field.TOOL], "detail": fields[Field.DETAIL], "kind": fields[Field.KIND], "agent": agent,
 			})
 		"SubagentStart", "SubagentStop":
 			# Claude Code also sends SubagentStop for agents it never announced,
 			# at the end of each turn among others: only a known id counts.
 			if event == "SubagentStart":
-				session.subagents[agent] = {"tool": "", "detail": ""}
+				# The tool that asked for it came just before, with its description.
+				var name: String = session.launching.pop_front() if not session.launching.is_empty() else ""
+				session.subagents[agent] = {"id": agent, "name": name, "tool": "", "detail": ""}
 			elif not session.subagents.erase(agent):
 				return
 			_post_subagents(id)
 		"Stop":
+			if agent.is_empty():
+				session.launching.clear()
 			Events.post(&"session_finished", {"session": id})
 
 

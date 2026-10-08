@@ -18,6 +18,10 @@ const CROWD_DISTANCE := 120.0
 ## Seconds they may stay so, then one of them walks this far from the other.
 const CROWD_SECONDS := 2.0
 const CROWD_GAP := 170.0
+## A small pet is hard to see behind another pet: it keeps more room for its
+## size, and steps aside sooner.
+const SMALL_CROWD_ROOM := 1.6
+const SMALL_CROWD_SECONDS := 0.6
 ## States of a pet that stays in place.
 const SETTLED: Array[Pet.State] = [
 	Pet.State.IDLE, Pet.State.SIT, Pet.State.SLEEP, Pet.State.THINK, Pet.State.ALERT, Pet.State.WAIT,
@@ -36,6 +40,8 @@ const SMOOTH_GROUP := &"smooth_frames"
 
 ## Key -> Pet.
 var _pets := {}
+## Keys of the small pets.
+var _small := {}
 ## Pair of pets -> time of their last meeting, in seconds.
 var _met := {}
 ## Pet -> time of its last success, in seconds.
@@ -56,6 +62,9 @@ func _ready() -> void:
 	var main := get_window()
 	main.position = -main.size * 4
 	main.mouse_passthrough_polygon = PackedVector2Array([Vector2.ZERO, Vector2.RIGHT, Vector2.DOWN])
+	Settings.changed.connect(func() -> void:
+		for key: String in _small:
+			_pets[key].stature = Settings.value("subagents", "size"))
 
 
 func _process(_delta: float) -> void:
@@ -73,6 +82,9 @@ func _process(_delta: float) -> void:
 		for j in range(i + 1, all.size()):
 			var a: Pet = all[i]
 			var b: Pet = all[j]
+			# Small pets play among themselves: see small_pets.gd.
+			if a.stature < 1.0 or b.stature < 1.0:
+				continue
 			if not (a.is_free() and b.is_free()) or not _are_near(a, b, MEET_DISTANCE):
 				continue
 			var pair := [a.get_instance_id(), b.get_instance_id()]
@@ -101,23 +113,32 @@ func _spread(all: Array) -> void:
 			if a.rooted or b.rooted or a.state not in SETTLED or b.state not in SETTLED:
 				continue
 			var apart := (b.feet() - a.feet()).abs()
-			var size := a.scale_factor()
+			var size := (_room(a) + _room(b)) / 2.0
 			# On the same level: one on a perch does not hide one on the floor.
 			if apart.x >= CROWD_DISTANCE * size or apart.y >= CROWD_DISTANCE * size / 2.0:
 				continue
 			var pair := [a.get_instance_id(), b.get_instance_id()]
 			crowded[pair] = _crowded.get(pair, _now())
-			if _now() - crowded[pair] < CROWD_SECONDS:
+			var small := a.stature < 1.0 or b.stature < 1.0
+			if _now() - crowded[pair] < (SMALL_CROWD_SECONDS if small else CROWD_SECONDS):
 				continue
-			if CROWD_MOVERS.find(b.wish) < CROWD_MOVERS.find(a.wish):
+			# A small pet makes way for a normal one.
+			var b_moves := CROWD_MOVERS.find(b.wish) < CROWD_MOVERS.find(a.wish)
+			if a.stature != b.stature:
+				b_moves = b.stature < a.stature
+			if b_moves:
 				b.step_aside(a.feet().x, CROWD_GAP * size)
 			else:
 				a.step_aside(b.feet().x, CROWD_GAP * size)
 	_crowded = crowded
 
 
-func add(key: String) -> Pet:
+## small: the pet of a subagent. It is found by its key, but keys() leaves it out.
+func add(key: String, small := false) -> Pet:
 	var window := PET_WINDOW.instantiate()
+	if small:
+		window.get_node("Pet").stature = Settings.value("subagents", "size")
+		_small[key] = true
 	add_child(window)
 	# No vertical sync: a synced frame waits for the screen, and a window that
 	# is not shown gets about one frame per second. The lock screen shows
@@ -155,14 +176,16 @@ func remove(key: String) -> void:
 				letter.stop()
 		_pets[key].get_window().queue_free()
 		_pets.erase(key)
+		_small.erase(key)
 
 
 func find(key: String) -> Pet:
 	return _pets.get(key)
 
 
+## Keys of the pets, the small ones aside.
 func keys() -> Array:
-	return _pets.keys()
+	return _pets.keys().filter(func(key: String) -> bool: return not _small.has(key))
 
 
 ## Notes a success of the pet. Claps hands with a near pet that also succeeded
@@ -176,6 +199,11 @@ func celebrate(pet: Pet) -> void:
 			_succeeded.erase(other)
 			return
 	_succeeded[pet] = _now()
+
+
+## Room a pet takes on the ground, against a normal pet at size 1.
+func _room(pet: Pet) -> float:
+	return pet.scale_factor() * (SMALL_CROWD_ROOM if pet.stature < 1.0 else 1.0)
 
 
 func _are_near(a: Pet, b: Pet, distance: float) -> bool:

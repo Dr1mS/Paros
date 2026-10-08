@@ -243,3 +243,43 @@ func test_nods_and_looks_toward_a_point() -> void:
 	check_equal(pet.state, Pet.State.IDLE, "done")
 	pet.look_toward(pet.feet().x - 300.0)
 	check_equal(pet.facing, -1.0, "turns while it stays in place")
+
+
+func test_jump_lands_back() -> void:
+	var pet := make_pet()
+	var floor_y := pet.feet().y
+	pet.jump()
+	step(pet, 0.1)
+	check(pet.is_airborne() and pet.feet().y < floor_y - 10.0, "off the ground")
+	record_events()
+	step(pet, 2.0)
+	check_equal(pet.state, Pet.State.IDLE, "landed")
+	check_near(pet.feet().y, floor_y, 0.5, "on the floor")
+	check(&"pet_landed" not in event_names(), "without a thud")
+
+
+func test_pet_hurries_back_to_its_zone() -> void:
+	var pet := make_pet()
+	pet.home_x = pet.feet().x + 600.0
+	pet.home_reach = 100.0
+	step(pet, 0.1)
+	check_equal(pet.state, Pet.State.WALK, "walks at once")
+	step(pet, 20.0)
+	check(absf(pet.feet().x - pet.home_x) <= 101.0, "back in its zone")
+	pet._timer = 0.0
+	pet._enter(Pet.State.WALK)
+	step(pet, 30.0)
+	check(absf(pet.feet().x - pet.home_x) <= 101.0, "and stays there")
+
+
+func test_small_pet_is_clicked_on_its_small_body() -> void:
+	var window: Window = load("res://src/pet/pet_window.tscn").instantiate()
+	var pet: Pet = window.get_node("Pet")
+	add_child(window)
+	pet.stature = 0.4
+	freeze(pet)
+	pet._window.position = Vector2i(pet._window_pos)
+	check(pet.hit_test(pet.feet() - Vector2(0, 20)), "on the body")
+	check(not pet.hit_test(pet.feet() - Vector2(0, 60)), "not above it, where a normal pet has its head")
+	check_near(pet.scale_factor(), 0.4 * Settings.value("pet", "size"), 0.001, "distances follow the body")
+	check_equal(pet.get_node("../Bubble").anchor.y > Bubble.ANCHOR.y, true, "the bubble comes down to its head")

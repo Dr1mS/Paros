@@ -40,7 +40,8 @@ Adding a feature nearly always comes down to: a sense that posts an event, a rul
 | `idle_sense.gd` | User inactivity, asked from GNOME |
 | `music_sense.gd` | Media players that play, asked from MPRIS |
 | **`src/brain/`** | |
-| `brain.gd` | Every rule |
+| `brain.gd` | Every rule, but the games of the small pets |
+| `small_pets.gd` | The small pets of the subagents: creation, zone around the big one, games, pyramid, leaving |
 | **`src/pet/`** | |
 | `pets.gd` | Creates and removes the pets. Handles what takes two pets, the letters, and the frame rate |
 | `pet_window.tscn` | Window of one pet: `Pet`, `Body`, `Bubble`, `Pointer`, `ContextMenu` |
@@ -118,7 +119,7 @@ All carry `session`, the session id.
 | `session_phase` | `phase` (`idle`, `working`, `waiting`), `since` | Sets the wish |
 | `session_activity` | `tool`, `detail` | Caption |
 | `session_quiet` | `level` (0, 1, 2) | Foot tapping, meditation |
-| `session_subagents` | `count`, `agents` (`tool` and `detail` of each) | Small pets, and their tag |
+| `session_subagents` | `count`, `agents` (`id`, `name`, `tool` and `detail` of each) | A small pet per subagent, with its caption |
 | `session_background` | `background`, `servers` | Hourglass while the turn is over and a background task still runs. No "Task done!". Green eyes while a server runs |
 | `session_message_sent` | `to`, the name of a session | The pet throws a letter to the pet of that session. Once its turn is over, it waits for the answer while that session works |
 | `session_mail` | `mail` | Mailbox while messages of other sessions wait to be read. Reading of the letter when one leaves |
@@ -127,7 +128,7 @@ All carry `session`, the session id.
 | `session_needs_you` | `detail` | Bubble |
 | `session_finished` | | Jump, bubble, sound |
 | `session_tests_passed` | | Jump, bubble, sound |
-| `session_tool_failed` | `tool`, `detail`, `kind` | Shake, sound |
+| `session_tool_failed` | `tool`, `detail`, `kind`, `agent` | Shake, sound. In a subagent: its small pet shakes, no sound |
 
 ### Git — `git_sense.gd`
 

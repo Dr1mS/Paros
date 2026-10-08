@@ -15,6 +15,8 @@ const ANCHOR := Vector2(150, 132)
 const PAPER := Color("#fffdf8")
 const INK := Color("#1f1e1d")
 
+## Tip of the tail for this pet: lower above a small one.
+var anchor := ANCHOR
 ## Text shown while no message is up. Empty: none.
 var card := "":
 	set(text):
@@ -58,10 +60,10 @@ func _draw() -> void:
 	var font_size := CARD_FONT_SIZE if _message.is_empty() else MESSAGE_FONT_SIZE
 	var text_size := _font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, MAX_TEXT_WIDTH, font_size)
 	var box := Rect2(Vector2.ZERO, text_size + PADDING * 2.0)
-	box.position = (ANCHOR - Vector2(box.size.x / 2.0, box.size.y + BORDER + TAIL)).round()
+	box.position = (anchor - Vector2(box.size.x / 2.0, box.size.y + BORDER + TAIL)).round()
 	# A tall card would leave the window by the top: let it cover the head instead.
 	box.position.y = maxf(box.position.y, BORDER)
-	draw_rect(Rect2(ANCHOR.x - TAIL / 2.0, box.end.y, TAIL, BORDER + TAIL), INK)
+	draw_rect(Rect2(anchor.x - TAIL / 2.0, box.end.y, TAIL, BORDER + TAIL), INK)
 	draw_rect(box.grow(BORDER), INK)
 	draw_rect(box, PAPER)
 	var baseline := box.position + PADDING + Vector2(0, _font.get_ascent(font_size))

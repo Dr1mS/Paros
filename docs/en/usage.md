@@ -23,7 +23,7 @@ Each interactive Claude Code session open on the machine has its pet. It appears
 | Click | The pet cheers |
 | Double-click | Brings the terminal of its session to the front and rings its tab. Needs the [GNOME extension](gnome-extension.md) on Linux. On Windows the PowerShell helper does it, and picks the right window even with several terminals |
 | Drag | Carry it. Let go with a swing and it flies and bounces off the edges and the floor. Dropped from high up, it opens an umbrella |
-| Hover | Its eyes follow the mouse. A card shows the folder, the session state and how long it has lasted, the tool in use, the number of subagents and the tool of each, the context tokens, the git status, the last prompt or the summary of the session, the focus time left |
+| Hover | Its eyes follow the mouse. A card shows the folder, the session state and how long it has lasted, the tool in use, the number of subagents with the name and the tool of each, the context tokens, the git status, the last prompt or the summary of the session, the focus time left |
 | Drop a file on it | Copies the path to the clipboard, ready to paste into the terminal |
 | Right-click | Menu |
 
@@ -121,11 +121,22 @@ Right-click, "Settings…". Each change applies and is saved at once. Settings a
 
 | Setting | Default | Key | Effect |
 |---|---|---|---|
-| Show the tool in use | yes | `claude/show_activity` | Caption above the head while working, tag of the small pets |
+| Show the tool in use | yes | `claude/show_activity` | Caption above the head while working |
 | Remind after waiting for | 2 min | `claude/nag_minutes` | Delay before the reminder of a waiting session |
 | Knock when the terminal is not focused | yes | `claude/knock` | Knocking on the screen edge |
 | Model context, in thousands of tokens | 1000 k | `claude/context_window_k` | Size of the context window of the model. Used to know when the head smokes |
 | Follow the git status of folders | yes | `git/enabled` | Runs `git` every 10 seconds in the folder of each session |
+
+### Subagents
+
+| Setting | Default | Key | Effect |
+|---|---|---|---|
+| A small pet for each subagent | yes | `subagents/show` | Without it, subagents are only counted in the card |
+| Small pets per session, at most | 16 | `subagents/max` | From 1 to 16 |
+| Size of the small pets | 0.4 × | `subagents/size` | Size against a big pet, from 0.2 to 0.8 |
+| Show the tool of each subagent | yes | `subagents/show_activity` | Short caption above the small pet |
+| Small pets jump and run to each other | yes | `subagents/games` | Without it, they only walk and sit |
+| Small pets build pyramids | yes | `subagents/pyramid` | |
 
 ### Desktop (GNOME extension)
 

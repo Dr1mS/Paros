@@ -74,6 +74,10 @@ const FEET_Y := 246.0
 ## Empty window width on each side of the mascot. The window may overflow the
 ## screen by this much, so the mascot itself reaches the screen edge.
 const SIDE_MARGIN := 78.0
+## Take-off speed of a jump in place. Low enough to land without a thud.
+const JUMP_SPEED := 430.0
+## Speed of the walk back to its zone, against the walk speed.
+const STRAY_HURRY := 2.2
 ## Seconds between two readings of the screen layout. Reading it asks the
 ## display server, too slow for every frame.
 const AREA_REFRESH_SECONDS := 0.25
@@ -92,10 +96,19 @@ var color := DEFAULT_COLOR
 var accessory := 0
 ## Short text above the head while thinking.
 var caption := ""
-## Number of small pets beside this one.
-var minis := 0
-## Short text above each small pet, in their order. Empty: no tag.
-var mini_captions := PackedStringArray()
+## Size of the body against a normal pet. Under 1: the small pet of a
+## subagent.
+var stature := 1.0:
+	set(value):
+		stature = value
+		if is_node_ready():
+			_apply_settings()
+## Holds a sheet of paper above its head.
+var sheet := false
+## Middle of the zone the pet roams in, as a screen x of its feet, and how far
+## it goes from it. NAN: the whole ground. Outside, it hurries back.
+var home_x := NAN
+var home_reach := 0.0
 ## An urgent alert jumps higher.
 var urgent := false
 ## True while the mouse is over the pet.
@@ -204,11 +217,13 @@ func _process(delta: float) -> void:
 					_start_climb()
 			elif wish != Wish.ROAM:
 				_enter(WISH_STATE[wish])
+			elif _strays():
+				_enter(State.WALK)
 			elif _timer <= 0.0:
 				_enter(State.SIT if randf() < SIT_CHANCE else State.WALK)
 		State.SIT:
 			_timer -= delta
-			if wish != Wish.ROAM or (_timer <= 0.0 and not rooted):
+			if wish != Wish.ROAM or ((_timer <= 0.0 or _strays()) and not rooted):
 				_enter(State.IDLE)
 		State.WALK:
 			_walk(delta, area)
@@ -229,7 +244,7 @@ func _process(delta: float) -> void:
 				facing = away
 		State.CLIMB:
 			var progress := minf(state_time / TIMED[state], 1.0)
-			_window_pos = _climb_from.lerp(_climb_to, progress) - Vector2(0, sin(progress * PI) * CLIMB_ARC * _size)
+			_window_pos = _climb_from.lerp(_climb_to, progress) - Vector2(0, sin(progress * PI) * CLIMB_ARC * scale_factor())
 			if progress >= 1.0:
 				_perched = true
 				_enter(State.IDLE)
@@ -276,11 +291,16 @@ func _walk(delta: float, area: Rect2) -> void:
 		if is_equal_approx(_window_pos.x, clampf(_errand_x, area.position.x, area.end.x)):
 			_enter(_errand_then)
 		return
-	_window_pos.x += facing * speed * delta
-	if _window_pos.x <= area.position.x:
+	var zone := _roam_zone(area)
+	var stray := _strays()
+	_window_pos.x += facing * speed * (STRAY_HURRY if stray else 1.0) * delta
+	if _window_pos.x <= zone.x:
 		facing = 1.0
-	elif _window_pos.x >= area.end.x:
+	elif _window_pos.x >= zone.y:
 		facing = -1.0
+	if stray and wish == Wish.ROAM:
+		# Goes on until it is back in its zone.
+		return
 	_timer -= delta
 	if wish != Wish.ROAM or _timer <= 0.0:
 		_enter(State.IDLE)
@@ -315,6 +335,7 @@ func _apply_settings() -> void:
 	_window.size = Vector2i(Vector2(_base_size) * _size)
 	_window.content_scale_factor = _size
 	_window.mouse_passthrough_polygon = _hit_polygon()
+	_bubble.anchor = body_point(Bubble.ANCHOR)
 	_area = _walk_area()
 	# The window grows downward: put the feet back on the floor.
 	if not is_airborne():
@@ -344,8 +365,30 @@ func feet() -> Vector2:
 	return _window_pos + Vector2(_window.size.x / 2.0, FEET_Y * _size)
 
 
+## Size of the body on the screen, against a normal pet at size 1.
 func scale_factor() -> float:
-	return _size
+	return _size * stature
+
+
+## Where a point of a normal pet lies on this one, in window coordinates at
+## scale 1: the body shrinks toward the feet.
+func body_point(point: Vector2) -> Vector2:
+	var feet_point := Vector2(_base_size.x / 2.0, FEET_Y)
+	return feet_point + (point - feet_point) * stature
+
+
+## Puts the feet at the given screen point. Above the floor: the pet falls.
+func place_at(feet_point: Vector2) -> void:
+	_window_pos = feet_point - Vector2(_window.size.x / 2.0, FEET_Y * _size)
+	_perched = false
+
+
+## Hops off the ground and lands back, with a small bounce.
+func jump() -> void:
+	if is_airborne() or state == State.CLIMB or rooted:
+		return
+	_enter(State.FALL)
+	_velocity = Vector2(0, -JUMP_SPEED * _size)
 
 
 func say(text: String) -> void:
@@ -418,7 +461,7 @@ func read_letter() -> void:
 
 ## Side of the pet where the mailbox stands: left, unless the ground ends there.
 func mailbox_side() -> float:
-	return 1.0 if _window_pos.x < _ground().position.x + SIDE_MARGIN * _size else -1.0
+	return 1.0 if _window_pos.x < _ground().position.x + _side_margin() else -1.0
 
 
 ## Walks until its feet are at the given screen x, whatever the wish, then
@@ -508,7 +551,7 @@ func _enter(next: State) -> void:
 
 ## True when the perch is wide enough, on screen, and above the floor.
 func _can_climb() -> bool:
-	if not Settings.value("desktop", "perch") or perch.size.x < PERCH_MIN_WIDTH * _size:
+	if not Settings.value("desktop", "perch") or perch.size.x < PERCH_MIN_WIDTH * scale_factor():
 		return false
 	var top := perch.position.y - FEET_Y * _size
 	return top >= _area.position.y - 100.0 * _size and top < _area.end.y - 100.0 * _size
@@ -531,7 +574,7 @@ func _ground() -> Rect2:
 
 
 func _perch_ground() -> Rect2:
-	var margin := SIDE_MARGIN * _size
+	var margin := _side_margin()
 	var top := perch.position.y - FEET_Y * _size
 	return Rect2(perch.position.x - margin, _area.position.y, perch.size.x - _window.size.x + margin * 2.0, top - _area.position.y)
 
@@ -570,8 +613,31 @@ func _walk_area() -> Rect2:
 			row = row.merge(Rect2i(rect.position.x, row.position.y, rect.size.x, row.size.y))
 			others.erase(screen)
 			grown = true
-	var margin := SIDE_MARGIN * _size
+	var margin := _side_margin()
 	return Rect2(left - margin, usable.position.y, right - left - _window.size.x + margin * 2.0, usable.size.y - _window.size.y)
+
+
+## Empty window width on each side of the body.
+func _side_margin() -> float:
+	var half := _base_size.x / 2.0
+	return (half - (half - SIDE_MARGIN) * stature) * _size
+
+
+## Left and right ends of the zone the pet roams in, as window positions.
+func _roam_zone(area: Rect2) -> Vector2:
+	if is_nan(home_x):
+		return Vector2(area.position.x, area.end.x)
+	var middle := home_x - _window.size.x / 2.0
+	return Vector2(
+		clampf(middle - home_reach, area.position.x, area.end.x), clampf(middle + home_reach, area.position.x, area.end.x))
+
+
+## True when the pet stands outside the zone it roams in.
+func _strays() -> bool:
+	if is_nan(home_x) or _perched:
+		return false
+	var zone := _roam_zone(_ground())
+	return _window_pos.x < zone.x - 1.0 or _window_pos.x > zone.y + 1.0
 
 
 ## Screens not under a full screen window.
@@ -593,7 +659,7 @@ func _screen_rect(screen: int) -> Rect2i:
 ## (see _hit_polygon), Pointer asks this to let the other clicks through.
 func hit_test(screen_point: Vector2) -> bool:
 	var local := (screen_point - Vector2(_window.position)) / _size
-	return ((local - HIT_CENTER) / HIT_RADIUS).length_squared() <= 1.0
+	return ((local - body_point(HIT_CENTER)) / (HIT_RADIUS * stature)).length_squared() <= 1.0
 
 
 func _hit_polygon() -> PackedVector2Array:
@@ -605,5 +671,5 @@ func _hit_polygon() -> PackedVector2Array:
 	var points := PackedVector2Array()
 	for i in 24:
 		var angle := TAU * i / 24.0
-		points.append((HIT_CENTER + Vector2(cos(angle), sin(angle)) * HIT_RADIUS) * _size)
+		points.append((body_point(HIT_CENTER) + Vector2(cos(angle), sin(angle)) * HIT_RADIUS * stature) * _size)
 	return points

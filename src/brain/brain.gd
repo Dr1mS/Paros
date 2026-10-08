@@ -61,8 +61,9 @@ const BOSS_HURRY := 2.0
 ## longer than that: the answer of the advisor may be missed.
 const BOSS_MIN_SECONDS := 5.0
 const BOSS_MAX_SECONDS := 300.0
-## Seconds the boss walks away for, once it answered.
-const BOSS_LEAVE_SECONDS := 4.0
+## Once it answered, the boss walks off the screen. It is removed there, or
+## after this many seconds: it may be held back on its way.
+const BOSS_LEAVE_SECONDS := 30.0
 const SmallPets := preload("res://src/brain/small_pets.gd")
 
 @export var pets: Pets
@@ -447,7 +448,11 @@ func _call_boss(key: String) -> void:
 		return
 	var pet := pets.find(key)
 	var boss := pets.find(BOSS_KEY % key)
-	if boss == null:
+	if boss:
+		# Asked again on its way out: it comes back.
+		boss.exit_side = 0.0
+		boss.walk_to(pet.feet().x + signf(boss.feet().x - pet.feet().x) * BOSS_GAP * pet.scale_factor(), Pet.State.IDLE, BOSS_HURRY)
+	else:
 		var size := pet.scale_factor()
 		# On the side of the pet where the screen has more room.
 		var screen := Desktop.screen_at(pet.feet())
@@ -471,7 +476,7 @@ func _boss_answers(key: String) -> void:
 		session.boss_done = minf(session.boss_done, maxf(_now(), session.boss_since + BOSS_MIN_SECONDS))
 
 
-## The boss throws its answer back when it is time, then walks away and is gone.
+## The boss throws its answer back when it is time, then walks off the screen.
 func _run_bosses() -> void:
 	for key: String in _sessions:
 		var session: Dictionary = _sessions[key]
@@ -487,12 +492,11 @@ func _run_bosses() -> void:
 					boss.wish = Pet.Wish.ROAM
 					pets.send_letter(boss, pets.find(key))
 			&"leaving":
-				if _now() >= session.boss_gone:
+				if boss.is_off() or _now() >= session.boss_gone:
 					pets.remove(BOSS_KEY % key)
 					session.boss = &""
 				elif boss.is_free():
-					var away := signf(boss.feet().x - pets.find(key).feet().x)
-					boss.walk_to(boss.feet().x + away * BOSS_ENTRY * boss.scale_factor(), Pet.State.IDLE, BOSS_HURRY)
+					boss.walk_off(BOSS_HURRY)
 
 
 ## GNOME turns the monitors off as soon as the screen is locked, and again

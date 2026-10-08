@@ -110,14 +110,14 @@ Everything is set in the settings, under "Subagents": see [Usage](usage.md#subag
 
 ## Advisor
 
-The advisor is a stronger model that a session asks while it works. When a session asks it, the boss comes beside its pet: a mascot one and a half times bigger, in a top hat, with "BOSS" written on its belly.
+The advisor is a stronger model that a session asks while it works. When a session asks it, the boss comes beside its pet: a mascot one and a half times bigger, in a top hat, with "BOSS" written in blocks on its belly.
 
 1. The boss walks in fast, on the side where the screen has more room.
 2. The pet throws it a letter and turns toward it. Its caption says "Asks the boss".
 3. The boss reads the letter, as long as the advisor has not answered.
-4. At the answer, the boss throws a letter back to the pet, which reads it. Then the boss walks away and is gone.
+4. At the answer, the boss throws a letter back to the pet, which reads it. Then the boss walks off the screen by the nearest edge, and is gone once out of sight.
 
-The boss stays at least 5 seconds, so that a quick answer is seen. It also leaves at the end of the turn, and after 5 minutes without an answer. What the session asks and what the advisor answers cannot be read: Paros only knows that a call takes place.
+The boss stays at least 5 seconds, so that a quick answer is seen. The answer of the advisor is written late in the transcript, or not at all: the next tool of the session, or the end of its turn, counts as the answer. With none of these, the boss leaves after 5 minutes. What the session asks and what the advisor answers cannot be read: Paros only knows that a call takes place.
 
 The setting "The boss comes when the advisor is asked" turns it off.
 

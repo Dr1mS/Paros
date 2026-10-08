@@ -157,10 +157,15 @@ const CAPTION_MAX_LENGTH := 110
 const SMOKE_FROM := 0.75
 ## Widest caption of a small pet, in pixels: one line, cut when longer.
 const SMALL_CAPTION_WIDTH := 110.0
-## Word on the belly: bottom of the letters from the feet, in grid units, and
-## their size.
-const BADGE_Y := -2.9
-const BADGE_FONT_SIZE := 18
+## Word on the belly, in blocks like the rest of the mascot: its middle from
+## the feet, in grid units, the size of a block, and the letters it can show.
+const BADGE_Y := -3.9
+const BADGE_PIXEL := 4.5
+const BADGE_LETTERS := {
+	"B": ["XXX.", "X..X", "XXX.", "X..X", "XXX."],
+	"O": [".XX.", "X..X", "X..X", "X..X", ".XX."],
+	"S": [".XXX", "X...", ".XX.", "...X", "XXX."],
+}
 ## Sheet of paper held above the head.
 const HELD_SHEET := Rect2(-3, -15.5, 6, 4)
 
@@ -316,10 +321,12 @@ func _draw() -> void:
 	else:
 		_draw_eyes(state, body_offset, meditating)
 	if not _pet.badge.is_empty():
-		var width := BODY.size.x * UNIT
-		draw_string(
-			_font, GROUND + body_offset + Vector2(-width / 2.0, BADGE_Y * UNIT), _pet.badge,
-			HORIZONTAL_ALIGNMENT_CENTER, width, BADGE_FONT_SIZE, PAPER)
+		# The letters side by side, one empty column between two.
+		var rows: PackedStringArray = ["", "", "", "", ""]
+		for letter in _pet.badge:
+			for row in rows.size():
+				rows[row] += ("" if rows[row].is_empty() else ".") + BADGE_LETTERS.get(letter, ["....", "....", "....", "....", "...."])[row]
+		_draw_pixels(rows, BADGE_PIXEL, GROUND + body_offset + Vector2(0, BADGE_Y * UNIT), EYE)
 	if _pet.headlamp and state != Pet.State.SLEEP:
 		_blocks(HEADLAMP, body_offset, true)
 	if state == Pet.State.SWEEP:

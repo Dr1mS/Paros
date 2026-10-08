@@ -105,6 +105,9 @@ var stature := 1.0:
 		stature = value
 		if is_node_ready():
 			_apply_settings()
+## Side by which the pet leaves the ground and walks out of sight (-1 left,
+## 1 right). 0: it stays on the ground.
+var exit_side := 0.0
 ## Word written on its belly. Empty: none.
 var badge := ""
 ## Holds a sheet of paper above its head.
@@ -211,7 +214,10 @@ func _process(delta: float) -> void:
 	match state:
 		State.IDLE:
 			_timer -= delta
-			if rooted and wish == Wish.ROAM:
+			if is_off():
+				# Out of sight: it waits there to be removed.
+				pass
+			elif rooted and wish == Wish.ROAM:
 				_enter(State.SIT)
 			elif _wants_perch and wish in [Wish.ROAM, Wish.THINK] and (_perched or _can_climb()):
 				_wants_perch = false
@@ -263,7 +269,8 @@ func _process(delta: float) -> void:
 	# The ground may have changed above: the pet reached its perch, or left it.
 	area = _ground()
 	if state != State.CARRIED and state != State.CLIMB:
-		_window_pos.x = clampf(_window_pos.x, area.position.x, area.end.x)
+		if exit_side == 0.0:
+			_window_pos.x = clampf(_window_pos.x, area.position.x, area.end.x)
 		if state != State.FALL:
 			# The floor is lower: taller screen, or the perch is gone.
 			if _window_pos.y < area.end.y - 1.0:
@@ -291,8 +298,9 @@ func _walk(delta: float, area: Rect2) -> void:
 	var speed := _walk_speed * _size * pace * (1.0 - BAGGAGE_DRAG * baggage)
 	if on_errand:
 		# An errand goes on whatever the wish, until the pet is there.
-		_window_pos.x = move_toward(_window_pos.x, clampf(_errand_x, area.position.x, area.end.x), speed * _errand_hurry * delta)
-		if is_equal_approx(_window_pos.x, clampf(_errand_x, area.position.x, area.end.x)):
+		var target := _errand_x if exit_side != 0.0 else clampf(_errand_x, area.position.x, area.end.x)
+		_window_pos.x = move_toward(_window_pos.x, target, speed * _errand_hurry * delta)
+		if is_equal_approx(_window_pos.x, target):
 			_enter(_errand_then)
 		return
 	var zone := _roam_zone(area)
@@ -493,6 +501,27 @@ func step_aside(from_x: float, gap: float) -> void:
 	_errand_x = target
 	_errand_then = State.IDLE
 	_errand_hurry = 1.0
+
+
+## Walks out of sight by the nearest end of the ground, across every screen
+## placed side by side. Does nothing in the air.
+func walk_off(hurry := 1.0) -> void:
+	if is_airborne() or state == State.CLIMB:
+		return
+	_perched = false
+	exit_side = -1.0 if _window_pos.x - _area.position.x < _area.end.x - _window_pos.x else 1.0
+	_enter(State.WALK)
+	_errand_x = _area.position.x - _window.size.x if exit_side < 0.0 else _area.end.x + _window.size.x
+	_errand_then = State.IDLE
+	_errand_hurry = hurry
+
+
+## True once the pet that walks off is out of sight: its whole window is past
+## the end of the ground.
+func is_off() -> bool:
+	if exit_side < 0.0:
+		return _window_pos.x + _window.size.x <= _area.position.x + _side_margin()
+	return exit_side > 0.0 and _window_pos.x >= _area.end.x + _window.size.x - _side_margin()
 
 
 ## Runs until its feet are at the given screen x, then knocks twice on the

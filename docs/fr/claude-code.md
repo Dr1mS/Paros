@@ -110,14 +110,14 @@ Tout se règle dans les réglages, partie « Sous-agents » : voir [Utilisation]
 
 ## Advisor
 
-L'advisor est un modèle plus fort qu'une session consulte en cours de travail. Quand une session le consulte, le boss arrive à côté de son personnage : une mascotte une fois et demie plus grande, en haut-de-forme, « BOSS » écrit sur le ventre.
+L'advisor est un modèle plus fort qu'une session consulte en cours de travail. Quand une session le consulte, le boss arrive à côté de son personnage : une mascotte une fois et demie plus grande, en haut-de-forme, « BOSS » écrit en blocs sur le ventre.
 
 1. Le boss entre en marchant vite, du côté où l'écran a le plus de place.
 2. Le personnage lui lance une lettre et se tourne vers lui. Sa légende dit « Demande au boss ».
 3. Le boss lit la lettre, tant que l'advisor n'a pas répondu.
-4. À la réponse, le boss relance une lettre au personnage, qui la lit. Puis le boss s'en va et disparaît.
+4. À la réponse, le boss relance une lettre au personnage, qui la lit. Puis le boss sort de l'écran par le bord le plus proche, et disparaît une fois hors de vue.
 
-Le boss reste au moins 5 secondes, pour qu'une réponse rapide se voie. Il part aussi à la fin du tour, et au bout de 5 minutes sans réponse. Ce que la session demande et ce que l'advisor répond ne sont pas lisibles : Paros sait seulement qu'un appel a lieu.
+Le boss reste au moins 5 secondes, pour qu'une réponse rapide se voie. La réponse de l'advisor est écrite tard dans le transcript, ou pas du tout : le prochain outil de la session, ou la fin de son tour, vaut réponse. Sans rien de tout cela, le boss part au bout de 5 minutes. Ce que la session demande et ce que l'advisor répond ne sont pas lisibles : Paros sait seulement qu'un appel a lieu.
 
 Le réglage « Le boss vient quand l'advisor est consulté » le coupe.
 

@@ -60,6 +60,8 @@ const AGENT_MARK := '"status":"async_launched"'
 ## that runs on the server: no hook tells it. Then in the line of its answer.
 const ADVISOR_CALL_MARKS: Array[String] = ['"type":"server_tool_use"', '"name":"advisor"']
 const ADVISOR_RESULT_MARK := '"type":"advisor_tool_result"'
+## Hook events of the session itself that tell the advisor answered.
+const ADVISOR_OVER: Array[String] = ["PreToolUse", "Stop", "UserPromptSubmit"]
 ## Tools that start a subagent. Their description names it.
 const AGENT_TOOLS: Array[String] = ["Agent", "Task"]
 ## In the transcript line of an answer that starts a command in the background.
@@ -112,7 +114,8 @@ var _log_path := "/tmp/paros/claude-events.log"
 var _log_offset := 0
 ## Session id -> the SHOWN fields, plus phase, asking, subagents (agent id ->
 ## {id, name, tool, detail}, the ones running), launching (descriptions of
-## the subagents asked for and not started yet), transcript,
+## the subagents asked for and not started yet), advising (true while the
+## advisor is asked), transcript,
 ## transcript_offset, heard (time of the last hook event), quiet, tasks
 ## (background task id -> {since: Unix time of its start, server}), launches
 ## (id of a call that starts a command in the background -> true for a server),
@@ -195,7 +198,7 @@ func _update(id: String, entry: Dictionary) -> void:
 	if opened:
 		_sessions[id] = {
 			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0, "summary": "",
-			"phase": &"", "asking": false, "subagents": {}, "launching": [], "transcript": "", "transcript_offset": 0,
+			"phase": &"", "asking": false, "advising": false, "subagents": {}, "launching": [], "transcript": "", "transcript_offset": 0,
 			"heard": _now(), "quiet": 0, "tasks": {}, "launches": {}, "writes": {}, "background": 0, "servers": 0, "queue": [], "mail": 0, "known": false,
 			"origin": &"", "asker": "",
 		}
@@ -253,9 +256,9 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 		# Calls made before the first reading are old.
 		if session.known:
 			if ADVISOR_RESULT_MARK in line:
-				Events.post(&"session_advisor", {"session": id, "asking": false})
+				_set_advising(id, false)
 			elif ADVISOR_CALL_MARKS.all(func(mark: String) -> bool: return mark in line):
-				Events.post(&"session_advisor", {"session": id, "asking": true})
+				_set_advising(id, true)
 		if LAUNCH_MARK in line:
 			for block in _tool_uses(line, SHELL_TOOL):
 				session.launches[block.get("id", "")] = is_server(str(block.input.get("command", "")))
@@ -431,6 +434,10 @@ func _handle_hook(fields: PackedStringArray) -> void:
 	var session: Dictionary = _sessions[id]
 	var event := fields[Field.EVENT]
 	var agent := fields[Field.AGENT]
+	# The answer of the advisor is written late in the transcript, or never.
+	# But the session waits for it: its next move tells that it came.
+	if agent.is_empty() and event in ADVISOR_OVER:
+		_set_advising(id, false)
 	session.heard = _now()
 	# Any later event means the question was answered.
 	session.asking = event == "Notification" and fields[Field.NOTIFICATION] in ASKING
@@ -468,6 +475,12 @@ func _handle_hook(fields: PackedStringArray) -> void:
 			if agent.is_empty():
 				session.launching.clear()
 			Events.post(&"session_finished", {"session": id})
+
+
+func _set_advising(id: String, asking: bool) -> void:
+	if _sessions[id].advising != asking:
+		_sessions[id].advising = asking
+		Events.post(&"session_advisor", {"session": id, "asking": asking})
 
 
 func _post_subagents(id: String) -> void:

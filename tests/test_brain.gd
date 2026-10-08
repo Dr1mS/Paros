@@ -621,9 +621,13 @@ func test_boss_reads_the_letter_while_the_advisor_is_asked() -> void:
 	step(boss, 1.0)
 	brain._tick()
 	check_equal(boss.state, Pet.State.WALK, "the boss walks away")
-	brain._sessions["s1"].boss_gone = 0.0
+	step(boss, 1.0)
 	brain._tick()
-	check_equal(pets.find("s1/boss"), null, "and is gone")
+	check_equal(pets.find("s1/boss"), boss, "still there while it is in sight")
+	step(boss, 30.0)
+	check(boss.feet().x < AREA.position.x - 100.0 or boss.feet().x > AREA.end.x + 400.0, "it walks off the screen")
+	brain._tick()
+	check_equal(pets.find("s1/boss"), null, "and is gone once out of sight")
 
 
 func test_boss_leaves_with_the_turn_and_the_session() -> void:

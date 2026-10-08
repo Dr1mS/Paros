@@ -283,3 +283,15 @@ func test_small_pet_is_clicked_on_its_small_body() -> void:
 	check(not pet.hit_test(pet.feet() - Vector2(0, 60)), "not above it, where a normal pet has its head")
 	check_near(pet.scale_factor(), 0.4 * Settings.value("pet", "size"), 0.001, "distances follow the body")
 	check_equal(pet.get_node("../Bubble").anchor.y > Bubble.ANCHOR.y, true, "the bubble comes down to its head")
+
+
+func test_pet_walks_off_by_the_nearest_side() -> void:
+	var pet := make_pet()
+	pet._window_pos.x = AREA.end.x - 300.0
+	pet.walk_off(2.0)
+	check_equal(pet.exit_side, 1.0, "by the right, which is nearer")
+	step(pet, 0.5)
+	check(not pet.is_off(), "in sight at first")
+	step(pet, 20.0)
+	check(pet.is_off(), "then out of sight")
+	check(pet._window_pos.x > AREA.end.x + 200.0, "past the end of the ground")

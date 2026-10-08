@@ -15,7 +15,7 @@ const WISH_STATE := {
 	Wish.THINK: State.THINK,
 	Wish.ALERT: State.ALERT,
 	Wish.WAIT: State.WAIT,
-	# Reads again and again, as long as it is asked to.
+	# Reads on, as long as it is asked to.
 	Wish.READ: State.READ,
 }
 ## States that end on their own, with their duration in seconds.
@@ -244,7 +244,8 @@ func _process(delta: float) -> void:
 			if WISH_STATE.get(wish) != state:
 				_enter(State.IDLE)
 		State.STRETCH, State.CHEER, State.GLARE, State.HIGH_FIVE, State.WORRY, State.ROAST, State.KNOCK, State.SWEEP, State.THROW, State.READ, State.NOD:
-			if state_time >= TIMED[state]:
+			# A pet asked to read goes on: no moment without its letter in between.
+			if state_time >= TIMED[state] and WISH_STATE.get(wish) != state:
 				_enter(State.IDLE)
 		State.GREET:
 			if state_time >= TIMED[state]:

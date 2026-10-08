@@ -295,3 +295,18 @@ func test_pet_walks_off_by_the_nearest_side() -> void:
 	step(pet, 20.0)
 	check(pet.is_off(), "then out of sight")
 	check(pet._window_pos.x > AREA.end.x + 200.0, "past the end of the ground")
+
+
+func test_pet_asked_to_read_never_puts_its_letter_down() -> void:
+	var pet := make_pet()
+	pet.wish = Pet.Wish.READ
+	step(pet, 0.1)
+	check_equal(pet.state, Pet.State.READ, "reads")
+	var put_down := false
+	for i in 100:
+		step(pet, 0.05)
+		put_down = put_down or pet.state != Pet.State.READ
+	check(not put_down, "five seconds without a moment in another state")
+	pet.wish = Pet.Wish.ROAM
+	step(pet, 0.1)
+	check_equal(pet.state, Pet.State.IDLE, "stops when it is no longer asked to")

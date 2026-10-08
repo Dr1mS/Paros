@@ -157,15 +157,24 @@ const CAPTION_MAX_LENGTH := 110
 const SMOKE_FROM := 0.75
 ## Widest caption of a small pet, in pixels: one line, cut when longer.
 const SMALL_CAPTION_WIDTH := 110.0
-## Word on the belly, in blocks like the rest of the mascot: its middle from
-## the feet, in grid units, the size of a block, and the letters it can show.
-const BADGE_Y := -3.9
-const BADGE_PIXEL := 4.5
-const BADGE_LETTERS := {
-	"B": ["XXX.", "X..X", "XXX.", "X..X", "XXX."],
-	"O": [".XX.", "X..X", "X..X", "X..X", ".XX."],
-	"S": [".XXX", "X...", ".XX.", "...X", "XXX."],
-}
+## What a sage wears in place of an accessory: a pointy hat with two stars.
+const SAGE_HAT := {"room": 7.5, "blocks": [
+	[Rect2(-5.5, -11, 11, 1), Color("#3d2f7a")], [Rect2(-4, -12.5, 8, 1.5), Color("#4b3a8c")],
+	[Rect2(-3, -14, 6, 1.5), Color("#4b3a8c")], [Rect2(-2, -15.5, 4, 1.5), Color("#4b3a8c")],
+	[Rect2(-1, -17, 2, 1.5), Color("#4b3a8c")],
+	[Rect2(-2.4, -12.2, 0.8, 0.8), GOLD], [Rect2(0.8, -14.9, 0.7, 0.7), GOLD],
+]}
+## Its white beard, over the lower body and down between the legs.
+const SAGE_BEARD: Array[Array] = [
+	[Rect2(-4, -5.6, 8, 1.4), PAPER], [Rect2(-3.2, -4.2, 6.4, 1.4), PAPER], [Rect2(-2, -2.8, 4, 1.4), PAPER],
+	[Rect2(-1, -1.4, 2, 1), PAPER], [Rect2(-0.5, -5.6, 1, 0.5), SMOKE],
+]
+## Its staff with a glowing orb, held on the back side. Mirrored when the pet
+## faces left.
+const SAGE_STAFF: Array[Array] = [
+	[Rect2(-8.7, -13.2, 0.7, 13.2), WOOD], [Rect2(-9.3, -15, 1.9, 1.9), SWEAT],
+	[Rect2(-8.9, -14.6, 0.6, 0.6), PAPER],
+]
 ## Sheet of paper held above the head.
 const HELD_SHEET := Rect2(-3, -15.5, 6, 4)
 
@@ -206,7 +215,7 @@ func _process(_delta: float) -> void:
 ## Everything of the pet that the picture depends on, time aside.
 func _look() -> int:
 	return [
-		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.sheet, _pet.stature, _pet.badge,
+		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.sheet, _pet.stature, _pet.sage,
 		_pet.urgent, _pet.hovered, _pet.fullness >= SMOKE_FROM, _pet.baggage, _pet.hard_hat, _pet.lost,
 		_pet.tapping, _pet.umbrella, _pet.meditating, _pet.headlamp, _pet.cool, _pet.discreet,
 		_pet.rooted, _pet.is_perched(), _pet.grooving, _pet.mail, _pet.mailbox_side(), _pet.serving,
@@ -320,13 +329,9 @@ func _draw() -> void:
 		_blocks(SHADES, body_offset, false)
 	else:
 		_draw_eyes(state, body_offset, meditating)
-	if not _pet.badge.is_empty():
-		# The letters side by side, one empty column between two.
-		var rows: PackedStringArray = ["", "", "", "", ""]
-		for letter in _pet.badge:
-			for row in rows.size():
-				rows[row] += ("" if rows[row].is_empty() else ".") + BADGE_LETTERS.get(letter, ["....", "....", "....", "....", "...."])[row]
-		_draw_pixels(rows, BADGE_PIXEL, GROUND + body_offset + Vector2(0, BADGE_Y * UNIT), EYE)
+	if _pet.sage:
+		_blocks(SAGE_BEARD, body_offset, false)
+		_blocks(SAGE_STAFF, Vector2.ZERO, true)
 	if _pet.headlamp and state != Pet.State.SLEEP:
 		_blocks(HEADLAMP, body_offset, true)
 	if state == Pet.State.SWEEP:
@@ -335,7 +340,9 @@ func _draw() -> void:
 		_draw_mantra(body_offset, true)
 
 	var worn: Dictionary = HARD_HAT
-	if not _pet.hard_hat:
+	if _pet.sage:
+		worn = SAGE_HAT
+	elif not _pet.hard_hat:
 		worn = ACCESSORIES[_pet.accessory if Settings.value("pet", "accessories") else 0]
 	_blocks(worn.blocks, body_offset, false)
 	if _pet.umbrella:

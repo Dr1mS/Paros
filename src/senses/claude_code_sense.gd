@@ -19,7 +19,8 @@ extends Node
 ##     1: for a while, 2: for long,
 ##   session_needs_you {detail}, session_finished,
 ##   session_advisor {asking}: the session asked the advisor, then got its
-##     answer. What they say is not readable,
+##     answer. What they say is not readable. Claude Code writes the call
+##     once the answer is there: both come one after the other,
 ##   session_tool_failed {tool, detail, kind, agent: id of the subagent it
 ##     comes from, empty for the session}, session_tests_passed,
 ##   session_message_sent {to}: the session wrote to the session of that name,
@@ -60,6 +61,9 @@ const AGENT_MARK := '"status":"async_launched"'
 ## that runs on the server: no hook tells it. Then in the line of its answer.
 const ADVISOR_CALL_MARKS: Array[String] = ['"type":"server_tool_use"', '"name":"advisor"']
 const ADVISOR_RESULT_MARK := '"type":"advisor_tool_result"'
+## Claude Code writes the call in the transcript once the advisor has
+## answered: a call older than this many seconds when it is read is over.
+const ADVISOR_LATE_SECONDS := 2.0
 ## Hook events of the session itself that tell the advisor answered.
 const ADVISOR_OVER: Array[String] = ["PreToolUse", "Stop", "UserPromptSubmit"]
 ## Tools that start a subagent. Their description names it.
@@ -259,6 +263,9 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 				_set_advising(id, false)
 			elif ADVISOR_CALL_MARKS.all(func(mark: String) -> bool: return mark in line):
 				_set_advising(id, true)
+				var asked := _timestamp.search(line)
+				if asked and Time.get_unix_time_from_system() - Time.get_unix_time_from_datetime_string(asked.get_string(1)) > ADVISOR_LATE_SECONDS:
+					_set_advising(id, false)
 		if LAUNCH_MARK in line:
 			for block in _tool_uses(line, SHELL_TOOL):
 				session.launches[block.get("id", "")] = is_server(str(block.input.get("command", "")))

@@ -99,7 +99,7 @@ var accessory := 0
 ## Short text above the head while thinking.
 var caption := ""
 ## Size of the body against a normal pet. Under 1: the small pet of a
-## subagent. Over 1: the boss.
+## subagent. Over 1: the sage.
 var stature := 1.0:
 	set(value):
 		stature = value
@@ -108,8 +108,8 @@ var stature := 1.0:
 ## Side by which the pet leaves the ground and walks out of sight (-1 left,
 ## 1 right). 0: it stays on the ground.
 var exit_side := 0.0
-## Word written on its belly. Empty: none.
-var badge := ""
+## A sage: pointy hat, white beard, and a staff in its hand.
+var sage := false
 ## Holds a sheet of paper above its head.
 var sheet := false
 ## Middle of the zone the pet roams in, as a screen x of its feet, and how far

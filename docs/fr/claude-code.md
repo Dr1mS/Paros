@@ -36,7 +36,7 @@ Paros suit les sessions Claude Code interactives de la machine, pour l'utilisate
 | Outil lancé par un sous-agent | Légende courte au-dessus de son petit personnage : « Read · pet.gd ». Une ligne, coupée si elle est longue. La légende du grand personnage ne change pas |
 | Outil échoué dans un sous-agent | Son petit personnage tremble. Pas de son |
 | Sous-agent fini | Son petit personnage saute, cœurs, puis court rejoindre le grand et disparaît |
-| Advisor consulté | Le boss arrive : un personnage plus grand, « BOSS » écrit sur le ventre. Voir [Advisor](#advisor) |
+| Advisor consulté | Le sage vient : un personnage plus grand, chapeau pointu, barbe blanche et bâton. Voir [Advisor](#advisor) |
 | Tests réussis | Saut, bulle « Tests verts ! » |
 | Tests échoués | Tremble, bulle « Tests rouges », deux notes descendantes |
 | Autre commande échouée | Tremble, goutte de sueur, deux notes descendantes |
@@ -110,16 +110,16 @@ Tout se règle dans les réglages, partie « Sous-agents » : voir [Utilisation]
 
 ## Advisor
 
-L'advisor est un modèle plus fort qu'une session consulte en cours de travail. Quand une session le consulte, le boss arrive à côté de son personnage : une mascotte une fois et demie plus grande, en haut-de-forme, « BOSS » écrit en blocs sur le ventre.
+L'advisor est un modèle plus fort qu'une session consulte en cours de travail. Quand une session l'a consulté, le sage vient à côté de son personnage : une mascotte une fois et demie plus grande, avec un chapeau pointu étoilé, une barbe blanche et un bâton surmonté d'un orbe.
 
-1. Le boss entre en marchant vite, du côté où l'écran a le plus de place.
-2. Le personnage lui lance une lettre et se tourne vers lui. Sa légende dit « Demande au boss ».
-3. Le boss lit la lettre, tant que l'advisor n'a pas répondu.
-4. À la réponse, le boss relance une lettre au personnage, qui la lit. Puis le boss sort de l'écran par le bord le plus proche, et disparaît une fois hors de vue.
+1. Le sage entre en marchant vite, du côté où l'écran a le plus de place.
+2. Le personnage lui lance une lettre et se tourne vers lui. Sa légende dit « Demande au sage ».
+3. Le sage lit la lettre.
+4. Le sage relance une lettre au personnage, qui la lit. Puis il sort de l'écran par le bord le plus proche, et disparaît une fois hors de vue.
 
-Le boss reste au moins 5 secondes, pour qu'une réponse rapide se voie. La réponse de l'advisor est écrite tard dans le transcript, ou pas du tout : le prochain outil de la session, ou la fin de son tour, vaut réponse. Sans rien de tout cela, le boss part au bout de 5 minutes. Ce que la session demande et ce que l'advisor répond ne sont pas lisibles : Paros sait seulement qu'un appel a lieu.
+La scène se joue après coup. Claude Code n'écrit l'appel dans le transcript qu'une fois la réponse de l'advisor arrivée, et rien d'autre ne le signale avant : ni hook, ni fichier. Le sage arrive donc quand le conseil est déjà donné, et reste 5 secondes. Ce que la session demande et ce que l'advisor répond ne sont pas lisibles : Paros sait seulement qu'un appel a eu lieu.
 
-Le réglage « Le boss vient quand l'advisor est consulté » le coupe.
+Le réglage « Le sage vient quand l'advisor est consulté » le coupe.
 
 ## D'où viennent les informations
 
@@ -192,5 +192,5 @@ Le fichier `$XDG_RUNTIME_DIR/paros/claude-events.log` contient en clair les noms
 - Les sous-agents sont suivis par les événements `SubagentStart` et `SubagentStop`, par identifiant : un `SubagentStop` sans `SubagentStart` connu est ignoré, Claude Code en envoie à chaque fin de tour. Un `SubagentStop` manqué laisse un petit personnage jusqu'à la fermeture de la session.
 - Le nom d'un sous-agent est la description de l'outil `Agent` lancé juste avant lui. Deux sous-agents lancés en même temps peuvent échanger leurs noms.
 - Un sous-agent ne dit ni qu'il attend ni qu'il réfléchit : son petit personnage joue, quoi qu'il fasse.
-- L'advisor tourne côté serveur : aucun hook ne le signale. Paros le voit dans le transcript, au rythme de sa lecture (deux fois par seconde). Un appel fait avant le lancement de Paros n'est pas vu.
+- L'advisor tourne côté serveur : aucun hook ne le signale, et le transcript n'en parle qu'une fois sa réponse arrivée. Le sage vient après coup. Un appel fait avant le lancement de Paros n'est pas vu.
 - Le script demande un shell POSIX. Sous Windows, Claude Code lance les hooks avec Git Bash.

@@ -124,7 +124,7 @@ Right-click, "Settings…". Each change applies and is saved at once. Settings a
 | Show the tool in use | yes | `claude/show_activity` | Caption above the head while working |
 | Remind after waiting for | 2 min | `claude/nag_minutes` | Delay before the reminder of a waiting session |
 | Knock when the terminal is not focused | yes | `claude/knock` | Knocking on the screen edge |
-| The boss comes when the advisor is asked | yes | `claude/boss` | See [Advisor](claude-code.md#advisor) |
+| The sage comes when the advisor is asked | yes | `claude/sage` | See [Advisor](claude-code.md#advisor) |
 | Model context, in thousands of tokens | 1000 k | `claude/context_window_k` | Size of the context window of the model. Used to know when the head smokes |
 | Follow the git status of folders | yes | `git/enabled` | Runs `git` every 10 seconds in the folder of each session |
 

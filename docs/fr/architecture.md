@@ -121,7 +121,7 @@ Tous portent `session`, l'identifiant de la session.
 | `session_quiet` | `level` (0, 1, 2) | Tape du pied, médite |
 | `session_subagents` | `count`, `agents` (`id`, `name`, `tool` et `detail` de chacun) | Un petit personnage par sous-agent, avec sa légende |
 | `session_background` | `background`, `servers` | Sablier tant que le tour est fini et qu'une tâche en arrière-plan tourne. Pas de « Tâche finie ! ». Yeux verts tant qu'un serveur tourne |
-| `session_advisor` | `asking` | Le boss arrive et lit une lettre, puis répond et repart |
+| `session_advisor` | `asking` | Le sage vient, lit une lettre, répond et sort de l'écran |
 | `session_message_sent` | `to`, le nom d'une session | Le personnage lance une lettre au personnage de cette session. Son tour fini, il attend la réponse tant que cette session travaille |
 | `session_mail` | `mail` | Boîte aux lettres tant que des messages d'autres sessions attendent d'être lus. Lecture de la lettre quand l'une sort |
 | `session_collision` | `other`, `file`, `path` | Les deux personnages se toisent, bulle, son. Rivaux pendant 10 minutes |

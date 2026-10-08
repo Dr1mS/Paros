@@ -508,4 +508,13 @@ func test_advisor_calls_are_read_from_the_transcript() -> void:
 	write(sense._log_path, "\t".join(["PreToolUse", SESSION, "", "Read", "x", "", "a1"]) + "\n" + "\t".join(["PreToolUse", SESSION, "", "Edit", "y", "", ""]) + "\n")
 	sense._poll()
 	check_equal(last_event(&"session_advisor").get("asking"), false, "the next tool of the session: the answer came, even if the transcript does not say so")
+
+	record_events()
+	file = FileAccess.open(transcript, FileAccess.READ_WRITE)
+	file.seek_end()
+	file.store_string(call.replace('{"type":"assistant"', '{"type":"assistant","timestamp":"2020-01-01T00:00:00.000Z"') + "\n")
+	file.close()
+	sense._poll()
+	var told := _events.filter(func(event: Array) -> bool: return event[0] == &"session_advisor").map(func(event: Array) -> bool: return event[1].asking)
+	check_equal(told, [true, false], "a call written long after it was made is told, then over at once")
 	sense.free()

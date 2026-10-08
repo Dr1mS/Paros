@@ -3,7 +3,7 @@ extends Node
 ## of the small pets: see small_pets.gd.
 ## One pet per Claude Code session. With no session, one pet with no name.
 ## One small pet per running subagent, beside the pet of its session.
-## One boss beside a pet whose session asks the advisor.
+## One sage beside a pet whose session asks the advisor.
 
 ## Key of the pet shown when no session exists.
 const NO_SESSION := ""
@@ -45,25 +45,24 @@ const TOWER_WIDTH := 200.0
 const RIVAL_SECONDS := 600.0
 ## Seconds of sunglasses after a commit that leaves nothing to commit.
 const COOL_SECONDS := 60.0
-## The boss: the advisor a session asks, as a bigger pet with a word on its
-## belly and a top hat. Its key from the key of the session, its body size
-## against a normal pet, and its accessory.
-const BOSS_KEY := "%s/boss"
-const BOSS_STATURE := 1.5
-const BOSS_BADGE := "BOSS"
-const BOSS_HAT := 1
-## Distance from the pet where the boss stands, and from where it walks in,
+## The sage: the advisor a session asks, as a bigger pet with a pointy hat, a
+## beard and a staff. Its key from the key of the session, and its body size
+## against a normal pet.
+const SAGE_KEY := "%s/sage"
+const SAGE_STATURE := 1.5
+## Distance from the pet where the sage stands, and from where it walks in,
 ## at size 1.
-const BOSS_GAP := 230.0
-const BOSS_ENTRY := 460.0
-const BOSS_HURRY := 2.0
-## The boss stays at least this long, so that a quick answer is seen. And no
-## longer than that: the answer of the advisor may be missed.
-const BOSS_MIN_SECONDS := 5.0
-const BOSS_MAX_SECONDS := 300.0
-## Once it answered, the boss walks off the screen. It is removed there, or
+const SAGE_GAP := 230.0
+const SAGE_ENTRY := 460.0
+const SAGE_HURRY := 2.0
+## The sage stays at least this long: Claude Code tells of a call to the
+## advisor once it has answered, so the scene plays after the fact. And no
+## longer than that, should a call be told before its answer.
+const SAGE_MIN_SECONDS := 5.0
+const SAGE_MAX_SECONDS := 300.0
+## Once it answered, the sage walks off the screen. It is removed there, or
 ## after this many seconds: it may be held back on its way.
-const BOSS_LEAVE_SECONDS := 30.0
+const SAGE_LEAVE_SECONDS := 30.0
 const SmallPets := preload("res://src/brain/small_pets.gd")
 
 @export var pets: Pets
@@ -79,9 +78,9 @@ var _music := false
 ## its pet), "origin" and "from" (what started its turn), "dispute" and "dispute_until" (file it fights
 ## over with another session, and until when), "asked" (id of the
 ## session it wrote to in that turn), "owed" (a cheer held back by a turn that
-## ended on a wait), "boss" (&"asked" while its boss reads, &"leaving" once it
-## answered), "boss_since", "boss_done" (when the boss answers) and
-## "boss_gone" (when it is removed). Times are Unix times.
+## ended on a wait), "sage" (&"asked" while its sage reads, &"leaving" once it
+## answered), "sage_since", "sage_done" (when the sage answers) and
+## "sage_gone" (when it is removed). Times are Unix times.
 var _sessions := {}
 ## Frame of the focused window. No size: none, or not known.
 var _active_window := Rect2()
@@ -187,7 +186,7 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			if pet in _tower:
 				_fell_tower()
 			_small.drop(data.session)
-			pets.remove(BOSS_KEY % data.session)
+			pets.remove(SAGE_KEY % data.session)
 			pets.remove(data.session)
 			_sessions.erase(data.session)
 			if pets.keys().is_empty():
@@ -196,13 +195,13 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			pet.urgent = false
 		&"session_advisor":
 			if data.asking:
-				_call_boss(data.session)
+				_call_sage(data.session)
 			else:
-				_boss_answers(data.session)
+				_sage_answers(data.session)
 		&"session_finished":
 			var session: Dictionary = _sessions[data.session]
 			# The turn is over: so is the question to the advisor.
-			_boss_answers(data.session)
+			_sage_answers(data.session)
 			# A turn started by another session is not something the user asked.
 			var for_user: bool = session.get("origin", &"human") != &"peer" or session.get("owed", false)
 			if _awaits(session):
@@ -248,8 +247,8 @@ func _on_sensed(event: StringName, data: Dictionary) -> void:
 			reader.inbound = maxi(reader.get("inbound", 0) - 1, 0)
 			if reader.get("mail", 0) == 0:
 				pet.read_letter()
-			if _sessions.get(pet.key.trim_suffix(BOSS_KEY % ""), {}).get("boss") == &"asked" and pet.badge == BOSS_BADGE:
-				# The boss reads on, until the advisor answers.
+			if _sessions.get(pet.key.trim_suffix(SAGE_KEY % ""), {}).get("sage") == &"asked" and pet.sage:
+				# The sage reads on, until the advisor answers.
 				pet.wish = Pet.Wish.READ
 		&"session_needs_you":
 			pet.say(data.detail if not data.detail.is_empty() else tr("Claude is waiting for you"))
@@ -329,7 +328,7 @@ func _tick() -> void:
 ## Sets what follows from the whole state: look, wish, caption and card of
 ## each pet.
 func _refresh() -> void:
-	_run_bosses()
+	_run_sages()
 	for key: String in pets.keys():
 		var pet := pets.find(key)
 		var session: Dictionary = _sessions.get(key, {})
@@ -355,15 +354,15 @@ func _refresh() -> void:
 		pet.avoid = _covered if Settings.value("desktop", "leave_fullscreen") else no_screen
 		var shown: bool = Settings.value("claude", "show_activity")
 		pet.caption = _activity(session) if phase == &"working" and shown else ""
-		var boss := pets.find(BOSS_KEY % key)
-		if boss:
-			boss.discreet = pet.discreet
-			boss.avoid = pet.avoid
-			boss.headlamp = pet.headlamp
-			if session.get("boss") == &"asked":
-				pet.look_toward(boss.feet().x)
+		var sage := pets.find(SAGE_KEY % key)
+		if sage:
+			sage.discreet = pet.discreet
+			sage.avoid = pet.avoid
+			sage.headlamp = pet.headlamp
+			if session.get("sage") == &"asked":
+				pet.look_toward(sage.feet().x)
 				if not pet.caption.is_empty():
-					pet.caption = tr("Asks the boss")
+					pet.caption = tr("Asks the sage")
 		pet.show_card(_card(session) if pet.hovered else "")
 		var agents: Array = session.get("agents", [])
 		var texts := {}
@@ -440,63 +439,62 @@ func _send_cuddler(pointer: Vector2) -> void:
 		nearest.walk_to(pointer.x + side * CUDDLE_GAP * nearest.scale_factor())
 
 
-## The session asks the advisor: the boss walks in beside its pet, which
-## throws it a letter. The boss reads it until the answer comes.
-func _call_boss(key: String) -> void:
+## The session asks the advisor: the sage walks in beside its pet, which
+## throws it a letter. The sage reads it until the answer comes.
+func _call_sage(key: String) -> void:
 	var session: Dictionary = _sessions[key]
-	if not Settings.value("claude", "boss") or session.get("boss") == &"asked":
+	if not Settings.value("claude", "sage") or session.get("sage") == &"asked":
 		return
 	var pet := pets.find(key)
-	var boss := pets.find(BOSS_KEY % key)
-	if boss:
+	var sage := pets.find(SAGE_KEY % key)
+	if sage:
 		# Asked again on its way out: it comes back.
-		boss.exit_side = 0.0
-		boss.walk_to(pet.feet().x + signf(boss.feet().x - pet.feet().x) * BOSS_GAP * pet.scale_factor(), Pet.State.IDLE, BOSS_HURRY)
+		sage.exit_side = 0.0
+		sage.walk_to(pet.feet().x + signf(sage.feet().x - pet.feet().x) * SAGE_GAP * pet.scale_factor(), Pet.State.IDLE, SAGE_HURRY)
 	else:
 		var size := pet.scale_factor()
 		# On the side of the pet where the screen has more room.
 		var screen := Desktop.screen_at(pet.feet())
 		var side := -1.0 if screen.has_area() and pet.feet().x > screen.get_center().x else 1.0
-		boss = pets.add_guest(BOSS_KEY % key, BOSS_STATURE)
-		boss.badge = BOSS_BADGE
-		boss.accessory = BOSS_HAT
-		boss.place_at(pet.feet() + Vector2(side * BOSS_ENTRY * size, 0))
-		boss.walk_to(pet.feet().x + side * BOSS_GAP * size, Pet.State.IDLE, BOSS_HURRY)
-	session.boss = &"asked"
-	session.boss_since = _now()
-	session.boss_done = INF
-	pets.send_letter(pet, boss)
+		sage = pets.add_guest(SAGE_KEY % key, SAGE_STATURE)
+		sage.sage = true
+		sage.place_at(pet.feet() + Vector2(side * SAGE_ENTRY * size, 0))
+		sage.walk_to(pet.feet().x + side * SAGE_GAP * size, Pet.State.IDLE, SAGE_HURRY)
+	session.sage = &"asked"
+	session.sage_since = _now()
+	session.sage_done = INF
+	pets.send_letter(pet, sage)
 
 
-## The advisor answered, or the turn ended: the boss answers too, but not
+## The advisor answered, or the turn ended: the sage answers too, but not
 ## before it was seen.
-func _boss_answers(key: String) -> void:
+func _sage_answers(key: String) -> void:
 	var session: Dictionary = _sessions[key]
-	if session.get("boss") == &"asked":
-		session.boss_done = minf(session.boss_done, maxf(_now(), session.boss_since + BOSS_MIN_SECONDS))
+	if session.get("sage") == &"asked":
+		session.sage_done = minf(session.sage_done, maxf(_now(), session.sage_since + SAGE_MIN_SECONDS))
 
 
-## The boss throws its answer back when it is time, then walks off the screen.
-func _run_bosses() -> void:
+## The sage throws its answer back when it is time, then walks off the screen.
+func _run_sages() -> void:
 	for key: String in _sessions:
 		var session: Dictionary = _sessions[key]
-		var boss := pets.find(BOSS_KEY % key)
-		if boss == null:
-			session.boss = &""
+		var sage := pets.find(SAGE_KEY % key)
+		if sage == null:
+			session.sage = &""
 			continue
-		match session.get("boss", &""):
+		match session.get("sage", &""):
 			&"asked":
-				if _now() >= minf(session.boss_done, session.boss_since + BOSS_MAX_SECONDS):
-					session.boss = &"leaving"
-					session.boss_gone = _now() + BOSS_LEAVE_SECONDS
-					boss.wish = Pet.Wish.ROAM
-					pets.send_letter(boss, pets.find(key))
+				if _now() >= minf(session.sage_done, session.sage_since + SAGE_MAX_SECONDS):
+					session.sage = &"leaving"
+					session.sage_gone = _now() + SAGE_LEAVE_SECONDS
+					sage.wish = Pet.Wish.ROAM
+					pets.send_letter(sage, pets.find(key))
 			&"leaving":
-				if boss.is_off() or _now() >= session.boss_gone:
-					pets.remove(BOSS_KEY % key)
-					session.boss = &""
-				elif boss.is_free():
-					boss.walk_off(BOSS_HURRY)
+				if sage.is_off() or _now() >= session.sage_gone:
+					pets.remove(SAGE_KEY % key)
+					session.sage = &""
+				elif sage.is_free():
+					sage.walk_off(SAGE_HURRY)
 
 
 ## GNOME turns the monitors off as soon as the screen is locked, and again
@@ -612,8 +610,8 @@ func _card(session: Dictionary) -> String:
 		match session.phase:
 			&"working":
 				lines.append(tr("Working for %s") % lasted)
-				if session.get("boss") == &"asked":
-					lines.append(tr("Asks the boss for %s") % _duration(_now() - session.boss_since))
+				if session.get("sage") == &"asked":
+					lines.append(tr("Asks the sage for %s") % _duration(_now() - session.sage_since))
 				elif not _activity(session).is_empty():
 					lines.append(_activity(session))
 			&"waiting":

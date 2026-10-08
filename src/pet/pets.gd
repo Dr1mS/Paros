@@ -84,7 +84,7 @@ func _process(_delta: float) -> void:
 		for j in range(i + 1, all.size()):
 			var a: Pet = all[i]
 			var b: Pet = all[j]
-			# Small pets play among themselves: see small_pets.gd. The boss is busy.
+			# Small pets play among themselves: see small_pets.gd. The sage is busy.
 			if a.stature != 1.0 or b.stature != 1.0:
 				continue
 			if not (a.is_free() and b.is_free()) or not _are_near(a, b, MEET_DISTANCE):

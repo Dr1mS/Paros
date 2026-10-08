@@ -121,7 +121,7 @@ All carry `session`, the session id.
 | `session_quiet` | `level` (0, 1, 2) | Foot tapping, meditation |
 | `session_subagents` | `count`, `agents` (`id`, `name`, `tool` and `detail` of each) | A small pet per subagent, with its caption |
 | `session_background` | `background`, `servers` | Hourglass while the turn is over and a background task still runs. No "Task done!". Green eyes while a server runs |
-| `session_advisor` | `asking` | The boss comes and reads a letter, then answers and leaves |
+| `session_advisor` | `asking` | The sage comes, reads a letter, answers and walks off the screen |
 | `session_message_sent` | `to`, the name of a session | The pet throws a letter to the pet of that session. Once its turn is over, it waits for the answer while that session works |
 | `session_mail` | `mail` | Mailbox while messages of other sessions wait to be read. Reading of the letter when one leaves |
 | `session_collision` | `other`, `file`, `path` | The two pets glare, bubble, sound. Rivals for 10 minutes |

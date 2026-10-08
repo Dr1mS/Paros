@@ -61,7 +61,7 @@ Le sens d'une ligne est déduit de son contenu. Quand il n'est pas établi, c'es
 | `attachment` `model` (75) | Modèle de la session | **piste** : ligne de la carte |
 | `system` `model_refusal_fallback` (1) | Refus du modèle, puis bascule sur un autre modèle | **piste** : rare |
 | `attachment` `advisor_tool` (10) | Un modèle conseiller est disponible | — |
-| `assistant`, bloc `server_tool_use` de nom `advisor` ; bloc `advisor_tool_result` | Appel à l'advisor, puis sa réponse. Question vide, réponse chiffrée | **fait** : le boss arrive, lit une lettre, répond |
+| `assistant`, bloc `server_tool_use` de nom `advisor` ; bloc `advisor_tool_result` | Appel à l'advisor, puis sa réponse. Question vide, réponse chiffrée | **fait** : le sage vient après coup, lit une lettre, répond. La ligne d'appel n'est écrite qu'à la réponse |
 
 ## Modes et permissions
 

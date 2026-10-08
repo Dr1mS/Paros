@@ -18,6 +18,8 @@ extends Node
 ##   session_quiet {level}: working with no hook event, 0: for a moment,
 ##     1: for a while, 2: for long,
 ##   session_needs_you {detail}, session_finished,
+##   session_advisor {asking}: the session asked the advisor, then got its
+##     answer. What they say is not readable,
 ##   session_tool_failed {tool, detail, kind, agent: id of the subagent it
 ##     comes from, empty for the session}, session_tests_passed,
 ##   session_message_sent {to}: the session wrote to the session of that name,
@@ -54,6 +56,10 @@ const USAGE_MARK := '"usage":{'
 ## started in the background.
 const COMMAND_MARK := '"backgroundTaskId":"'
 const AGENT_MARK := '"status":"async_launched"'
+## In the transcript line of an answer that asks the advisor, a stronger model
+## that runs on the server: no hook tells it. Then in the line of its answer.
+const ADVISOR_CALL_MARKS: Array[String] = ['"type":"server_tool_use"', '"name":"advisor"']
+const ADVISOR_RESULT_MARK := '"type":"advisor_tool_result"'
 ## Tools that start a subagent. Their description names it.
 const AGENT_TOOLS: Array[String] = ["Agent", "Task"]
 ## In the transcript line of an answer that starts a command in the background.
@@ -244,6 +250,12 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 		if SEND_MARK in line and session.known:
 			for name in _recipients(line):
 				Events.post(&"session_message_sent", {"session": id, "to": name})
+		# Calls made before the first reading are old.
+		if session.known:
+			if ADVISOR_RESULT_MARK in line:
+				Events.post(&"session_advisor", {"session": id, "asking": false})
+			elif ADVISOR_CALL_MARKS.all(func(mark: String) -> bool: return mark in line):
+				Events.post(&"session_advisor", {"session": id, "asking": true})
 		if LAUNCH_MARK in line:
 			for block in _tool_uses(line, SHELL_TOOL):
 				session.launches[block.get("id", "")] = is_server(str(block.input.get("command", "")))

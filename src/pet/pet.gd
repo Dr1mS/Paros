@@ -8,13 +8,15 @@ enum State {
 	KNOCK, SWEEP, CLIMB, CARRIED, FALL, WAIT, THROW, READ, NOD,
 }
 ## Standing order from the brain. The pet obeys as soon as it is idle.
-enum Wish { ROAM, SLEEP, THINK, ALERT, WAIT }
+enum Wish { ROAM, SLEEP, THINK, ALERT, WAIT, READ }
 
 const WISH_STATE := {
 	Wish.SLEEP: State.SLEEP,
 	Wish.THINK: State.THINK,
 	Wish.ALERT: State.ALERT,
 	Wish.WAIT: State.WAIT,
+	# Reads again and again, as long as it is asked to.
+	Wish.READ: State.READ,
 }
 ## States that end on their own, with their duration in seconds.
 const TIMED := {
@@ -97,12 +99,14 @@ var accessory := 0
 ## Short text above the head while thinking.
 var caption := ""
 ## Size of the body against a normal pet. Under 1: the small pet of a
-## subagent.
+## subagent. Over 1: the boss.
 var stature := 1.0:
 	set(value):
 		stature = value
 		if is_node_ready():
 			_apply_settings()
+## Word written on its belly. Empty: none.
+var badge := ""
 ## Holds a sheet of paper above its head.
 var sheet := false
 ## Middle of the zone the pet roams in, as a screen x of its feet, and how far

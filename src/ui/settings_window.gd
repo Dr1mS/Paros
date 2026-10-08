@@ -25,6 +25,7 @@ const FIELDS := [
 	["claude", "show_activity", "Show the tool in use"],
 	["claude", "nag_minutes", "Remind after waiting for", 0.5, 60.0, 0.5, "min"],
 	["claude", "knock", "Knock when the terminal is not focused"],
+	["claude", "boss", "The boss comes when the advisor is asked"],
 	["claude", "context_window_k", "Model context, in thousands of tokens", 100, 2000, 100, "k"],
 	["git", "enabled", "Follow the git status of folders"],
 	["Subagents"],

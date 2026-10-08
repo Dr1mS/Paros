@@ -42,6 +42,8 @@ const SMOOTH_GROUP := &"smooth_frames"
 var _pets := {}
 ## Keys of the small pets.
 var _small := {}
+## Keys of the pets that stand for no session and no subagent.
+var _guests := {}
 ## Pair of pets -> time of their last meeting, in seconds.
 var _met := {}
 ## Pet -> time of its last success, in seconds.
@@ -82,8 +84,8 @@ func _process(_delta: float) -> void:
 		for j in range(i + 1, all.size()):
 			var a: Pet = all[i]
 			var b: Pet = all[j]
-			# Small pets play among themselves: see small_pets.gd.
-			if a.stature < 1.0 or b.stature < 1.0:
+			# Small pets play among themselves: see small_pets.gd. The boss is busy.
+			if a.stature != 1.0 or b.stature != 1.0:
 				continue
 			if not (a.is_free() and b.is_free()) or not _are_near(a, b, MEET_DISTANCE):
 				continue
@@ -135,10 +137,21 @@ func _spread(all: Array) -> void:
 
 ## small: the pet of a subagent. It is found by its key, but keys() leaves it out.
 func add(key: String, small := false) -> Pet:
-	var window := PET_WINDOW.instantiate()
 	if small:
-		window.get_node("Pet").stature = Settings.value("subagents", "size")
 		_small[key] = true
+	return _spawn(key, Settings.value("subagents", "size") if small else 1.0)
+
+
+## A pet that stands for no session and no subagent, of the given body size.
+## It is found by its key, but keys() leaves it out.
+func add_guest(key: String, stature: float) -> Pet:
+	_guests[key] = true
+	return _spawn(key, stature)
+
+
+func _spawn(key: String, stature: float) -> Pet:
+	var window := PET_WINDOW.instantiate()
+	window.get_node("Pet").stature = stature
 	add_child(window)
 	# No vertical sync: a synced frame waits for the screen, and a window that
 	# is not shown gets about one frame per second. The lock screen shows
@@ -177,15 +190,16 @@ func remove(key: String) -> void:
 		_pets[key].get_window().queue_free()
 		_pets.erase(key)
 		_small.erase(key)
+		_guests.erase(key)
 
 
 func find(key: String) -> Pet:
 	return _pets.get(key)
 
 
-## Keys of the pets, the small ones aside.
+## Keys of the pets of the sessions: the small ones and the guests aside.
 func keys() -> Array:
-	return _pets.keys().filter(func(key: String) -> bool: return not _small.has(key))
+	return _pets.keys().filter(func(key: String) -> bool: return not _small.has(key) and not _guests.has(key))
 
 
 ## Notes a success of the pet. Claps hands with a near pet that also succeeded

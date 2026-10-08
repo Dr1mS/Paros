@@ -124,6 +124,7 @@ Clic droit, « Réglages… ». Chaque changement s'applique et s'enregistre tou
 | Afficher l'outil en cours | oui | `claude/show_activity` | Légende au-dessus de la tête pendant le travail |
 | Insister après une attente de | 2 min | `claude/nag_minutes` | Délai avant le rappel d'une session qui attend |
 | Toquer quand le terminal n'a pas le focus | oui | `claude/knock` | Toc-toc au bord de l'écran |
+| Le boss vient quand l'advisor est consulté | oui | `claude/boss` | Voir [Advisor](claude-code.md#advisor) |
 | Contexte du modèle, en milliers de tokens | 1000 k | `claude/context_window_k` | Taille de la fenêtre de contexte du modèle. Sert à savoir quand la tête fume |
 | Suivre l'état git des dossiers | oui | `git/enabled` | Lance `git` toutes les 10 secondes dans le dossier de chaque session |
 

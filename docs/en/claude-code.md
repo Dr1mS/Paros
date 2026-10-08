@@ -36,6 +36,7 @@ Paros follows the interactive Claude Code sessions of the machine, for the curre
 | Tool started by a subagent | Short caption above its small pet: "Read · pet.gd". One line, cut when it is long. The caption of the big pet does not change |
 | Tool failed in a subagent | Its small pet shakes. No sound |
 | Subagent done | Its small pet jumps, hearts, then runs back to the big one and is gone |
+| Advisor asked | The boss comes: a bigger pet, with "BOSS" written on its belly. See [Advisor](#advisor) |
 | Tests passed | Jump, bubble "Green tests!" |
 | Tests failed | Shakes, bubble "Red tests", two falling notes |
 | Other failed command | Shakes, drop of sweat, two falling notes |
@@ -107,12 +108,25 @@ Sixteen small pets at most per session, fewer if the setting says so. The subage
 
 Everything is set in the settings, under "Subagents": see [Usage](usage.md#subagents).
 
+## Advisor
+
+The advisor is a stronger model that a session asks while it works. When a session asks it, the boss comes beside its pet: a mascot one and a half times bigger, in a top hat, with "BOSS" written on its belly.
+
+1. The boss walks in fast, on the side where the screen has more room.
+2. The pet throws it a letter and turns toward it. Its caption says "Asks the boss".
+3. The boss reads the letter, as long as the advisor has not answered.
+4. At the answer, the boss throws a letter back to the pet, which reads it. Then the boss walks away and is gone.
+
+The boss stays at least 5 seconds, so that a quick answer is seen. It also leaves at the end of the turn, and after 5 minutes without an answer. What the session asks and what the advisor answers cannot be read: Paros only knows that a call takes place.
+
+The setting "The boss comes when the advisor is asked" turns it off.
+
 ## Where the information comes from
 
 | Source | Gives | Note |
 |---|---|---|
 | `~/.claude/sessions/<pid>.json` | Open sessions, name, folder, status (`busy`, `waiting`, `idle`, `shell`) | Internal Claude Code format, not documented: an update may change it |
-| Session transcript, in `~/.claude/projects/` | Color (`/color`), last prompt, summary, context tokens, background tasks, messages between sessions, files written | Only the lines added since the last reading are read |
+| Session transcript, in `~/.claude/projects/` | Color (`/color`), last prompt, summary, context tokens, background tasks, messages between sessions, files written, calls to the advisor | Only the lines added since the last reading are read |
 | `$XDG_RUNTIME_DIR/paros/claude-events.log` | Tools, subagents, failures, end of turn, permission requests | Written by `hooks/claude-hook.sh` |
 | Session folder | Git status | Through the `git` command |
 
@@ -178,4 +192,5 @@ On screen, a pet shows the session name, the git branch and the tool in use. The
 - Subagents are followed through the `SubagentStart` and `SubagentStop` events, by id: a `SubagentStop` with no known `SubagentStart` is ignored, Claude Code sends some at the end of each turn. A missed `SubagentStop` leaves a small pet until the session closes.
 - The name of a subagent is the description of the `Agent` tool started just before it. Two subagents started at the same time may swap their names.
 - A subagent tells neither that it waits nor that it thinks: its small pet plays, whatever it does.
+- The advisor runs on the server: no hook tells it. Paros sees it in the transcript, at the pace it reads it (twice a second). A call made before Paros started is not seen.
 - The script needs a POSIX shell. On Windows, Claude Code runs hooks with Git Bash.

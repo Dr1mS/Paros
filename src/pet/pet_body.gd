@@ -157,6 +157,10 @@ const CAPTION_MAX_LENGTH := 110
 const SMOKE_FROM := 0.75
 ## Widest caption of a small pet, in pixels: one line, cut when longer.
 const SMALL_CAPTION_WIDTH := 110.0
+## Word on the belly: bottom of the letters from the feet, in grid units, and
+## their size.
+const BADGE_Y := -2.9
+const BADGE_FONT_SIZE := 18
 ## Sheet of paper held above the head.
 const HELD_SHEET := Rect2(-3, -15.5, 6, 4)
 
@@ -197,7 +201,7 @@ func _process(_delta: float) -> void:
 ## Everything of the pet that the picture depends on, time aside.
 func _look() -> int:
 	return [
-		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.sheet, _pet.stature,
+		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.sheet, _pet.stature, _pet.badge,
 		_pet.urgent, _pet.hovered, _pet.fullness >= SMOKE_FROM, _pet.baggage, _pet.hard_hat, _pet.lost,
 		_pet.tapping, _pet.umbrella, _pet.meditating, _pet.headlamp, _pet.cool, _pet.discreet,
 		_pet.rooted, _pet.is_perched(), _pet.grooving, _pet.mail, _pet.mailbox_side(), _pet.serving,
@@ -311,6 +315,11 @@ func _draw() -> void:
 		_blocks(SHADES, body_offset, false)
 	else:
 		_draw_eyes(state, body_offset, meditating)
+	if not _pet.badge.is_empty():
+		var width := BODY.size.x * UNIT
+		draw_string(
+			_font, GROUND + body_offset + Vector2(-width / 2.0, BADGE_Y * UNIT), _pet.badge,
+			HORIZONTAL_ALIGNMENT_CENTER, width, BADGE_FONT_SIZE, PAPER)
 	if _pet.headlamp and state != Pet.State.SLEEP:
 		_blocks(HEADLAMP, body_offset, true)
 	if state == Pet.State.SWEEP:

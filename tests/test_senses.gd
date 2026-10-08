@@ -462,3 +462,36 @@ func test_hook_script_writes_one_line_per_event() -> void:
 	check_equal(Array(lines[3].split("\t")), ["Notification", "s1", "permission_prompt", "", "Claude needs your permission", "", ""], "a question")
 	check_equal(lines[4].split("\t")[4].length(), 120, "long detail cut")
 	check_equal(Array(lines[5].split("\t")), ["SubagentStop", "s1", "", "", "Other agent", "", "a1"], "id of the subagent")
+
+
+func test_advisor_calls_are_read_from_the_transcript() -> void:
+	var sense := claude_sense()
+	var transcript := folder.path_join("claude/projects/-work").path_join(SESSION + ".jsonl")
+	var call := '{"type":"assistant","message":{"content":[{"type":"server_tool_use","id":"srvtoolu_1","name":"advisor","input":{}}]}}'
+	write(folder.path_join("claude/sessions/1.json"), registry(OS.get_process_id(), "busy"))
+	write(transcript, call + "\n")
+	sense._poll()
+	check(&"session_advisor" not in event_names(), "a call made before Paros looked is old")
+	for line: String in [
+		'{"type":"user","message":"quotes {\\"type\\":\\"server_tool_use\\",\\"name\\":\\"advisor\\"}"}',
+		'{"type":"assistant","message":{"content":[{"type":"server_tool_use","id":"srvtoolu_2","name":"web_search","input":{}}]}}',
+	]:
+		var file := FileAccess.open(transcript, FileAccess.READ_WRITE)
+		file.seek_end()
+		file.store_string(line + "\n")
+		file.close()
+		sense._poll()
+	check(&"session_advisor" not in event_names(), "neither a quoted call nor another server tool")
+	var file := FileAccess.open(transcript, FileAccess.READ_WRITE)
+	file.seek_end()
+	file.store_string(call + "\n")
+	file.close()
+	sense._poll()
+	check_equal(last_event(&"session_advisor").get("asking"), true, "the advisor is asked")
+	file = FileAccess.open(transcript, FileAccess.READ_WRITE)
+	file.seek_end()
+	file.store_string('{"type":"assistant","message":{"content":[{"type":"advisor_tool_result","tool_use_id":"srvtoolu_1","content":{"type":"advisor_redacted_result"}}]}}\n')
+	file.close()
+	sense._poll()
+	check_equal(last_event(&"session_advisor").get("asking"), false, "it answered")
+	sense.free()

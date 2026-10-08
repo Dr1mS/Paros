@@ -36,6 +36,7 @@ Paros suit les sessions Claude Code interactives de la machine, pour l'utilisate
 | Outil lancé par un sous-agent | Légende courte au-dessus de son petit personnage : « Read · pet.gd ». Une ligne, coupée si elle est longue. La légende du grand personnage ne change pas |
 | Outil échoué dans un sous-agent | Son petit personnage tremble. Pas de son |
 | Sous-agent fini | Son petit personnage saute, cœurs, puis court rejoindre le grand et disparaît |
+| Advisor consulté | Le boss arrive : un personnage plus grand, « BOSS » écrit sur le ventre. Voir [Advisor](#advisor) |
 | Tests réussis | Saut, bulle « Tests verts ! » |
 | Tests échoués | Tremble, bulle « Tests rouges », deux notes descendantes |
 | Autre commande échouée | Tremble, goutte de sueur, deux notes descendantes |
@@ -107,12 +108,25 @@ Seize petits personnages au plus par session, moins selon le réglage. Les sous-
 
 Tout se règle dans les réglages, partie « Sous-agents » : voir [Utilisation](utilisation.md#sous-agents).
 
+## Advisor
+
+L'advisor est un modèle plus fort qu'une session consulte en cours de travail. Quand une session le consulte, le boss arrive à côté de son personnage : une mascotte une fois et demie plus grande, en haut-de-forme, « BOSS » écrit sur le ventre.
+
+1. Le boss entre en marchant vite, du côté où l'écran a le plus de place.
+2. Le personnage lui lance une lettre et se tourne vers lui. Sa légende dit « Demande au boss ».
+3. Le boss lit la lettre, tant que l'advisor n'a pas répondu.
+4. À la réponse, le boss relance une lettre au personnage, qui la lit. Puis le boss s'en va et disparaît.
+
+Le boss reste au moins 5 secondes, pour qu'une réponse rapide se voie. Il part aussi à la fin du tour, et au bout de 5 minutes sans réponse. Ce que la session demande et ce que l'advisor répond ne sont pas lisibles : Paros sait seulement qu'un appel a lieu.
+
+Le réglage « Le boss vient quand l'advisor est consulté » le coupe.
+
 ## D'où viennent les informations
 
 | Source | Donne | Remarque |
 |---|---|---|
 | `~/.claude/sessions/<pid>.json` | Sessions ouvertes, nom, dossier, statut (`busy`, `waiting`, `idle`, `shell`) | Format interne à Claude Code, non documenté : une mise à jour peut le changer |
-| Transcript de la session, dans `~/.claude/projects/` | Couleur (`/color`), dernier prompt, résumé, tokens de contexte, tâches en arrière-plan, messages entre sessions, fichiers écrits | Seules les lignes ajoutées depuis la dernière lecture sont lues |
+| Transcript de la session, dans `~/.claude/projects/` | Couleur (`/color`), dernier prompt, résumé, tokens de contexte, tâches en arrière-plan, messages entre sessions, fichiers écrits, appels à l'advisor | Seules les lignes ajoutées depuis la dernière lecture sont lues |
 | `$XDG_RUNTIME_DIR/paros/claude-events.log` | Outils, sous-agents, échecs, fin de tour, demandes de permission | Écrit par `hooks/claude-hook.sh` |
 | Dossier de la session | État git | Par la commande `git` |
 
@@ -178,4 +192,5 @@ Le fichier `$XDG_RUNTIME_DIR/paros/claude-events.log` contient en clair les noms
 - Les sous-agents sont suivis par les événements `SubagentStart` et `SubagentStop`, par identifiant : un `SubagentStop` sans `SubagentStart` connu est ignoré, Claude Code en envoie à chaque fin de tour. Un `SubagentStop` manqué laisse un petit personnage jusqu'à la fermeture de la session.
 - Le nom d'un sous-agent est la description de l'outil `Agent` lancé juste avant lui. Deux sous-agents lancés en même temps peuvent échanger leurs noms.
 - Un sous-agent ne dit ni qu'il attend ni qu'il réfléchit : son petit personnage joue, quoi qu'il fasse.
+- L'advisor tourne côté serveur : aucun hook ne le signale. Paros le voit dans le transcript, au rythme de sa lecture (deux fois par seconde). Un appel fait avant le lancement de Paros n'est pas vu.
 - Le script demande un shell POSIX. Sous Windows, Claude Code lance les hooks avec Git Bash.

@@ -6,6 +6,7 @@ class_name Desktop
 
 const HELPER_SCRIPT := "res://windows/paros-desktop.ps1"
 const TERMINAL_SCRIPT := "res://linux/paros-terminal.py"
+const TERMINAL_RETRY_SECONDS := 60.0
 ## The helper rewrites its files more often than this. Older: it is gone.
 const STALE_SECONDS := 30.0
 
@@ -18,6 +19,9 @@ static var _processes_fresh := false
 static var _requests := 0
 ## Linux: process of the helper that reads the terminals. 0: not started.
 static var _terminal_helper := 0
+## Time of its last start, in seconds. It is not started again sooner than
+## TERMINAL_RETRY_SECONDS later: without python3-gi it ends at once.
+static var _terminal_started_at := -INF
 
 
 ## Folder of the files shared with the hook script and the desktop helper: the
@@ -72,6 +76,8 @@ static func watch_terminals(on: bool) -> void:
 		OS.kill(_terminal_helper)
 		_terminal_helper = 0
 		return
+	if not may_start_terminal_helper(Time.get_ticks_msec() / 1000.0):
+		return
 	var folder := runtime_dir().path_join("paros")
 	DirAccess.make_dir_recursive_absolute(folder)
 	# As for the Windows helper: a program cannot run a script from the package.
@@ -82,6 +88,15 @@ static func watch_terminals(on: bool) -> void:
 	file.store_string(FileAccess.get_file_as_string(TERMINAL_SCRIPT))
 	file.close()
 	_terminal_helper = OS.create_process("python3", ["-I", script, "--parent", str(OS.get_process_id()), "--out", advising_path()])
+
+
+## True when the helper that reads the terminals may be started at the given
+## time, in seconds: not too soon after its last start. Notes that start.
+static func may_start_terminal_helper(now: float) -> bool:
+	if now - _terminal_started_at < TERMINAL_RETRY_SECONDS:
+		return false
+	_terminal_started_at = now
+	return true
 
 
 ## Windows: what the helper last wrote about the desktop. Empty without helper.

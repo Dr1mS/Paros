@@ -177,3 +177,12 @@ func test_kernel_files_are_read_without_garbage() -> void:
 	var load := Desktop.read_kernel_file("/proc/loadavg")
 	check(load.ends_with("\n") and load.count("\n") == 1, "one clean line")
 	check_equal(Desktop.read_kernel_file("/proc/no-such-file"), "", "missing file")
+
+
+func test_terminal_helper_is_not_started_again_at_once() -> void:
+	Desktop._terminal_started_at = -INF
+	check(Desktop.may_start_terminal_helper(100.0), "a first start")
+	check(not Desktop.may_start_terminal_helper(100.5), "not again half a second later: it may end at once, without python3-gi")
+	check(not Desktop.may_start_terminal_helper(100.0 + Desktop.TERMINAL_RETRY_SECONDS - 1.0), "nor a little before the delay")
+	check(Desktop.may_start_terminal_helper(100.0 + Desktop.TERMINAL_RETRY_SECONDS), "again after the delay")
+	Desktop._terminal_started_at = -INF

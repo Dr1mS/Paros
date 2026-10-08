@@ -33,6 +33,7 @@ Paros follows the interactive Claude Code sessions of the machine, for the curre
 | End of a turn you asked for | Jump, hearts, bubble "Task done!", two rising notes |
 | End of a turn another session asked for | Nods twice. No bubble, no sound |
 | Subagent started | A small pet runs off from the big one with a sheet of paper, and stays beside it. Four at most |
+| Tool started by a subagent | Small tag above its small pet: "Read · pet.gd". Cut when it is long. The caption of the big pet does not change |
 | Tests passed | Jump, bubble "Green tests!" |
 | Tests failed | Shakes, bubble "Red tests", two falling notes |
 | Other failed command | Shakes, drop of sweat, two falling notes |
@@ -130,7 +131,7 @@ The script cannot disturb a session: it runs in the background (`async`), prints
 
 ### What the script writes
 
-One line per event, six fields separated by tabs:
+One line per event, seven fields separated by tabs:
 
 | Field | Example |
 |---|---|
@@ -140,6 +141,7 @@ One line per event, six fields separated by tabs:
 | Tool | `Edit` |
 | Detail, 120 characters at most | Name of the file touched, else description of the command, else message of the notification |
 | Kind | `test` when the command runs tests, empty otherwise |
+| Agent | Id of the subagent the event comes from, empty for the session |
 
 ## Privacy
 

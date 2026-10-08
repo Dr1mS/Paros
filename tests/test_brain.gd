@@ -154,6 +154,14 @@ func test_subagents_show_as_small_pets() -> void:
 	var pet := open("s1")
 	Events.post(&"session_subagents", {"session": "s1", "count": 3})
 	check_equal(pet.minis, 3, "three small pets")
+	var agents := [{"tool": "Read", "detail": "pet.gd"}, {"tool": "", "detail": ""}]
+	Events.post(&"session_subagents", {"session": "s1", "count": 2, "agents": agents})
+	check_equal(Array(pet.mini_captions), ["Read · pet.gd", ""], "each small pet has its own tag")
+	check_equal(pet.caption, "", "not the caption of the big pet")
+	Settings.set_value("claude", "show_activity", false)
+	Events.post(&"session_subagents", {"session": "s1", "count": 2, "agents": agents})
+	check_equal(pet.mini_captions.size(), 0, "no tag when the tool in use is not shown")
+	Settings.set_value("claude", "show_activity", true)
 
 
 func test_reactions_to_results() -> void:

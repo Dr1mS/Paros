@@ -33,6 +33,7 @@ Paros suit les sessions Claude Code interactives de la machine, pour l'utilisate
 | Fin d'un tour que tu as demandé | Saut, cœurs, bulle « Tâche finie ! », deux notes montantes |
 | Fin d'un tour demandé par une autre session | Deux hochements de tête. Ni bulle, ni son |
 | Sous-agent lancé | Un petit personnage part du grand en courant, une feuille à la main, et reste à côté. Quatre au plus |
+| Outil lancé par un sous-agent | Petite étiquette au-dessus de son petit personnage : « Read · pet.gd ». Coupée si elle est longue. La légende du grand personnage ne change pas |
 | Tests réussis | Saut, bulle « Tests verts ! » |
 | Tests échoués | Tremble, bulle « Tests rouges », deux notes descendantes |
 | Autre commande échouée | Tremble, goutte de sueur, deux notes descendantes |
@@ -130,7 +131,7 @@ Le script ne peut pas perturber une session : il est lancé en arrière-plan (`a
 
 ### Ce que le script écrit
 
-Une ligne par événement, six champs séparés par des tabulations :
+Une ligne par événement, sept champs séparés par des tabulations :
 
 | Champ | Exemple |
 |---|---|
@@ -140,6 +141,7 @@ Une ligne par événement, six champs séparés par des tabulations :
 | Outil | `Edit` |
 | Détail, 120 caractères au plus | Nom du fichier touché, sinon description de la commande, sinon message de la notification |
 | Genre | `test` quand la commande lance des tests, vide sinon |
+| Agent | Identifiant du sous-agent d'où vient l'événement, vide pour la session |
 
 ## Confidentialité
 

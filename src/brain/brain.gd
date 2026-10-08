@@ -50,7 +50,7 @@ var _user_idle := false
 ## True while a media player plays.
 var _music := false
 ## Session id -> what the senses told about it: name, color, cwd, last_prompt,
-## pid, context, summary, phase, since, tool, detail, count, stalled, branch, dirty,
+## pid, context, summary, phase, since, tool, detail, count, agents, stalled, branch, dirty,
 ## behind, conflict, level, background, servers, mail. Plus "nagged", "knocked",
 ## "unfocused_since", "cool_until", "lineage", "inbound" (letters that fly to
 ## its pet), "origin" and "from" (what started its turn), "dispute" and "dispute_until" (file it fights
@@ -308,7 +308,10 @@ func _refresh() -> void:
 		pet.discreet = _locked
 		var no_screen: Array[Rect2] = []
 		pet.avoid = _covered if Settings.value("desktop", "leave_fullscreen") else no_screen
-		pet.caption = _activity(session) if phase == &"working" and Settings.value("claude", "show_activity") else ""
+		var shown: bool = Settings.value("claude", "show_activity")
+		pet.caption = _activity(session) if phase == &"working" and shown else ""
+		var agents: Array = session.get("agents", []) if shown else []
+		pet.mini_captions = PackedStringArray(agents.map(_activity))
 		pet.show_card(_card(session) if pet.hovered else "")
 
 
@@ -496,6 +499,9 @@ func _card(session: Dictionary) -> String:
 				lines.append(tr("Waiting for a background task for %s" if _awaits(session) else "At rest for %s") % lasted)
 		if session.get("count", 0) > 0:
 			lines.append(tr("Subagents running: %d") % session.count)
+			for agent: Dictionary in session.get("agents", []):
+				if not _activity(agent).is_empty():
+					lines.append("  " + _activity(agent))
 		if session.get("servers", 0) > 0:
 			lines.append(tr("Servers running: %d") % session.servers)
 		if session.get("mail", 0) > 0:

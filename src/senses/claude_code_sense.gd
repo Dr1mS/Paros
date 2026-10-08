@@ -7,7 +7,9 @@ extends Node
 ##     been at rest for a while. Empty from the next turn on,
 ##   session_closed,
 ##   session_phase {phase: &"idle" | &"working" | &"waiting", since: Unix time},
-##   session_activity {tool, detail}, session_subagents {count},
+##   session_activity {tool, detail}: tool the session itself uses,
+##   session_subagents {count, agents: [{tool, detail}]}: the running
+##     subagents, oldest first, each with the tool it uses,
 ##   session_background {background, servers}: commands and agents the
 ##     session started in the background and that still run. A turn may end
 ##     before they do: the session then waits for them, not for the user.
@@ -37,7 +39,7 @@ extends Node
 ## - the log written by hooks/claude-hook.sh, one line per hook event.
 
 ## Fields of a hook log line, separated by tabs.
-enum Field { EVENT, SESSION, NOTIFICATION, TOOL, DETAIL, KIND, COUNT }
+enum Field { EVENT, SESSION, NOTIFICATION, TOOL, DETAIL, KIND, AGENT, COUNT }
 
 const POLL_SECONDS := 0.5
 ## Notification types that mean Claude waits for the user.
@@ -99,7 +101,7 @@ var _claude_dir := _home().path_join(".claude")
 var _log_path := "/tmp/paros/claude-events.log"
 var _log_offset := 0
 ## Session id -> the SHOWN fields, plus phase, asking, subagents (agent id ->
-## true, the ones running), transcript,
+## {tool, detail}, the ones running), transcript,
 ## transcript_offset, heard (time of the last hook event), quiet, tasks
 ## (background task id -> {since: Unix time of its start, server}), launches
 ## (id of a call that starts a command in the background -> true for a server),
@@ -411,6 +413,7 @@ func _handle_hook(fields: PackedStringArray) -> void:
 	var id := fields[Field.SESSION]
 	var session: Dictionary = _sessions[id]
 	var event := fields[Field.EVENT]
+	var agent := fields[Field.AGENT]
 	session.heard = _now()
 	# Any later event means the question was answered.
 	session.asking = event == "Notification" and fields[Field.NOTIFICATION] in ASKING
@@ -419,7 +422,12 @@ func _handle_hook(fields: PackedStringArray) -> void:
 			if session.asking:
 				Events.post(&"session_needs_you", {"session": id, "detail": fields[Field.DETAIL]})
 		"PreToolUse":
-			Events.post(&"session_activity", {"session": id, "tool": fields[Field.TOOL], "detail": fields[Field.DETAIL]})
+			var activity := {"tool": fields[Field.TOOL], "detail": fields[Field.DETAIL]}
+			if agent.is_empty():
+				Events.post(&"session_activity", activity.merged({"session": id}))
+			elif session.subagents.has(agent):
+				session.subagents[agent] = activity
+				_post_subagents(id)
 		"PostToolUse":
 			if fields[Field.KIND] == "test":
 				Events.post(&"session_tests_passed", {"session": id})
@@ -430,14 +438,18 @@ func _handle_hook(fields: PackedStringArray) -> void:
 		"SubagentStart", "SubagentStop":
 			# Claude Code also sends SubagentStop for agents it never announced,
 			# at the end of each turn among others: only a known id counts.
-			var agent := fields[Field.DETAIL]
 			if event == "SubagentStart":
-				session.subagents[agent] = true
+				session.subagents[agent] = {"tool": "", "detail": ""}
 			elif not session.subagents.erase(agent):
 				return
-			Events.post(&"session_subagents", {"session": id, "count": session.subagents.size()})
+			_post_subagents(id)
 		"Stop":
 			Events.post(&"session_finished", {"session": id})
+
+
+func _post_subagents(id: String) -> void:
+	var agents: Array = _sessions[id].subagents.values()
+	Events.post(&"session_subagents", {"session": id, "count": agents.size(), "agents": agents})
 
 
 func _update_mail(id: String) -> void:

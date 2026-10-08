@@ -23,7 +23,7 @@ Each interactive Claude Code session open on the machine has its pet. It appears
 | Click | The pet cheers |
 | Double-click | Brings the terminal of its session to the front and rings its tab. Needs the [GNOME extension](gnome-extension.md) on Linux. On Windows the PowerShell helper does it, and picks the right window even with several terminals |
 | Drag | Carry it. Let go with a swing and it flies and bounces off the edges and the floor. Dropped from high up, it opens an umbrella |
-| Hover | Its eyes follow the mouse. A card shows the folder, the session state and how long it has lasted, the tool in use, the number of subagents, the context tokens, the git status, the last prompt or the summary of the session, the focus time left |
+| Hover | Its eyes follow the mouse. A card shows the folder, the session state and how long it has lasted, the tool in use, the number of subagents and the tool of each, the context tokens, the git status, the last prompt or the summary of the session, the focus time left |
 | Drop a file on it | Copies the path to the clipboard, ready to paste into the terminal |
 | Right-click | Menu |
 
@@ -121,7 +121,7 @@ Right-click, "Settings…". Each change applies and is saved at once. Settings a
 
 | Setting | Default | Key | Effect |
 |---|---|---|---|
-| Show the tool in use | yes | `claude/show_activity` | Caption above the head while working |
+| Show the tool in use | yes | `claude/show_activity` | Caption above the head while working, tag of the small pets |
 | Remind after waiting for | 2 min | `claude/nag_minutes` | Delay before the reminder of a waiting session |
 | Knock when the terminal is not focused | yes | `claude/knock` | Knocking on the screen edge |
 | Model context, in thousands of tokens | 1000 k | `claude/context_window_k` | Size of the context window of the model. Used to know when the head smokes |

@@ -113,30 +113,33 @@ func test_hook_lines_become_events() -> void:
 	write(sense._log_path, "")
 	sense._poll()
 	var lines := [
-		["PreToolUse", "", "Edit", "pet.gd", ""],
-		["PostToolUse", "", "Bash", "Run tests", "test"],
-		["PostToolUseFailure", "", "Bash", "Build", ""],
-		["SubagentStart", "", "", "a1", ""],
-		["SubagentStart", "", "", "a2", ""],
-		["SubagentStop", "", "", "a1", ""],
-		["SubagentStop", "", "", "", ""],
-		["SubagentStop", "", "", "a9", ""],
-		["Notification", "permission_prompt", "", "Claude needs your permission to use Bash", ""],
+		["PreToolUse", "", "Edit", "pet.gd", "", ""],
+		["PostToolUse", "", "Bash", "Run tests", "test", ""],
+		["PostToolUseFailure", "", "Bash", "Build", "", ""],
+		["SubagentStart", "", "", "", "", "a1"],
+		["SubagentStart", "", "", "", "", "a2"],
+		["PreToolUse", "", "Read", "brain.gd", "", "a2"],
+		["PreToolUse", "", "Grep", "lost", "", "a9"],
+		["SubagentStop", "", "", "", "", "a1"],
+		["SubagentStop", "", "", "", "", ""],
+		["SubagentStop", "", "", "", "", "a9"],
+		["Notification", "permission_prompt", "", "Claude needs your permission to use Bash", "", ""],
 	]
 	var text := ""
 	for line: Array in lines:
-		text += "\t".join([line[0], SESSION, line[1], line[2], line[3], line[4]]) + "\n"
-	text += "PreToolUse\tsome-other-session\t\tEdit\tx\t\n"
+		text += "\t".join([line[0], SESSION, line[1], line[2], line[3], line[4], line[5]]) + "\n"
+	text += "PreToolUse\tsome-other-session\t\tEdit\tx\t\t\n"
 	write(sense._log_path, text)
 	sense._poll()
-	check_equal(last_event(&"session_activity").get("detail"), "pet.gd", "tool in use, unknown session ignored")
+	check_equal(last_event(&"session_activity").get("detail"), "pet.gd", "tool in use, unknown session and subagents ignored")
 	check(&"session_tests_passed" in event_names(), "green tests")
 	check_equal(last_event(&"session_tool_failed").get("tool"), "Bash", "failed command")
 	check_equal(last_event(&"session_subagents").get("count"), 1, "two started, one stopped, the stops of unknown agents ignored")
+	check_equal(last_event(&"session_subagents").get("agents"), [{"tool": "Read", "detail": "brain.gd"}], "tool of the subagent left, none for an unknown one")
 	check_equal(last_event(&"session_needs_you").get("detail"), "Claude needs your permission to use Bash", "question")
 	check_equal(last_event(&"session_phase").get("phase"), &"waiting", "waiting although the registry says busy")
 
-	write(sense._log_path, text + "\t".join(["Stop", SESSION, "", "", "", ""]) + "\n")
+	write(sense._log_path, text + "\t".join(["Stop", SESSION, "", "", "", "", ""]) + "\n")
 	sense._poll()
 	check(&"session_finished" in event_names(), "end of turn")
 	check_equal(last_event(&"session_phase").get("phase"), &"working", "the question is answered")
@@ -449,9 +452,9 @@ func test_hook_script_writes_one_line_per_event() -> void:
 		OS.execute("sh", ["-c", "XDG_RUNTIME_DIR='%s' '%s' < '%s'" % [folder, script, folder.path_join("input.json")]])
 	var lines := FileAccess.get_file_as_string(folder.path_join("paros/claude-events.log")).split("\n", false)
 	check_equal(lines.size(), 6, "one line per event")
-	check_equal(Array(lines[0].split("\t")), ["PreToolUse", "s1", "", "Edit", "pet.gd", ""], "file name of an edit")
-	check_equal(Array(lines[1].split("\t")), ["PreToolUse", "s1", "", "Write", "pet_body.gd", ""], "file name of a Windows path")
-	check_equal(Array(lines[2].split("\t")), ["PostToolUse", "s1", "", "Bash", "Run unit tests", "test"], "a test command")
-	check_equal(Array(lines[3].split("\t")), ["Notification", "s1", "permission_prompt", "", "Claude needs your permission", ""], "a question")
+	check_equal(Array(lines[0].split("\t")), ["PreToolUse", "s1", "", "Edit", "pet.gd", "", ""], "file name of an edit")
+	check_equal(Array(lines[1].split("\t")), ["PreToolUse", "s1", "", "Write", "pet_body.gd", "", ""], "file name of a Windows path")
+	check_equal(Array(lines[2].split("\t")), ["PostToolUse", "s1", "", "Bash", "Run unit tests", "test", ""], "a test command")
+	check_equal(Array(lines[3].split("\t")), ["Notification", "s1", "permission_prompt", "", "Claude needs your permission", "", ""], "a question")
 	check_equal(lines[4].split("\t")[4].length(), 120, "long detail cut")
-	check_equal(Array(lines[5].split("\t")), ["SubagentStop", "s1", "", "", "a1", ""], "id of a subagent, not the description of another")
+	check_equal(Array(lines[5].split("\t")), ["SubagentStop", "s1", "", "", "Other agent", "", "a1"], "id of the subagent")

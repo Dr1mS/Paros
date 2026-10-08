@@ -157,7 +157,12 @@ const CAPTION_MAX_LENGTH := 110
 const SMOKE_FROM := 0.75
 ## Small pets: size against the main one, and feet positions from GROUND.
 const MINI_SCALE := 0.28
-const MINI_SPOTS: Array[Vector2] = [Vector2(-120, 0), Vector2(120, 0), Vector2(-120, -36), Vector2(120, -36)]
+const MINI_SPOTS: Array[Vector2] = [Vector2(-120, 0), Vector2(120, 0), Vector2(-120, -46), Vector2(120, -46)]
+## Tag of a small pet: font size, widest text in pixels, and distance from
+## the middle of the big pet to its outer edge. Longer texts are cut.
+const MINI_FONT_SIZE := 10
+const MINI_TAG_WIDTH := 92.0
+const MINI_TAG_REACH := 148.0
 ## Seconds a new small pet takes to run from the big one to its spot.
 const MINI_RUN_SECONDS := 0.7
 
@@ -203,7 +208,7 @@ func _process(_delta: float) -> void:
 ## Everything of the pet that the picture depends on, time aside.
 func _look() -> int:
 	return [
-		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.minis,
+		_pet.state, _pet.facing, _pet.label, _pet.color, _pet.accessory, _pet.caption, _pet.minis, _pet.mini_captions,
 		_pet.urgent, _pet.hovered, _pet.fullness >= SMOKE_FROM, _pet.baggage, _pet.hard_hat, _pet.lost,
 		_pet.tapping, _pet.umbrella, _pet.meditating, _pet.headlamp, _pet.cool, _pet.discreet,
 		_pet.rooted, _pet.is_perched(), _pet.grooving, _pet.mail, _pet.mailbox_side(), _pet.serving,
@@ -369,6 +374,10 @@ func _draw() -> void:
 		_draw_smoke(body_top)
 	if grooving:
 		_draw_note(body_top)
+	# Last: the tags of the small pets lie over the big one.
+	if not _pet.discreet:
+		for i in mini(mini(_mini_born.size(), MINI_SPOTS.size()), _pet.mini_captions.size()):
+			_draw_mini_tag(i)
 
 
 func _draw_legs(state: Pet.State, body_offset: Vector2, hop: float, airborne: bool) -> void:
@@ -580,6 +589,27 @@ func _draw_mini(index: int) -> void:
 	if arrived < 1.0:
 		draw_rect(Rect2(Vector2(-3, -15) * UNIT + bob, Vector2(6, 4) * UNIT), PAPER)
 	draw_set_transform(Vector2.ZERO)
+
+
+## What a small pet does, on a tag above it. The tag grows from the outer
+## side toward the big pet. Shown once the small pet stands on its spot.
+func _draw_mini_tag(index: int) -> void:
+	var text := _pet.mini_captions[index]
+	if text.is_empty() or _time - _mini_born[index] < MINI_RUN_SECONDS:
+		return
+	var cut := text
+	while _font.get_string_size(cut, HORIZONTAL_ALIGNMENT_LEFT, -1, MINI_FONT_SIZE).x > MINI_TAG_WIDTH and text.length() > 1:
+		text = text.left(-1)
+		cut = text.strip_edges() + "…"
+	var text_size := _font.get_string_size(cut, HORIZONTAL_ALIGNMENT_LEFT, -1, MINI_FONT_SIZE)
+	var spot := MINI_SPOTS[index]
+	var size := text_size + Vector2(10, 2)
+	var left := -MINI_TAG_REACH if spot.x < 0.0 else MINI_TAG_REACH - size.x
+	var head := (BODY.position.y - LEG_HEIGHT) * UNIT * MINI_SCALE
+	var box := Rect2(GROUND + Vector2(left, spot.y + head - 5.0 - size.y), size)
+	draw_rect(box, EYE)
+	draw_rect(Rect2(box.position, Vector2(4, box.size.y)), _pet.color.lightened(0.15))
+	draw_string(_font, box.position + Vector2(7, 1 + _font.get_ascent(MINI_FONT_SIZE)), cut, HORIZONTAL_ALIGNMENT_LEFT, -1, MINI_FONT_SIZE, PAPER)
 
 
 ## Dark tag with light text on several lines, standing on its bottom middle point.

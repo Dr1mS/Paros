@@ -94,6 +94,8 @@ var accessory := 0
 var caption := ""
 ## Number of small pets beside this one.
 var minis := 0
+## Short text above each small pet, in their order. Empty: no tag.
+var mini_captions := PackedStringArray()
 ## An urgent alert jumps higher.
 var urgent := false
 ## True while the mouse is over the pet.

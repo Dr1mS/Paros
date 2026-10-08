@@ -14,7 +14,9 @@ Built with Godot 4.7 and GDScript. No image file and no sound file: everything i
 
 - **One pet per session.** It carries the session name (`/rename`) and git branch under its feet, takes the session color (`/color`), and wears its own accessory.
 - **It shows the session state.** Thinking while Claude works, with the tool in use above its head. Waving its arms when Claude waits for a permission or an answer. Jumping when the turn is over.
-- **It reacts to your work.** Green or red tests, failed commands, subagents, a full context window, uncommitted changes, a merge in progress, a clean commit.
+- **It reacts to your work.** Green or red tests, failed commands, a full context window, uncommitted changes, a merge in progress, a clean commit.
+- **Each subagent has its small pet.** It stays near the big one, shows the tool it uses, and plays like a child: it jumps, runs to the others, builds pyramids with them. Sixteen at most per session.
+- **The sage comes when the session asks the advisor.** Pointy hat, white beard and staff: it reads the letter the pet throws to it, answers, then walks off the screen.
 - **It lives on your desktop.** It walks across your screens, sits, sleeps at night, greets the other pets, can be thrown around, and climbs onto the focused window.
 - **It stays out of the way.** Clicks next to it go through. It leaves a screen that runs a full screen app.
 
@@ -23,6 +25,10 @@ Built with Godot 4.7 and GDScript. No image file and no sound file: everything i
 | Hover card | Resting sessions stack up | Settings |
 |---|---|---|
 | ![Card with folder, state, tool, context and git status](docs/images/card.en.png) | ![Two pets sitting on each other](docs/images/tower.png) | ![Settings window](docs/images/settings.en.png) |
+
+| Subagents | Advisor |
+|---|---|
+| ![A big pet with small ones around: one walks, one jumps, three build a pyramid](docs/images/subagents.png) | ![A pet beside the sage, who reads a letter](docs/images/sage.png) |
 
 The interface (bubbles, menu, settings) is in English or in French. It follows the language of the system, and can be set in the settings.
 
@@ -51,6 +57,8 @@ Three optional steps complete the setup:
 
 Without them, the pets still follow the sessions, their name, their color and their state.
 
+On Linux, to see the sage while the advisor works, `python3-gi` is needed (present with GNOME): Paros then reads the visible text of the terminals. See [Advisor](docs/en/claude-code.md#advisor) and [Privacy](docs/en/claude-code.md#privacy).
+
 To run without Godot, build a standalone binary with `./build.sh` (see [Development](docs/en/development.md#exporting-a-binary)).
 
 ## Controls
@@ -69,7 +77,7 @@ To run without Godot, build a standalone binary with `./build.sh` (see [Developm
 | Guide | Content |
 |---|---|
 | [Usage](docs/en/usage.md) | Every behavior, gesture, menu entry and setting |
-| [Claude Code](docs/en/claude-code.md) | What Paros reads from the sessions, hook setup, privacy |
+| [Claude Code](docs/en/claude-code.md) | What Paros reads from the sessions, subagents, advisor, hook setup, privacy |
 | [GNOME extension](docs/en/gnome-extension.md) | Terminal focus, perch, lock screen, full screen |
 | [Architecture](docs/en/architecture.md) | Code layout, event reference, how to add a sense or a behavior |
 | [Development](docs/en/development.md) | Tests, binary export, performance, known limits, troubleshooting |
@@ -80,7 +88,7 @@ To run without Godot, build a standalone binary with `./build.sh` (see [Developm
 |---|---|
 | Linux, GNOME, Wayland | Tested |
 | Linux, other desktops | The core works. GNOME-only parts stay silent |
-| Windows | Tested from the sources (Godot 4.7, Git Bash for the hooks, `./test.ps1` for the tests). A PowerShell helper (`windows/`) replaces the GNOME extension: terminal focus, perch, full screen, inactivity, music, battery. No pets on the lock screen, no temperature alert |
+| Windows | Tested from the sources (Godot 4.7, Git Bash for the hooks, `./test.ps1` for the tests). A PowerShell helper (`windows/`) replaces the GNOME extension: terminal focus, perch, full screen, inactivity, music, battery. No pets on the lock screen, no temperature alert. The sage comes once the answer of the advisor is there, not during the call |
 
 ## Tests
 
@@ -88,7 +96,7 @@ To run without Godot, build a standalone binary with `./build.sh` (see [Developm
 ./test.sh
 ```
 
-89 unit tests, run without a display in a few seconds.
+127 unit tests, run without a display in a few seconds.
 
 ## License
 

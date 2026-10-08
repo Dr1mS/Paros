@@ -94,6 +94,8 @@ Being behind upstream is as of the last `git fetch`. Paros runs none.
 
 ## Subagents
 
+![A big pet with small ones around: one walks, one jumps, three build a pyramid](../images/subagents.png)
+
 Each running subagent has a small pet: a pet of its own, smaller, in its own window. It has the color of its session, a little lighter, and stays in a zone around the big pet. The zone grows with the number of small pets. When the big one walks away, the small ones run to catch up. A small pet hidden behind another one, or in front of the big one, steps aside in less than a second.
 
 A subagent tells little of its work: its tools, its failures, its end. So its small pet plays like a child:
@@ -109,6 +111,8 @@ Sixteen small pets at most per session, fewer if the setting says so. The subage
 Everything is set in the settings, under "Subagents": see [Usage](usage.md#subagents).
 
 ## Advisor
+
+![A pet beside the sage, who reads a letter](../images/sage.png)
 
 The advisor is a stronger model that a session asks while it works. When a session asks it, the sage comes beside its pet: a mascot one and a half times bigger, with a starry pointy hat, a white beard and a staff topped with an orb.
 

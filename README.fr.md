@@ -14,7 +14,9 @@ Godot 4.7, GDScript. Aucun fichier image ni son : tout est dessiné et synthéti
 
 - **Un personnage par session.** Il porte le nom de la session (`/rename`) et la branche git sous ses pieds, prend la couleur de la session (`/color`) et a son propre accessoire.
 - **Il montre l'état de la session.** Il réfléchit quand Claude travaille, avec l'outil en cours au-dessus de la tête. Il agite les bras quand Claude attend une permission ou une réponse. Il saute quand le tour est fini.
-- **Il réagit à ton travail.** Tests verts ou rouges, commandes échouées, sous-agents, contexte plein, modifications non commitées, fusion en cours, commit propre.
+- **Il réagit à ton travail.** Tests verts ou rouges, commandes échouées, contexte plein, modifications non commitées, fusion en cours, commit propre.
+- **Chaque sous-agent a son petit personnage.** Il reste près du grand, affiche son outil en cours, et joue comme un enfant : il saute, court vers les autres, monte des pyramides avec eux. Seize au plus par session.
+- **Le sage vient quand la session consulte l'advisor.** Chapeau pointu, barbe blanche et bâton : il lit la lettre que le personnage lui lance, répond, puis sort de l'écran.
 - **Il vit sur le bureau.** Il traverse les écrans, s'assoit, dort la nuit, salue les autres personnages, se laisse lancer, grimpe sur la fenêtre active.
 - **Il ne gêne pas.** Un clic à côté de lui le traverse. Il quitte l'écran d'une application en plein écran.
 
@@ -23,6 +25,10 @@ Godot 4.7, GDScript. Aucun fichier image ni son : tout est dessiné et synthéti
 | Fiche au survol | Les sessions au repos s'empilent | Réglages |
 |---|---|---|
 | ![Fiche avec dossier, état, outil, contexte et état git](docs/images/card.fr.png) | ![Deux personnages assis l'un sur l'autre](docs/images/tower.png) | ![Fenêtre de réglages](docs/images/settings.fr.png) |
+
+| Sous-agents | Advisor |
+|---|---|
+| ![Un grand personnage entouré de petits : l'un marche, l'un saute, trois font une pyramide](docs/images/subagents.png) | ![Un personnage à côté du sage, qui lit une lettre](docs/images/sage.png) |
 
 L'interface (bulles, menu, réglages) est en français ou en anglais. Elle suit la langue du système, et se règle dans les réglages.
 
@@ -51,6 +57,8 @@ Trois étapes facultatives complètent l'installation :
 
 Sans elles, les personnages suivent quand même les sessions, leur nom, leur couleur et leur état.
 
+Sous Linux, pour voir le sage pendant que l'advisor travaille, il faut `python3-gi` (présent avec GNOME) : Paros lit alors le texte visible des terminaux. Voir [Advisor](docs/fr/claude-code.md#advisor) et [Confidentialité](docs/fr/claude-code.md#confidentialité).
+
 Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [Développement](docs/fr/developpement.md#exporter-en-binaire)).
 
 ## Gestes
@@ -69,7 +77,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 | Guide | Contenu |
 |---|---|
 | [Utilisation](docs/fr/utilisation.md) | Tous les comportements, les gestes, le menu, les réglages |
-| [Claude Code](docs/fr/claude-code.md) | Ce que Paros lit des sessions, installation des hooks, confidentialité |
+| [Claude Code](docs/fr/claude-code.md) | Ce que Paros lit des sessions, sous-agents, advisor, installation des hooks, confidentialité |
 | [Extension GNOME](docs/fr/extension-gnome.md) | Focus du terminal, perchoir, écran de verrouillage, plein écran |
 | [Architecture](docs/fr/architecture.md) | Organisation du code, référence des événements, comment ajouter un sens ou un comportement |
 | [Développement](docs/fr/developpement.md) | Tests, export en binaire, performances, limites connues, dépannage |
@@ -80,7 +88,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 |---|---|
 | Linux, GNOME, Wayland | Testé |
 | Linux, autre bureau | Le cœur fonctionne. Les parties propres à GNOME restent muettes |
-| Windows | Testé depuis les sources (Godot 4.7, Git Bash pour les hooks, `./test.ps1` pour les tests). Un script PowerShell (`windows/`) remplace l'extension GNOME : focus du terminal, perchoir, plein écran, inactivité, musique, batterie. Pas de pets sur l'écran de verrouillage, pas d'alerte de température |
+| Windows | Testé depuis les sources (Godot 4.7, Git Bash pour les hooks, `./test.ps1` pour les tests). Un script PowerShell (`windows/`) remplace l'extension GNOME : focus du terminal, perchoir, plein écran, inactivité, musique, batterie. Pas de pets sur l'écran de verrouillage, pas d'alerte de température. Le sage vient une fois la réponse de l'advisor arrivée, pas pendant l'appel |
 
 ## Tests
 
@@ -88,7 +96,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 ./test.sh
 ```
 
-89 tests unitaires, sans affichage, en quelques secondes.
+127 tests unitaires, sans affichage, en quelques secondes.
 
 ## Licence
 

@@ -39,8 +39,8 @@ Les réglages, le fichier de lancement au démarrage et le dossier d'exécution 
 
 | Fichier | Ce qu'il couvre |
 |---|---|
-| `test_pet.gd` | Machine à états d'un personnage : souhaits, états courts, vol et rebonds, parapluie, courses, perchoir, mode discret |
-| `test_pets.gd` | Rencontres, rivalité, tape dans la main, lettres, fréquence d'images |
+| `test_pet.gd` | Machine à états d'un personnage : souhaits, états courts, vol et rebonds, parapluie, courses, perchoir, mode discret, saut, zone, petite taille, sortie de l'écran, lecture continue |
+| `test_pets.gd` | Rencontres, rivalité, tape dans la main, lettres, fréquence d'images, petits personnages à part et qui s'écartent |
 | `test_brain.gd` | Règles : une session par personnage, souhaits, sommeil, verrouillage, git, contexte, toc-toc, tour, fiche, petits personnages des sous-agents et leur pyramide, sage |
 | `test_senses.gd` | Lecture du registre et des transcripts Claude Code, journal des hooks, sorties de git, fichier du bureau, script de hook, appels à l'advisor et lecture du terminal |
 | `test_core.gd` | Réglages, minuteur de focus, synthèse des sons et fichier WAV, bulle, lancement au démarrage |
@@ -70,7 +70,7 @@ func test_pet_thinks_when_asked() -> void:
 
 Le temps n'avance que par `step` : un test ne dépend pas de l'horloge. Le hasard est rendu fixe avant chaque test.
 
-Ce que les tests ne couvrent pas : le dessin, la vraie souris, les vraies fenêtres et les vrais écrans, l'extension GNOME.
+Ce que les tests ne couvrent pas : le dessin, la vraie souris, les vraies fenêtres et les vrais écrans, l'extension GNOME, la lecture d'un vrai terminal par AT-SPI (la recherche de la ligne dans un texte est testée).
 
 ## Exporter en binaire
 
@@ -81,7 +81,7 @@ Ce que les tests ne couvrent pas : le dessin, la vraie souris, les vraies fenêt
 
 Les modèles d'export s'installent depuis l'éditeur : Éditeur > Gérer les modèles d'export. Ils vont dans `~/.local/share/godot/export_templates/`.
 
-Le binaire est autonome : Godot n'est plus nécessaire pour le lancer. `tests/`, `hooks/`, `gnome-extension/` et `docs/` n'y sont pas inclus. `build/` n'est pas suivi par git.
+Le binaire est autonome : Godot n'est plus nécessaire pour le lancer. `tests/`, `hooks/`, `gnome-extension/` et `docs/` n'y sont pas inclus. Le binaire Linux contient `linux/`, le binaire Windows `windows/`. `build/` n'est pas suivi par git.
 
 Après un changement du code, reconstruire le binaire, sinon `./run.sh` sans Godot lance l'ancien.
 
@@ -106,6 +106,8 @@ Ce qui a compté, dans l'ordre :
 | Dessin seulement quand l'image change : un personnage calme s'anime par pas, 6 par seconde | | `pet_body.gd`, mode `low_processor_mode` |
 | Disposition des écrans lue 4 fois par seconde | | `pet.gd` |
 | 2 images par seconde, écran verrouillé et éteint | | `pets.gd` |
+
+Un sous-agent ajoute une fenêtre, et les petits personnages bougent sans cesse : tant qu'un sous-agent tourne, le rendu reste à 30 images par seconde. Le réglage « Petits personnages par session, au plus » borne ce coût.
 
 Ce qui reste est le moteur lui-même. Son fil d'événements X11 reçoit chaque mouvement de la souris, où qu'elle soit. Le réduire demanderait de modifier Godot.
 

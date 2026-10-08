@@ -73,6 +73,12 @@ The application runs on X11, so through XWayland under Wayland: native Wayland d
 
 On Windows, a click shape (`mouse_passthrough_polygon`) is also a window region: it would cut the drawing. The polygon is then the whole window, and `Pointer` lets the clicks through by hand (`mouse_passthrough`) when the mouse is not over the body. The main window has no taskbar button.
 
+## Program that reads the terminals
+
+`linux/paros-terminal.py` is there to see a session ask the advisor during the call: Claude Code writes it nowhere before the answer, only its terminal shows it. `Desktop.watch_terminals()` copies the program to the runtime folder and starts it with `python3`; it ends with the app, or when the setting is turned off. If it ends by itself (no `python3-gi`), it is started again only one minute later.
+
+It reads the visible text of each terminal through AT-SPI, twice a second, and looks for the line "Advising using" followed by nothing but the waiting line of Claude Code. It writes `advising.txt`: the time of the writing, then one start time per terminal that shows the advisor at work. `claude_code_sense.gd` reads this file and finds the session: the one that works without having given a sign of life since the start. The call line, written later in the transcript, confirms the end instead of playing the scene again.
+
 ## Windows helper
 
 `windows/paros-desktop.ps1` is to Windows what the GNOME extension is to GNOME. `Desktop.start_helper()` copies it to the runtime folder (`%TEMP%\paros`) and starts it hidden; it ends with the app. It writes `desktop.json`, in the format of the extension (plus `idle_ms`, `music`, `cpu`, `battery`), and `processes.json` (pid → parent, creation time). Senses read these files: `DesktopSense`, `IdleSense`, `MusicSense`, `SystemSense`, and `Desktop.lineage` / `Desktop.is_process_running` instead of `/proc`.
@@ -83,7 +89,7 @@ Requests go the other way, as one file per request in `requests/`: `focus` (rais
 
 ### Wish and state
 
-The brain gives a **wish** (`Pet.Wish`): `ROAM`, `SLEEP`, `THINK`, `ALERT`, `WAIT`. It is a standing order. The pet obeys as soon as it is at rest: a cheer in progress ends first.
+The brain gives a **wish** (`Pet.Wish`): `ROAM`, `SLEEP`, `THINK`, `ALERT`, `WAIT`, `READ`. It is a standing order. The pet obeys as soon as it is at rest: a cheer in progress ends first.
 
 The **state** (`Pet.State`) is what the pet does right now:
 
@@ -91,14 +97,14 @@ The **state** (`Pet.State`) is what the pet does right now:
 |---|---|
 | `IDLE`, `SIT`, `WALK` | Random duration, or change of wish |
 | `SLEEP`, `THINK`, `ALERT`, `WAIT` | When the wish changes. `SLEEP` goes through `STRETCH` |
-| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP`, `THROW`, `READ`, `NOD` | Fixed duration, in `Pet.TIMED` |
+| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP`, `THROW`, `READ`, `NOD` | Fixed duration, in `Pet.TIMED`. `READ` lasts as long as the wish is `READ` |
 | `CLIMB` | Arrival on the perch |
 | `CARRIED` | When the mouse lets go |
 | `FALL` | Landing |
 
 ### Attributes
 
-The brain also sets attributes that the body draws on top of the state: `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `mail`, `serving`, `discreet`, `rooted`, `pace`, `dispute`, `perch`, `avoid`.
+The brain also sets attributes that the body draws on top of the state: `label`, `color`, `accessory`, `caption`, `sheet`, `sage`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `mail`, `serving`, `discreet`, `rooted`, `pace`, `dispute`, `perch`, `avoid`, `stature`, `home_x`, `home_reach`, `exit_side`.
 
 ### Floor
 

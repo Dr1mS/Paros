@@ -39,8 +39,8 @@ Settings, the autostart file and the runtime folder are redirected to a temporar
 
 | File | What it covers |
 |---|---|
-| `test_pet.gd` | State machine of a pet: wishes, short states, flight and bounces, umbrella, errands, perch, discreet mode |
-| `test_pets.gd` | Meetings, rivalry, high five, letters, frame rate |
+| `test_pet.gd` | State machine of a pet: wishes, short states, flight and bounces, umbrella, errands, perch, discreet mode, jump, zone, small size, walking off the screen, reading on |
+| `test_pets.gd` | Meetings, rivalry, high five, letters, frame rate, small pets kept apart and making way |
 | `test_brain.gd` | Rules: one pet per session, wishes, sleep, lock screen, git, context, knock, tower, card, small pets of the subagents and their pyramid, sage |
 | `test_senses.gd` | Reading of the Claude Code registry and transcripts, hook log, git output, desktop file, hook script, calls to the advisor and reading of the terminal |
 | `test_core.gd` | Settings, focus timer, sound synthesis and WAV file, bubble, autostart |
@@ -70,7 +70,7 @@ func test_pet_thinks_when_asked() -> void:
 
 Time only advances through `step`: a test does not depend on the clock. Randomness is seeded before each test.
 
-What the tests do not cover: drawing, the real mouse, real windows and real screens, the GNOME extension.
+What the tests do not cover: drawing, the real mouse, real windows and real screens, the GNOME extension, the reading of a real terminal through AT-SPI (the search for the line in a text is tested).
 
 ## Exporting a binary
 
@@ -81,7 +81,7 @@ What the tests do not cover: drawing, the real mouse, real windows and real scre
 
 The export templates are installed from the editor: Editor > Manage Export Templates. They go to `~/.local/share/godot/export_templates/`.
 
-The binary is standalone: Godot is no longer needed to run it. `tests/`, `hooks/`, `gnome-extension/` and `docs/` are not included. `build/` is not tracked by git.
+The binary is standalone: Godot is no longer needed to run it. `tests/`, `hooks/`, `gnome-extension/` and `docs/` are not included. The Linux binary holds `linux/`, the Windows binary `windows/`. `build/` is not tracked by git.
 
 After a change to the code, rebuild the binary, otherwise `./run.sh` without Godot runs the old one.
 
@@ -106,6 +106,8 @@ What mattered, in order:
 | Drawing only when the picture changes: a calm pet animates by steps, 6 per second | | `pet_body.gd`, `low_processor_mode` |
 | Screen layout read 4 times a second | | `pet.gd` |
 | 2 frames per second with the screen locked and off | | `pets.gd` |
+
+A subagent adds a window, and the small pets never stop moving: as long as a subagent runs, rendering stays at 30 frames per second. The setting "Small pets per session, at most" bounds this cost.
 
 What is left is the engine itself. Its X11 event thread receives every mouse motion, wherever the pointer is. Reducing it would mean patching Godot.
 

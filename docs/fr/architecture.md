@@ -73,6 +73,12 @@ L'application tourne en X11, donc par XWayland sous Wayland : Wayland natif inte
 
 Sous Windows, une forme de clic (`mouse_passthrough_polygon`) est aussi une région de fenêtre : elle couperait le dessin. Le polygone est alors la fenêtre entière, et `Pointer` laisse passer les clics à la main (`mouse_passthrough`) quand la souris n'est pas sur le corps. La fenêtre principale n'a pas de bouton dans la barre des tâches.
 
+## Programme qui lit les terminaux
+
+`linux/paros-terminal.py` sert à voir une session consulter l'advisor pendant l'appel : Claude Code ne l'écrit nulle part avant la réponse, seul son terminal l'affiche. `Desktop.watch_terminals()` copie le programme dans le dossier d'exécution et le lance avec `python3` ; il s'arrête avec l'application, ou quand le réglage est coupé. S'il s'arrête tout seul (pas de `python3-gi`), il n'est relancé qu'une minute plus tard.
+
+Il lit le texte visible de chaque terminal par AT-SPI, deux fois par seconde, et y cherche la ligne « Advising using » suivie seulement de la ligne d'attente de Claude Code. Il écrit `advising.txt` : l'heure de l'écriture, puis une heure de début par terminal qui montre l'advisor au travail. `claude_code_sense.gd` lit ce fichier et trouve la session : celle qui travaille sans avoir donné signe de vie depuis le début. La ligne d'appel, écrite plus tard dans le transcript, confirme la fin au lieu de rejouer la scène.
+
 ## Script Windows
 
 `windows/paros-desktop.ps1` est à Windows ce que l'extension GNOME est à GNOME. `Desktop.start_helper()` le copie dans le dossier d'exécution (`%TEMP%\paros`) et le lance masqué ; il s'arrête avec l'application. Il écrit `desktop.json`, au format de l'extension (plus `idle_ms`, `music`, `cpu`, `battery`), et `processes.json` (pid → parent, heure de création). Les sens lisent ces fichiers : `DesktopSense`, `IdleSense`, `MusicSense`, `SystemSense`, et `Desktop.lineage` / `Desktop.is_process_running` à la place de `/proc`.
@@ -83,7 +89,7 @@ Les demandes vont dans l'autre sens, un fichier par demande dans `requests/` : `
 
 ### Souhait et état
 
-Le cerveau donne un **souhait** (`Pet.Wish`) : `ROAM`, `SLEEP`, `THINK`, `ALERT`, `WAIT`. C'est un ordre permanent. Le personnage y obéit dès qu'il est au repos : un saut de joie en cours se termine d'abord.
+Le cerveau donne un **souhait** (`Pet.Wish`) : `ROAM`, `SLEEP`, `THINK`, `ALERT`, `WAIT`, `READ`. C'est un ordre permanent. Le personnage y obéit dès qu'il est au repos : un saut de joie en cours se termine d'abord.
 
 L'**état** (`Pet.State`) est ce que le personnage fait à l'instant :
 
@@ -91,14 +97,14 @@ L'**état** (`Pet.State`) est ce que le personnage fait à l'instant :
 |---|---|
 | `IDLE`, `SIT`, `WALK` | Durée tirée au hasard, ou changement de souhait |
 | `SLEEP`, `THINK`, `ALERT`, `WAIT` | Quand le souhait change. `SLEEP` passe par `STRETCH` |
-| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP`, `THROW`, `READ`, `NOD` | Durée fixe, dans `Pet.TIMED` |
+| `STRETCH`, `CHEER`, `GREET`, `GLARE`, `HIGH_FIVE`, `WORRY`, `ROAST`, `KNOCK`, `SWEEP`, `THROW`, `READ`, `NOD` | Durée fixe, dans `Pet.TIMED`. `READ` dure tant que le souhait est `READ` |
 | `CLIMB` | Arrivée sur le perchoir |
 | `CARRIED` | Quand la souris lâche |
 | `FALL` | Atterrissage |
 
 ### Attributs
 
-Le cerveau règle aussi des attributs que le corps dessine par-dessus l'état : `label`, `color`, `accessory`, `caption`, `minis`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `mail`, `serving`, `discreet`, `rooted`, `pace`, `dispute`, `perch`, `avoid`.
+Le cerveau règle aussi des attributs que le corps dessine par-dessus l'état : `label`, `color`, `accessory`, `caption`, `sheet`, `sage`, `urgent`, `fullness`, `baggage`, `hard_hat`, `lost`, `tapping`, `meditating`, `headlamp`, `cool`, `grooving`, `mail`, `serving`, `discreet`, `rooted`, `pace`, `dispute`, `perch`, `avoid`, `stature`, `home_x`, `home_reach`, `exit_side`.
 
 ### Sol
 

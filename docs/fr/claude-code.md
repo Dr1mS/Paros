@@ -94,6 +94,8 @@ Le retard sur la branche amont date du dernier `git fetch`. Paros n'en lance pas
 
 ## Sous-agents
 
+![Un grand personnage entouré de petits : l'un marche, l'un saute, trois font une pyramide](../images/subagents.png)
+
 Chaque sous-agent en cours a un petit personnage : un personnage à part entière, en plus petit, dans sa propre fenêtre. Il a la couleur de sa session, un peu plus claire, et reste dans une zone autour du grand personnage. La zone grandit avec le nombre de petits personnages. Quand le grand s'éloigne, les petits le rattrapent en courant. Un petit personnage caché derrière un autre, ou devant le grand, s'écarte en moins d'une seconde.
 
 Un sous-agent dit peu de choses de son travail : ses outils, ses échecs, sa fin. Alors son petit personnage joue comme un enfant :
@@ -109,6 +111,8 @@ Seize petits personnages au plus par session, moins selon le réglage. Les sous-
 Tout se règle dans les réglages, partie « Sous-agents » : voir [Utilisation](utilisation.md#sous-agents).
 
 ## Advisor
+
+![Un personnage à côté du sage, qui lit une lettre](../images/sage.png)
 
 L'advisor est un modèle plus fort qu'une session consulte en cours de travail. Quand une session le consulte, le sage vient à côté de son personnage : une mascotte une fois et demie plus grande, avec un chapeau pointu étoilé, une barbe blanche et un bâton surmonté d'un orbe.
 

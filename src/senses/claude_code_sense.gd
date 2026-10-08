@@ -18,9 +18,11 @@ extends Node
 ##   session_quiet {level}: working with no hook event, 0: for a moment,
 ##     1: for a while, 2: for long,
 ##   session_needs_you {detail}, session_finished,
-##   session_advisor {asking}: the session asked the advisor, then got its
-##     answer. What they say is not readable. Claude Code writes the call
-##     once the answer is there: both come one after the other,
+##   session_advisor {asking}: the session asks the advisor, then got its
+##     answer. What they say is not readable. Claude Code writes the call in
+##     the transcript once the answer is there. Only its terminal shows the
+##     advisor at work: on Linux a helper reads it (linux/paros-terminal.py).
+##     Without it, both come one after the other, after the fact,
 ##   session_tool_failed {tool, detail, kind, agent: id of the subagent it
 ##     comes from, empty for the session}, session_tests_passed,
 ##   session_message_sent {to}: the session wrote to the session of that name,
@@ -64,6 +66,15 @@ const ADVISOR_RESULT_MARK := '"type":"advisor_tool_result"'
 ## Claude Code writes the call in the transcript once the advisor has
 ## answered: a call older than this many seconds when it is read is over.
 const ADVISOR_LATE_SECONDS := 2.0
+## The helper that reads the terminals writes its file more often than this.
+## Older: it is gone.
+const TERMINALS_STALE_SECONDS := 6.0
+## A terminal shows the advisor at work: it belongs to a busy session that
+## gave no sign of life since then, give or take this many seconds.
+const TERMINALS_MARGIN_SECONDS := 2.0
+## A call written in the transcript is the one a terminal showed when their
+## times are this close.
+const ADVISOR_SAME_SECONDS := 15.0
 ## Hook events of the session itself that tell the advisor answered.
 const ADVISOR_OVER: Array[String] = ["PreToolUse", "Stop", "UserPromptSubmit"]
 ## Tools that start a subagent. Their description names it.
@@ -115,11 +126,14 @@ const SHOWN: Array[String] = ["name", "color", "cwd", "last_prompt", "pid", "con
 
 var _claude_dir := _home().path_join(".claude")
 var _log_path := "/tmp/paros/claude-events.log"
+var _terminals_path := Desktop.advising_path()
 var _log_offset := 0
 ## Session id -> the SHOWN fields, plus phase, asking, subagents (agent id ->
 ## {id, name, tool, detail}, the ones running), launching (descriptions of
 ## the subagents asked for and not started yet), advising (true while the
-## advisor is asked), transcript,
+## advisor is asked), live (true when a terminal tells so), live_since (Unix
+## time of the call the terminal showed), sign (Unix time of its last sign of
+## life: a hook event of its own, or a line added to its transcript), transcript,
 ## transcript_offset, heard (time of the last hook event), quiet, tasks
 ## (background task id -> {since: Unix time of its start, server}), launches
 ## (id of a call that starts a command in the background -> true for a server),
@@ -173,6 +187,7 @@ func _poll() -> void:
 	for id: String in live:
 		_update(id, live[id])
 	_read_hook_log()
+	_read_terminals(live)
 	# After every transcript was read: a message is sent before it waits.
 	for id: String in _sessions:
 		_update_mail(id)
@@ -202,7 +217,8 @@ func _update(id: String, entry: Dictionary) -> void:
 	if opened:
 		_sessions[id] = {
 			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0, "summary": "",
-			"phase": &"", "asking": false, "advising": false, "subagents": {}, "launching": [], "transcript": "", "transcript_offset": 0,
+			"phase": &"", "asking": false, "advising": false, "live": false, "live_since": 0.0, "sign": Time.get_unix_time_from_system(),
+			"subagents": {}, "launching": [], "transcript": "", "transcript_offset": 0,
 			"heard": _now(), "quiet": 0, "tasks": {}, "launches": {}, "writes": {}, "background": 0, "servers": 0, "queue": [], "mail": 0, "known": false,
 			"origin": &"", "asker": "",
 		}
@@ -248,6 +264,8 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 	if file == null:
 		return
 	file.seek(session.transcript_offset)
+	if file.get_position() < file.get_length():
+		session.sign = Time.get_unix_time_from_system()
 	while file.get_position() < file.get_length():
 		var line := file.get_line()
 		if STOP_MARK in line:
@@ -262,10 +280,15 @@ func _read_transcript(id: String, session: Dictionary) -> void:
 			if ADVISOR_RESULT_MARK in line:
 				_set_advising(id, false)
 			elif ADVISOR_CALL_MARKS.all(func(mark: String) -> bool: return mark in line):
-				_set_advising(id, true)
 				var asked := _timestamp.search(line)
-				if asked and Time.get_unix_time_from_system() - Time.get_unix_time_from_datetime_string(asked.get_string(1)) > ADVISOR_LATE_SECONDS:
+				var at: float = Time.get_unix_time_from_datetime_string(asked.get_string(1)) if asked else 0.0
+				if session.live_since > 0.0 and absf(at - session.live_since) < ADVISOR_SAME_SECONDS:
+					# The call a terminal showed: written now, so answered.
 					_set_advising(id, false)
+				else:
+					_set_advising(id, true)
+					if asked and Time.get_unix_time_from_system() - at > ADVISOR_LATE_SECONDS:
+						_set_advising(id, false)
 		if LAUNCH_MARK in line:
 			for block in _tool_uses(line, SHELL_TOOL):
 				session.launches[block.get("id", "")] = is_server(str(block.input.get("command", "")))
@@ -443,8 +466,10 @@ func _handle_hook(fields: PackedStringArray) -> void:
 	var agent := fields[Field.AGENT]
 	# The answer of the advisor is written late in the transcript, or never.
 	# But the session waits for it: its next move tells that it came.
-	if agent.is_empty() and event in ADVISOR_OVER:
-		_set_advising(id, false)
+	if agent.is_empty():
+		session.sign = Time.get_unix_time_from_system()
+		if event in ADVISOR_OVER:
+			_set_advising(id, false)
 	session.heard = _now()
 	# Any later event means the question was answered.
 	session.asking = event == "Notification" and fields[Field.NOTIFICATION] in ASKING
@@ -484,7 +509,51 @@ func _handle_hook(fields: PackedStringArray) -> void:
 			Events.post(&"session_finished", {"session": id})
 
 
+## Unix times since when each terminal shows the advisor at work, oldest
+## first. None without the helper, or with the setting off.
+func _terminal_starts() -> Array:
+	if not FileAccess.file_exists(_terminals_path) or not Settings.value("claude", "sage_live"):
+		return []
+	var lines := FileAccess.get_file_as_string(_terminals_path).split("\n", false)
+	if lines.is_empty() or Time.get_unix_time_from_system() - lines[0].to_float() >= TERMINALS_STALE_SECONDS:
+		return []
+	var starts := Array(lines.slice(1)).map(func(line: String) -> float: return line.to_float())
+	starts.sort()
+	return starts
+
+
+## Finds the sessions whose terminals show the advisor at work. A terminal
+## does not tell its session: it is a busy one that gave no sign of life
+## since the call began. With more such sessions than terminals, none is
+## picked: the call is then told after the fact, by the transcript.
+func _read_terminals(live: Dictionary) -> void:
+	Desktop.watch_terminals(Settings.value("claude", "sage") and Settings.value("claude", "sage_live"))
+	var starts := _terminal_starts()
+	if starts.is_empty():
+		# No terminal shows it any more: every call is over.
+		for id: String in _sessions:
+			if _sessions[id].live:
+				_set_advising(id, false)
+		return
+	var taken := _sessions.values().map(func(session: Dictionary) -> float: return session.live_since)
+	var free := starts.filter(func(start: float) -> bool: return start not in taken)
+	if free.is_empty():
+		return
+	var silent := _sessions.keys().filter(func(id: String) -> bool:
+		var session: Dictionary = _sessions[id]
+		return not session.live and live[id].get("status") == "busy" and session.sign <= free[-1] + TERMINALS_MARGIN_SECONDS)
+	if silent.size() != free.size():
+		return
+	silent.sort_custom(func(a: String, b: String) -> bool: return _sessions[a].sign < _sessions[b].sign)
+	for i in silent.size():
+		_sessions[silent[i]].live = true
+		_sessions[silent[i]].live_since = free[i]
+		_set_advising(silent[i], true)
+
+
 func _set_advising(id: String, asking: bool) -> void:
+	if not asking:
+		_sessions[id].live = false
 	if _sessions[id].advising != asking:
 		_sessions[id].advising = asking
 		Events.post(&"session_advisor", {"session": id, "asking": asking})

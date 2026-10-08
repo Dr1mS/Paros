@@ -14,7 +14,7 @@ const DEFAULTS := {
 	"sound": {"enabled": true, "volume": 50},
 	"sleep": {"night_start_hour": 23, "night_end_hour": 7, "idle_minutes": 5.0},
 	"bubble": {"enabled": true, "seconds": 4.0},
-	"claude": {"show_activity": true, "nag_minutes": 2.0, "context_window_k": 1000, "knock": true, "sage": true},
+	"claude": {"show_activity": true, "nag_minutes": 2.0, "context_window_k": 1000, "knock": true, "sage": true, "sage_live": true},
 	"subagents": {"show": true, "max": 16, "size": 0.4, "show_activity": true, "games": true, "pyramid": true},
 	"git": {"enabled": true},
 	"desktop": {"perch": true, "cuddle": true, "leave_fullscreen": true, "lock_screen_minutes": 10.0},

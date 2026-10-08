@@ -56,6 +56,7 @@ Ajouter une fonctionnalité revient presque toujours à : un sens qui poste un �
 | **Hors `src/`** | |
 | `hooks/claude-hook.sh` | Script appelé par les hooks Claude Code |
 | `gnome-extension/` | Extension GNOME Shell et son installateur |
+| `linux/` | `paros-terminal.py` : lit les terminaux pour voir une session consulter l'advisor |
 | `tests/` | Tests unitaires |
 | `docs/` | Documentation, en français et en anglais, et captures d'écran |
 | `run.sh`, `build.sh`, `test.sh` | Lancer, exporter, tester |

@@ -1,9 +1,11 @@
 class_name Desktop
-## Actions on the desktop around Paros. Linux (GNOME extension, /proc) and
+## Actions on the desktop around Paros. Linux (GNOME extension, /proc, and a
+## helper script that reads the terminals, see linux/paros-terminal.py) and
 ## Windows (helper script, see windows/paros-desktop.ps1).
 ## Without a display (headless run, as in the tests) the actions do nothing.
 
 const HELPER_SCRIPT := "res://windows/paros-desktop.ps1"
+const TERMINAL_SCRIPT := "res://linux/paros-terminal.py"
 ## The helper rewrites its files more often than this. Older: it is gone.
 const STALE_SECONDS := 30.0
 
@@ -14,6 +16,8 @@ static var _processes := {}
 static var _processes_read_at := -1.0
 static var _processes_fresh := false
 static var _requests := 0
+## Linux: process of the helper that reads the terminals. 0: not started.
+static var _terminal_helper := 0
 
 
 ## Folder of the files shared with the hook script and the desktop helper: the
@@ -48,6 +52,36 @@ static func start_helper() -> void:
 		"-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script,
 		"-ParentPid", str(OS.get_process_id()), "-Dir", folder,
 	])
+
+
+## File where the helper that reads the terminals tells which ones show the
+## advisor at work.
+static func advising_path() -> String:
+	return runtime_dir().path_join("paros/advising.txt")
+
+
+## Linux: starts, or stops, the helper that reads the visible text of the
+## terminals to see a session ask its advisor. It ends when this app ends.
+static func watch_terminals(on: bool) -> void:
+	if OS.get_name() != "Linux" or _is_headless():
+		return
+	var running := _terminal_helper > 0 and OS.is_process_running(_terminal_helper)
+	if on == running:
+		return
+	if not on:
+		OS.kill(_terminal_helper)
+		_terminal_helper = 0
+		return
+	var folder := runtime_dir().path_join("paros")
+	DirAccess.make_dir_recursive_absolute(folder)
+	# As for the Windows helper: a program cannot run a script from the package.
+	var script := folder.path_join("paros-terminal.py")
+	var file := FileAccess.open(script, FileAccess.WRITE)
+	if file == null:
+		return
+	file.store_string(FileAccess.get_file_as_string(TERMINAL_SCRIPT))
+	file.close()
+	_terminal_helper = OS.create_process("python3", ["-I", script, "--parent", str(OS.get_process_id()), "--out", advising_path()])
 
 
 ## Windows: what the helper last wrote about the desktop. Empty without helper.

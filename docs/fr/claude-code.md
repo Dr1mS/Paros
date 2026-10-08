@@ -110,16 +110,26 @@ Tout se règle dans les réglages, partie « Sous-agents » : voir [Utilisation]
 
 ## Advisor
 
-L'advisor est un modèle plus fort qu'une session consulte en cours de travail. Quand une session l'a consulté, le sage vient à côté de son personnage : une mascotte une fois et demie plus grande, avec un chapeau pointu étoilé, une barbe blanche et un bâton surmonté d'un orbe.
+L'advisor est un modèle plus fort qu'une session consulte en cours de travail. Quand une session le consulte, le sage vient à côté de son personnage : une mascotte une fois et demie plus grande, avec un chapeau pointu étoilé, une barbe blanche et un bâton surmonté d'un orbe.
 
 1. Le sage entre en marchant vite, du côté où l'écran a le plus de place.
 2. Le personnage lui lance une lettre et se tourne vers lui. Sa légende dit « Demande au sage ».
-3. Le sage lit la lettre.
-4. Le sage relance une lettre au personnage, qui la lit. Puis il sort de l'écran par le bord le plus proche, et disparaît une fois hors de vue.
+3. Le sage lit la lettre, tant que l'advisor travaille.
+4. À la réponse, le sage relance une lettre au personnage, qui la lit. Puis il sort de l'écran par le bord le plus proche, et disparaît une fois hors de vue.
 
-La scène se joue après coup. Claude Code n'écrit l'appel dans le transcript qu'une fois la réponse de l'advisor arrivée, et rien d'autre ne le signale avant : ni hook, ni fichier. Le sage arrive donc quand le conseil est déjà donné, et reste 5 secondes. Ce que la session demande et ce que l'advisor répond ne sont pas lisibles : Paros sait seulement qu'un appel a eu lieu.
+Ce que la session demande et ce que l'advisor répond ne sont pas lisibles : Paros sait seulement qu'un appel a lieu.
 
-Le réglage « Le sage vient quand l'advisor est consulté » le coupe.
+### Voir l'appel pendant qu'il a lieu
+
+Claude Code ne dit rien pendant que l'advisor travaille : aucun hook, et l'appel n'est écrit dans le transcript qu'une fois la réponse arrivée. Seul le terminal de la session l'affiche : « Advising using », suivi du nom du modèle.
+
+Sous Linux, Paros lit donc le texte visible des terminaux, par le service d'accessibilité du bureau (AT-SPI). Un petit programme, `linux/paros-terminal.py`, cherche cette ligne deux fois par seconde. Le sage arrive alors en moins d'une seconde, et reste jusqu'à la réponse. Il demande `python3` et son module `gi` (paquet `python3-gi`, présent avec GNOME).
+
+Un terminal ne dit pas à quelle session il appartient. Paros prend la session au travail qui n'a donné aucun signe de vie depuis le début de l'appel : ni outil, ni ligne de transcript. Avec plusieurs sessions dans ce cas pour un seul terminal, il n'en choisit aucune.
+
+Sans ce programme (Windows, terminal non reconnu, onglet en arrière-plan, texte défilé vers le haut, réglage coupé), la scène se joue après coup : le sage arrive quand le conseil est déjà donné, et reste 5 secondes.
+
+Deux réglages : « Le sage vient quand l'advisor est consulté », et « Lire les terminaux pour voir l'advisor au travail ».
 
 ## D'où viennent les informations
 
@@ -179,6 +189,8 @@ Une ligne par événement, sept champs séparés par des tabulations :
 
 Le fichier `$XDG_RUNTIME_DIR/paros/claude-events.log` contient en clair les noms d'outils, les noms de fichiers touchés et les descriptions de commandes de toutes les sessions. Il est dans le dossier d'exécution de l'utilisateur, lisible par lui seul, et disparaît à la fermeture de session du système.
 
+Sous Linux, avec le réglage « Lire les terminaux pour voir l'advisor au travail », `linux/paros-terminal.py` lit le texte visible de tous les terminaux ouverts, deux fois par seconde. C'est bien plus que le journal des hooks : tout ce qui est affiché dans un terminal passe par lui. Il n'y cherche qu'une ligne, ne garde rien et n'envoie rien : il n'écrit que `$XDG_RUNTIME_DIR/paros/advising.txt`, qui contient des heures. Le réglage coupé, le programme n'est pas lancé.
+
 À l'écran, un personnage affiche le nom de la session, la branche git et l'outil en cours. La fiche au survol affiche en plus le dossier, et le début du dernier prompt ou le résumé de la session. Sur l'écran de verrouillage, aucun texte n'est affiché.
 
 ## Limites
@@ -192,5 +204,5 @@ Le fichier `$XDG_RUNTIME_DIR/paros/claude-events.log` contient en clair les noms
 - Les sous-agents sont suivis par les événements `SubagentStart` et `SubagentStop`, par identifiant : un `SubagentStop` sans `SubagentStart` connu est ignoré, Claude Code en envoie à chaque fin de tour. Un `SubagentStop` manqué laisse un petit personnage jusqu'à la fermeture de la session.
 - Le nom d'un sous-agent est la description de l'outil `Agent` lancé juste avant lui. Deux sous-agents lancés en même temps peuvent échanger leurs noms.
 - Un sous-agent ne dit ni qu'il attend ni qu'il réfléchit : son petit personnage joue, quoi qu'il fasse.
-- L'advisor tourne côté serveur : aucun hook ne le signale, et le transcript n'en parle qu'une fois sa réponse arrivée. Le sage vient après coup. Un appel fait avant le lancement de Paros n'est pas vu.
+- La ligne « Advising using » est celle de Claude Code 2.1 en anglais. Si une version la change, le sage revient à la scène après coup. Un appel fait avant le lancement de Paros n'est pas vu.
 - Le script demande un shell POSIX. Sous Windows, Claude Code lance les hooks avec Git Bash.

@@ -6,6 +6,7 @@
 
 - Godot 4.7 or later. `GODOT_PATH` must point to its binary, otherwise `godot` is looked up in `PATH`.
 - `git`, for the git sense and for one of the tests.
+- `python3` and `python3-gi`, on Linux, to see the advisor at work and for one of the tests.
 - For sounds on Linux: `pw-play`, `paplay` or `aplay`.
 - For the export: the Godot export templates of the same version as the editor.
 
@@ -41,7 +42,7 @@ Settings, the autostart file and the runtime folder are redirected to a temporar
 | `test_pet.gd` | State machine of a pet: wishes, short states, flight and bounces, umbrella, errands, perch, discreet mode |
 | `test_pets.gd` | Meetings, rivalry, high five, letters, frame rate |
 | `test_brain.gd` | Rules: one pet per session, wishes, sleep, lock screen, git, context, knock, tower, card, small pets of the subagents and their pyramid, sage |
-| `test_senses.gd` | Reading of the Claude Code registry and transcripts, hook log, git output, desktop file, hook script |
+| `test_senses.gd` | Reading of the Claude Code registry and transcripts, hook log, git output, desktop file, hook script, calls to the advisor and reading of the terminal |
 | `test_core.gd` | Settings, focus timer, sound synthesis and WAV file, bubble, autostart |
 
 ### Writing a test

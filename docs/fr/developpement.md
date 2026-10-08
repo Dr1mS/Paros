@@ -6,6 +6,7 @@
 
 - Godot 4.7 ou plus récent. `GODOT_PATH` doit pointer vers son binaire, sinon `godot` est cherché dans `PATH`.
 - `git`, pour le sens git et pour un des tests.
+- `python3` et `python3-gi`, sous Linux, pour voir l'advisor au travail et pour un des tests.
 - Pour les sons sous Linux : `pw-play`, `paplay` ou `aplay`.
 - Pour l'export : les modèles d'export Godot de la même version que l'éditeur.
 
@@ -41,7 +42,7 @@ Les réglages, le fichier de lancement au démarrage et le dossier d'exécution 
 | `test_pet.gd` | Machine à états d'un personnage : souhaits, états courts, vol et rebonds, parapluie, courses, perchoir, mode discret |
 | `test_pets.gd` | Rencontres, rivalité, tape dans la main, lettres, fréquence d'images |
 | `test_brain.gd` | Règles : une session par personnage, souhaits, sommeil, verrouillage, git, contexte, toc-toc, tour, fiche, petits personnages des sous-agents et leur pyramide, sage |
-| `test_senses.gd` | Lecture du registre et des transcripts Claude Code, journal des hooks, sorties de git, fichier du bureau, script de hook |
+| `test_senses.gd` | Lecture du registre et des transcripts Claude Code, journal des hooks, sorties de git, fichier du bureau, script de hook, appels à l'advisor et lecture du terminal |
 | `test_core.gd` | Réglages, minuteur de focus, synthèse des sons et fichier WAV, bulle, lancement au démarrage |
 
 ### Écrire un test

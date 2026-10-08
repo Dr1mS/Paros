@@ -55,11 +55,11 @@ const SAGE_STATURE := 1.5
 const SAGE_GAP := 230.0
 const SAGE_ENTRY := 460.0
 const SAGE_HURRY := 2.0
-## The sage stays at least this long: Claude Code tells of a call to the
-## advisor once it has answered, so the scene plays after the fact. And no
-## longer than that, should a call be told before its answer.
+## The sage stays at least this long: without the helper that reads the
+## terminals, a call to the advisor is told once it has answered, and the
+## scene plays after the fact. And no longer than that, should its end be missed.
 const SAGE_MIN_SECONDS := 5.0
-const SAGE_MAX_SECONDS := 300.0
+const SAGE_MAX_SECONDS := 900.0
 ## Once it answered, the sage walks off the screen. It is removed there, or
 ## after this many seconds: it may be held back on its way.
 const SAGE_LEAVE_SECONDS := 30.0

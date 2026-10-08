@@ -110,16 +110,26 @@ Everything is set in the settings, under "Subagents": see [Usage](usage.md#subag
 
 ## Advisor
 
-The advisor is a stronger model that a session asks while it works. When a session has asked it, the sage comes beside its pet: a mascot one and a half times bigger, with a starry pointy hat, a white beard and a staff topped with an orb.
+The advisor is a stronger model that a session asks while it works. When a session asks it, the sage comes beside its pet: a mascot one and a half times bigger, with a starry pointy hat, a white beard and a staff topped with an orb.
 
 1. The sage walks in fast, on the side where the screen has more room.
 2. The pet throws it a letter and turns toward it. Its caption says "Asks the sage".
-3. The sage reads the letter.
-4. The sage throws a letter back to the pet, which reads it. Then it walks off the screen by the nearest edge, and is gone once out of sight.
+3. The sage reads the letter, as long as the advisor works.
+4. At the answer, the sage throws a letter back to the pet, which reads it. Then it walks off the screen by the nearest edge, and is gone once out of sight.
 
-The scene plays after the fact. Claude Code writes the call in the transcript only once the answer of the advisor is there, and nothing else tells of it before: no hook, no file. So the sage comes when the advice is already given, and stays 5 seconds. What the session asks and what the advisor answers cannot be read: Paros only knows that a call took place.
+What the session asks and what the advisor answers cannot be read: Paros only knows that a call takes place.
 
-The setting "The sage comes when the advisor is asked" turns it off.
+### Seeing the call while it takes place
+
+Claude Code tells nothing while the advisor works: no hook, and the call is written in the transcript only once the answer is there. Only the terminal of the session shows it: "Advising using", followed by the name of the model.
+
+So on Linux, Paros reads the visible text of the terminals, through the accessibility service of the desktop (AT-SPI). A small program, `linux/paros-terminal.py`, looks for that line twice a second. The sage then comes in less than a second, and stays until the answer. It needs `python3` and its `gi` module (package `python3-gi`, present with GNOME).
+
+A terminal does not tell which session it belongs to. Paros takes the working session that gave no sign of life since the call began: no tool, no transcript line. With several such sessions for a single terminal, it picks none.
+
+Without this program (Windows, terminal not recognized, background tab, text scrolled up, setting off), the scene plays after the fact: the sage comes when the advice is already given, and stays 5 seconds.
+
+Two settings: "The sage comes when the advisor is asked", and "Read the terminals to see the advisor at work".
 
 ## Where the information comes from
 
@@ -179,6 +189,8 @@ One line per event, seven fields separated by tabs:
 
 The file `$XDG_RUNTIME_DIR/paros/claude-events.log` holds, in clear text, the tool names, the names of the files touched and the descriptions of the commands of every session. It is in the runtime folder of the user, readable by that user only, and goes away when the user logs out of the system.
 
+On Linux, with the setting "Read the terminals to see the advisor at work", `linux/paros-terminal.py` reads the visible text of every open terminal, twice a second. This is far more than the hook log: everything shown in a terminal goes through it. It looks for one line only, keeps nothing and sends nothing: it only writes `$XDG_RUNTIME_DIR/paros/advising.txt`, which holds times. With the setting off, the program is not started.
+
 On screen, a pet shows the session name, the git branch and the tool in use. The hover card also shows the folder, and the start of the last prompt or the summary of the session. On the lock screen, no text is shown.
 
 ## Limits
@@ -192,5 +204,5 @@ On screen, a pet shows the session name, the git branch and the tool in use. The
 - Subagents are followed through the `SubagentStart` and `SubagentStop` events, by id: a `SubagentStop` with no known `SubagentStart` is ignored, Claude Code sends some at the end of each turn. A missed `SubagentStop` leaves a small pet until the session closes.
 - The name of a subagent is the description of the `Agent` tool started just before it. Two subagents started at the same time may swap their names.
 - A subagent tells neither that it waits nor that it thinks: its small pet plays, whatever it does.
-- The advisor runs on the server: no hook tells it, and the transcript speaks of it only once its answer is there. The sage comes after the fact. A call made before Paros started is not seen.
+- The "Advising using" line is the one of Claude Code 2.1. If a version changes it, the sage goes back to the scene after the fact. A call made before Paros started is not seen.
 - The script needs a POSIX shell. On Windows, Claude Code runs hooks with Git Bash.

@@ -24,6 +24,7 @@ func claude_sense() -> Node:
 	var sense: Node = load("res://src/senses/claude_code_sense.gd").new()
 	sense._claude_dir = folder.path_join("claude")
 	sense._log_path = folder.path_join("events.log")
+	sense._terminals_path = folder.path_join("advising.txt")
 	return sense
 
 
@@ -518,3 +519,83 @@ func test_advisor_calls_are_read_from_the_transcript() -> void:
 	var told := _events.filter(func(event: Array) -> bool: return event[0] == &"session_advisor").map(func(event: Array) -> bool: return event[1].asking)
 	check_equal(told, [true, false], "a call written long after it was made is told, then over at once")
 	sense.free()
+
+
+func test_terminal_tells_the_advisor_is_asked() -> void:
+	var sense := claude_sense()
+	var transcript := folder.path_join("claude/projects/-work").path_join(SESSION + ".jsonl")
+	write(folder.path_join("claude/sessions/1.json"), registry(OS.get_process_id(), "busy"))
+	write(transcript, '{"type":"assistant","message":"I ask the advisor."}\n')
+	write(sense._log_path, "")
+	sense._poll()
+	var now := Time.get_unix_time_from_system()
+	write(sense._terminals_path, "%.3f\n" % now)
+	sense._poll()
+	check(&"session_advisor" not in event_names(), "the helper runs, no terminal shows the advisor")
+	write(sense._terminals_path, "%.3f\n%.3f\n" % [now, now])
+	sense._poll()
+	check_equal(last_event(&"session_advisor").get("asking"), true, "a terminal shows it: the busy session that kept silent asks")
+
+	# The call is written in the transcript once it is answered.
+	record_events()
+	var stamp := Time.get_datetime_string_from_unix_time(int(now))
+	var file := FileAccess.open(transcript, FileAccess.READ_WRITE)
+	file.seek_end()
+	file.store_string('{"type":"assistant","timestamp":"%s.000Z","message":{"content":[{"type":"server_tool_use","id":"srvtoolu_1","name":"advisor","input":{}}]}}\n' % stamp)
+	file.close()
+	sense._poll()
+	var told := _events.filter(func(event: Array) -> bool: return event[0] == &"session_advisor").map(func(event: Array) -> bool: return event[1].asking)
+	check_equal(told, [false], "the same call, read late in the transcript: answered, not asked again")
+	sense._poll()
+	check_equal(told.size(), 1, "and the terminal that still shows it for a moment does not ask again")
+
+	record_events()
+	write(sense._terminals_path, "%.3f\n%.3f\n" % [now - 60.0, now + 1.0])
+	sense._poll()
+	check(&"session_advisor" not in event_names(), "a helper that stopped writing tells nothing")
+	Settings.set_value("claude", "sage_live", false)
+	write(sense._terminals_path, "%.3f\n%.3f\n" % [now, now + 1.0])
+	sense._poll()
+	check(&"session_advisor" not in event_names(), "nor does the helper with the setting off")
+	Settings.set_value("claude", "sage_live", true)
+	sense.free()
+
+
+func test_terminal_with_two_silent_sessions_tells_none() -> void:
+	var sense := claude_sense()
+	write(folder.path_join("claude/sessions/1.json"), registry(OS.get_process_id(), "busy"))
+	write(folder.path_join("claude/sessions/2.json"), registry(OS.get_process_id(), "busy").replace(SESSION, "other-session"))
+	write(sense._log_path, "")
+	sense._poll()
+	var now := Time.get_unix_time_from_system()
+	write(sense._terminals_path, "%.3f\n%.3f\n" % [now, now])
+	sense._poll()
+	check(&"session_advisor" not in event_names(), "one terminal, two busy sessions that keep silent: which one is not known")
+	write(sense._terminals_path, "%.3f\n%.3f\n%.3f\n" % [now, now, now + 0.5])
+	sense._poll()
+	var asked := _events.filter(func(event: Array) -> bool: return event[0] == &"session_advisor")
+	check_equal(asked.size(), 2, "two terminals, two sessions: both ask")
+	write(sense._terminals_path, "%.3f\n" % now)
+	sense._poll()
+	check_equal(last_event(&"session_advisor").get("asking"), false, "no terminal shows it any more: over")
+	sense.free()
+
+
+func test_terminal_helper_finds_the_advisor_at_work() -> void:
+	if OS.get_name() != "Linux":
+		return
+	var script := ProjectSettings.globalize_path("res://linux/paros-terminal.py")
+	var bottom := "\n\n✽ Herding… (1m 28s · ↓ 7.1k tokens)\n────────────────────\n❯ \n────────────────────\n  ⏵⏵ auto mode on\n"
+	var screens := {
+		"I ask the advisor.\n\n● Advising using Opus 5.5" + bottom: "1",
+		# The dot blinks.
+		"I ask the advisor.\n\n  Advising using Opus 5.5" + bottom: "1",
+		"● Advising using Opus 5.5\n  ⎿  ✔ Advisor has reviewed the conversation and will apply the feedback" + bottom: "0",
+		"● The terminal showed\n  ● Advising using Opus 5.5\n  a moment ago." + bottom: "0",
+		"● Running 1 shell command…" + bottom: "0",
+	}
+	for screen: String in screens:
+		write(folder.path_join("screen.txt"), screen)
+		var output := []
+		OS.execute("sh", ["-c", "python3 -I '%s' --test < '%s'" % [script, folder.path_join("screen.txt")]], output)
+		check_equal(str(output[0]).strip_edges(), screens[screen], "screen that ends with: " + screen.left(60).replace("\n", " / "))

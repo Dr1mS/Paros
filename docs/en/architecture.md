@@ -56,6 +56,7 @@ Adding a feature nearly always comes down to: a sense that posts an event, a rul
 | **Outside `src/`** | |
 | `hooks/claude-hook.sh` | Script called by the Claude Code hooks |
 | `gnome-extension/` | GNOME Shell extension and its installer |
+| `linux/` | `paros-terminal.py`: reads the terminals to see a session ask the advisor |
 | `tests/` | Unit tests |
 | `docs/` | Documentation, in English and in French, and screenshots |
 | `run.sh`, `build.sh`, `test.sh` | Run, export, test |

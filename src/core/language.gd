@@ -29,6 +29,7 @@ const FRENCH := {
 	"Asks the sage": "Demande au sage",
 	"Asks the sage for %s": "Demande au sage depuis %s",
 	"The sage comes when the advisor is asked": "Le sage vient quand l'advisor est consulté",
+	"Read the terminals to see the advisor at work": "Lire les terminaux pour voir l'advisor au travail",
 	"Context: %d k tokens (%d %%)": "Contexte : %d k tokens (%d %%)",
 	"Merge or rebase to finish": "Fusion ou rebase à terminer",
 	"Uncommitted: %d lines": "Non commité : %d lignes",

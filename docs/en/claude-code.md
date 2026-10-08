@@ -155,5 +155,5 @@ On screen, a pet shows the session name, the git branch and the tool in use. The
 - A message of a session without pet gets no flight: the letter is in the mailbox at once.
 - A collision is seen only when the other session wrote the file with `Edit` or `Write`. A file changed by a command (`sed`, a script, a formatter) has no known author: nothing is shown.
 - `Stop` also fires on `/clear` and on a compaction: the pet then jumps although no task is done.
-- The subagent count follows the `SubagentStart` and `SubagentStop` events. A missed event makes it wrong until the session closes.
+- The subagent count follows the `SubagentStart` and `SubagentStop` events, by subagent id: a `SubagentStop` with no known `SubagentStart` is ignored, Claude Code sends some at the end of each turn. A missed `SubagentStop` leaves a small pet until the session closes.
 - The script needs a POSIX shell. On Windows, Claude Code runs hooks with Git Bash.

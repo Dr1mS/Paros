@@ -98,7 +98,8 @@ const SHOWN: Array[String] = ["name", "color", "cwd", "last_prompt", "pid", "con
 var _claude_dir := _home().path_join(".claude")
 var _log_path := "/tmp/paros/claude-events.log"
 var _log_offset := 0
-## Session id -> the SHOWN fields, plus phase, asking, subagents, transcript,
+## Session id -> the SHOWN fields, plus phase, asking, subagents (agent id ->
+## true, the ones running), transcript,
 ## transcript_offset, heard (time of the last hook event), quiet, tasks
 ## (background task id -> {since: Unix time of its start, server}), launches
 ## (id of a call that starts a command in the background -> true for a server),
@@ -181,7 +182,7 @@ func _update(id: String, entry: Dictionary) -> void:
 	if opened:
 		_sessions[id] = {
 			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0, "summary": "",
-			"phase": &"", "asking": false, "subagents": 0, "transcript": "", "transcript_offset": 0,
+			"phase": &"", "asking": false, "subagents": {}, "transcript": "", "transcript_offset": 0,
 			"heard": _now(), "quiet": 0, "tasks": {}, "launches": {}, "writes": {}, "background": 0, "servers": 0, "queue": [], "mail": 0, "known": false,
 			"origin": &"", "asker": "",
 		}
@@ -427,8 +428,14 @@ func _handle_hook(fields: PackedStringArray) -> void:
 				"session": id, "tool": fields[Field.TOOL], "detail": fields[Field.DETAIL], "kind": fields[Field.KIND],
 			})
 		"SubagentStart", "SubagentStop":
-			session.subagents = maxi(session.subagents + (1 if event == "SubagentStart" else -1), 0)
-			Events.post(&"session_subagents", {"session": id, "count": session.subagents})
+			# Claude Code also sends SubagentStop for agents it never announced,
+			# at the end of each turn among others: only a known id counts.
+			var agent := fields[Field.DETAIL]
+			if event == "SubagentStart":
+				session.subagents[agent] = true
+			elif not session.subagents.erase(agent):
+				return
+			Events.post(&"session_subagents", {"session": id, "count": session.subagents.size()})
 		"Stop":
 			Events.post(&"session_finished", {"session": id})
 

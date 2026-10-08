@@ -3,6 +3,7 @@
 # Champs séparés par des tabulations :
 #   hook_event_name, session_id, notification_type, tool_name, détail, genre
 # détail : fichier touché, sinon description de la commande, sinon message.
+# Pour SubagentStart et SubagentStop : l'identifiant du sous-agent.
 # genre : "test" quand la commande Bash lance des tests.
 # N'affiche rien et sort toujours avec 0 : ne peut pas perturber une session.
 
@@ -20,6 +21,9 @@ detail=${detail##*/}
 detail=${detail##*\\}
 [ -z "$detail" ] && detail=$(field description)
 [ -z "$detail" ] && detail=$(field message)
+case "$(field hook_event_name)" in
+	Subagent*) detail=$(field agent_id) ;;
+esac
 
 kind=""
 if field command | grep -qE '(^|[ /;&|])(pytest|jest|vitest|phpunit|rspec|ctest)([ ;&|]|$)|(npm|pnpm|yarn|bun|cargo|go|dotnet|mvn|gradle|make|composer)( run)? test'; then

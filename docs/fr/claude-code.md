@@ -155,5 +155,5 @@ Le fichier `$XDG_RUNTIME_DIR/paros/claude-events.log` contient en clair les noms
 - Une collision n'est vue que si l'autre session a écrit le fichier avec `Edit` ou `Write`. Un fichier modifié par une commande (`sed`, un script, un formateur) n'a pas d'auteur connu : rien n'est montré.
 - Une tâche en arrière-plan sans avis de fin au bout de 30 minutes est oubliée, sauf si le registre dit qu'une commande tourne encore : le personnage retourne au repos.
 - `Stop` se déclenche aussi sur `/clear` et sur un compactage : le personnage saute alors sans qu'une tâche soit finie.
-- Le compte des sous-agents suit les événements `SubagentStart` et `SubagentStop`. Un événement manqué le fausse jusqu'à la fermeture de la session.
+- Le compte des sous-agents suit les événements `SubagentStart` et `SubagentStop`, par identifiant de sous-agent : un `SubagentStop` sans `SubagentStart` connu est ignoré, Claude Code en envoie à chaque fin de tour. Un `SubagentStop` manqué laisse un petit personnage jusqu'à la fermeture de la session.
 - Le script demande un shell POSIX. Sous Windows, Claude Code lance les hooks avec Git Bash.

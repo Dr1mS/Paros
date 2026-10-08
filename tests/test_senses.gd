@@ -116,9 +116,11 @@ func test_hook_lines_become_events() -> void:
 		["PreToolUse", "", "Edit", "pet.gd", ""],
 		["PostToolUse", "", "Bash", "Run tests", "test"],
 		["PostToolUseFailure", "", "Bash", "Build", ""],
-		["SubagentStart", "", "", "", ""],
-		["SubagentStart", "", "", "", ""],
+		["SubagentStart", "", "", "a1", ""],
+		["SubagentStart", "", "", "a2", ""],
+		["SubagentStop", "", "", "a1", ""],
 		["SubagentStop", "", "", "", ""],
+		["SubagentStop", "", "", "a9", ""],
 		["Notification", "permission_prompt", "", "Claude needs your permission to use Bash", ""],
 	]
 	var text := ""
@@ -130,7 +132,7 @@ func test_hook_lines_become_events() -> void:
 	check_equal(last_event(&"session_activity").get("detail"), "pet.gd", "tool in use, unknown session ignored")
 	check(&"session_tests_passed" in event_names(), "green tests")
 	check_equal(last_event(&"session_tool_failed").get("tool"), "Bash", "failed command")
-	check_equal(last_event(&"session_subagents").get("count"), 1, "two started, one stopped")
+	check_equal(last_event(&"session_subagents").get("count"), 1, "two started, one stopped, the stops of unknown agents ignored")
 	check_equal(last_event(&"session_needs_you").get("detail"), "Claude needs your permission to use Bash", "question")
 	check_equal(last_event(&"session_phase").get("phase"), &"waiting", "waiting although the registry says busy")
 
@@ -440,14 +442,16 @@ func test_hook_script_writes_one_line_per_event() -> void:
 		'{"session_id":"s1","hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":{"command":"cd x && npm run test","description":"Run unit tests"}}',
 		'{"session_id":"s1","hook_event_name":"Notification","message":"Claude needs your permission","notification_type":"permission_prompt"}',
 		'{"session_id":"s1","hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":{"command":"ls","description":"%s"}}' % "x".repeat(300),
+		'{"session_id":"s1","agent_id":"a1","agent_type":"general-purpose","hook_event_name":"SubagentStop","background_tasks":[{"id":"a2","type":"subagent","description":"Other agent"}]}',
 	]
 	for input: String in runs:
 		write(folder.path_join("input.json"), input)
 		OS.execute("sh", ["-c", "XDG_RUNTIME_DIR='%s' '%s' < '%s'" % [folder, script, folder.path_join("input.json")]])
 	var lines := FileAccess.get_file_as_string(folder.path_join("paros/claude-events.log")).split("\n", false)
-	check_equal(lines.size(), 5, "one line per event")
+	check_equal(lines.size(), 6, "one line per event")
 	check_equal(Array(lines[0].split("\t")), ["PreToolUse", "s1", "", "Edit", "pet.gd", ""], "file name of an edit")
 	check_equal(Array(lines[1].split("\t")), ["PreToolUse", "s1", "", "Write", "pet_body.gd", ""], "file name of a Windows path")
 	check_equal(Array(lines[2].split("\t")), ["PostToolUse", "s1", "", "Bash", "Run unit tests", "test"], "a test command")
 	check_equal(Array(lines[3].split("\t")), ["Notification", "s1", "permission_prompt", "", "Claude needs your permission", ""], "a question")
 	check_equal(lines[4].split("\t")[4].length(), 120, "long detail cut")
+	check_equal(Array(lines[5].split("\t")), ["SubagentStop", "s1", "", "", "a1", ""], "id of a subagent, not the description of another")

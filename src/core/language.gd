@@ -75,6 +75,8 @@ const FRENCH := {
 	"Knock when the terminal is not focused": "Toquer quand le terminal n'a pas le focus",
 	"Model context, in thousands of tokens": "Contexte du modèle, en milliers de tokens",
 	"Follow the git status of folders": "Suivre l'état git des dossiers",
+	"Pets for Antigravity Desktop conversations": "Personnages pour les conversations d'Antigravity Desktop",
+	"A Desktop pet leaves after an idle of": "Un personnage Desktop part après une inactivité de",
 	"Desktop (GNOME extension)": "Bureau (extension GNOME)",
 	"Climb onto the focused window": "Grimper sur la fenêtre active",
 	"Sleep by the still pointer": "Dormir contre le curseur immobile",

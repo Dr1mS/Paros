@@ -2,7 +2,7 @@
 
 [Français](../fr/agy.md)
 
-Paros also follows the sessions of agy, the Antigravity CLI of Google, for the current user. Each one gets its own pet, drawn after the agy mascot: an "A" in a gradient from orange to green and blue. It lives with the Claude Code pets: it walks, sits, sleeps, greets them, and they write letters to each other through [Diaulos](https://github.com/Dr1mS/Diaulos).
+Paros also follows the sessions of agy, the Antigravity CLI of Google, and the conversations of Antigravity Desktop, for the current user. Each one gets its own pet, drawn after the agy mascot: an "A" in a gradient from orange to green and blue. It lives with the Claude Code pets: it walks, sits, sleeps, greets them, and they write letters to each other through [Diaulos](https://github.com/Dr1mS/Diaulos).
 
 ![A Claude pet throws a letter, an agy pet reads one, another thinks with the small pets of its two subagents, a last one waves at a question](../images/agy.png)
 
@@ -28,11 +28,25 @@ Linux only. Nothing to install: Paros reads the files agy writes. An optional ho
 | Writes to another session through Diaulos | Throws a letter, which flies to the pet of that session |
 | A message of Diaulos waits in its inbox | A mailbox stands beside the pet. It reads the letter when the session takes it |
 | Context 75 % full or more | Its head smokes. The window counts 1 million tokens, the one of the Gemini models |
-| Closed | The pet goes away |
+| Closed | The pet goes away. A conversation of Antigravity Desktop has no process of its own: see [Antigravity Desktop](#antigravity-desktop) |
 
 Its arms show only while they rise: when it cheers, waves, throws or reads. At rest the "A" keeps the shape of the mascot.
 
 It wears no accessory: nothing sits well on the point of the "A". Its back arm shows to carry the folders of uncommitted changes. During a merge or a rebase, the warning sign stands beside it, without the hard hat. The git branch, the folders carried and the other reactions to the repository work as for a Claude Code session: see [Claude Code](claude-code.md).
+
+## Antigravity Desktop
+
+Antigravity Desktop runs every conversation of a window in one background process, its language server, and writes them in the same format as the CLI, in `~/.gemini/antigravity/`. Nothing tells which tabs are open. A conversation of Desktop gets a pet:
+
+- while the window shows it: the language server holds its presence lock;
+- as soon as it works, and for 10 minutes after its last step. The pet then goes away, and comes back at its next turn;
+- until Desktop closes.
+
+Right click → Settings → agy: "Pets for Antigravity Desktop conversations" turns them off, and "A Desktop pet leaves after an idle of" sets the delay (1 to 120 minutes).
+
+The folder of a Desktop conversation is written in no file Paros reads, except the peer file of [Diaulos](https://github.com/Dr1mS/Diaulos), when the bridge knows the conversation. Without it, the pet is named after the conversation alone ("Antigravity" while it has no title), and git is not followed. Subagents have no pet of their own: they stay small pets, as in the CLI.
+
+A session of the agy CLI that Diaulos wakes without a terminal (`agy -p`) is a real `agy` process: its pet comes for the time of its turn, then goes away with the process.
 
 ## Diaulos
 
@@ -50,6 +64,9 @@ Nothing to set up: Paros reads the commands of the sessions and the inboxes of D
 | File | What for |
 |---|---|
 | `/proc/<pid>/fd` of each `agy` process | The process holds `~/.gemini/antigravity-cli/presence/<conversation id>.lock` open: the conversation it runs. Its folder is the one of the process |
+| `/proc/<pid>/fd` of each `language_server` process | Antigravity Desktop (`~/.gemini/antigravity/`) or IDE (`~/.gemini/antigravity-ide/`): the data folder it keeps files open in, and the presence lock of the conversation the window shows. Paros never reads its command line |
+| `~/.gemini/antigravity/brain/*/` and `annotations/` | The conversations of Desktop: the date of the last step of each transcript, its title. A conversation with no annotations file, and unknown to Diaulos, is a subagent |
+| `~/.agent-bridge/peers/agy-<conversation id>.json` | The folder of a Desktop conversation, when Diaulos knows it |
 | `~/.gemini/antigravity-cli/annotations/<conversation id>.pbtxt` | The title of the conversation |
 | `~/.gemini/antigravity-cli/brain/<conversation id>/.system_generated/logs/transcript_full.jsonl` | One line per step: the request, each answer of the model with its tool calls, their results, the end of the tasks started in the background, the reports of the subagents, the truncation of the context (`CHECKPOINT`), the tokens used. Each subagent has its own, in `brain/<its conversation id>/` |
 | `~/.agent-bridge/inbox/agy-<conversation id>/` | The messages of Diaulos that wait |
@@ -80,7 +97,7 @@ The script writes one line per event, three fields separated by tabs: the event,
 ## Limits
 
 - Linux only: the conversation of a process is read in `/proc`. On Windows, agy sessions get no pet.
-- The agy CLI only. Antigravity Desktop and the IDE are other programs: their sessions are not seen.
+- Antigravity Desktop: a pet stands for a conversation the window shows or that worked in the last minutes, not for each open tab, which no file tells. Its folder comes from Diaulos only. The IDE should work the same way, but is not tested.
 - agy writes no wait for a permission in a file Paros can read: only a question (`ask_question`) makes the pet wave its arms. With `toolPermission` set to `always-proceed`, agy never asks for a permission.
 - A command counts as failed when its result reads "The command exited with code" followed by anything but 0. Another tool fails when its step has the status `ERROR`.
 - A turn told working with no new step for 10 minutes when Paros starts is taken as over.

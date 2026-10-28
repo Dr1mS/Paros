@@ -99,7 +99,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 |---|---|
 | Linux, GNOME, Wayland | Testé |
 | Linux, autre bureau | Le cœur fonctionne. Les parties propres à GNOME restent muettes |
-| agy | Linux seulement, la CLI agy. Testé avec agy (serveur de langage 1.4) |
+| agy | Linux seulement, la CLI agy et Antigravity Desktop. Testé avec agy (serveur de langage 1.4) |
 | Windows | Testé depuis les sources (Godot 4.7, Git Bash pour les hooks, `./test.ps1` pour les tests). Un script PowerShell (`windows/`) remplace l'extension GNOME : focus du terminal, perchoir, plein écran, inactivité, musique, batterie. Pas de pets sur l'écran de verrouillage, pas d'alerte de température. Le sage vient une fois la réponse de l'advisor arrivée, pas pendant l'appel |
 
 ## Tests

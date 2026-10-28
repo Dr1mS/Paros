@@ -128,6 +128,8 @@ Right-click, "Settings…". Each change applies and is saved at once. Settings a
 | Read the terminals to see the advisor at work | yes | `claude/sage_live` | Linux. The sage comes during the call, not after. See [Privacy](claude-code.md#privacy) |
 | Model context, in thousands of tokens | 1000 k | `claude/context_window_k` | Size of the context window of the model. Used to know when the head smokes |
 | Follow the git status of folders | yes | `git/enabled` | Runs `git` every 10 seconds in the folder of each session |
+| Pets for Antigravity Desktop conversations | yes | `agy/desktop` | Linux. See [Antigravity Desktop](agy.md#antigravity-desktop) |
+| A Desktop pet leaves after an idle of | 10 min | `agy/desktop_minutes` | Time after the last step of a Desktop conversation that the window does not show |
 
 ### Subagents
 

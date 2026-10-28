@@ -128,6 +128,8 @@ Clic droit, « Réglages… ». Chaque changement s'applique et s'enregistre tou
 | Lire les terminaux pour voir l'advisor au travail | oui | `claude/sage_live` | Linux. Le sage vient pendant l'appel, pas après. Voir [Confidentialité](claude-code.md#confidentialité) |
 | Contexte du modèle, en milliers de tokens | 1000 k | `claude/context_window_k` | Taille de la fenêtre de contexte du modèle. Sert à savoir quand la tête fume |
 | Suivre l'état git des dossiers | oui | `git/enabled` | Lance `git` toutes les 10 secondes dans le dossier de chaque session |
+| Personnages pour les conversations d'Antigravity Desktop | oui | `agy/desktop` | Linux. Voir [Antigravity Desktop](agy.md#antigravity-desktop) |
+| Un personnage Desktop part après une inactivité de | 10 min | `agy/desktop_minutes` | Temps après la dernière étape d'une conversation Desktop que la fenêtre n'affiche pas |
 
 ### Sous-agents
 

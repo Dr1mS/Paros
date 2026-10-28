@@ -33,7 +33,7 @@ Ajouter une fonctionnalité revient presque toujours à : un sens qui poste un �
 | `autostart.gd` | Lancement à l'ouverture de session. Classe `Autostart` |
 | **`src/senses/`** | |
 | `claude_code_sense.gd` | Sessions Claude Code : registre, transcripts, journal des hooks |
-| `agy_sense.gd` | Sessions agy : processus, titres, transcripts, boîtes de Diaulos, journal du hook |
+| `agy_sense.gd` | Sessions agy : processus (CLI agy, serveurs de langage d'Antigravity Desktop), titres, transcripts, boîtes et fichiers de pair de Diaulos, journal du hook |
 | `git_sense.gd` | État git du dossier de chaque session |
 | `desktop_sense.gd` | Fichier écrit par l'extension GNOME, ou par le script Windows : fenêtre active, curseur, verrouillage, plein écran |
 | `system_sense.gd` | Température, charge, batterie |

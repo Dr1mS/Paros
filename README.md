@@ -99,7 +99,7 @@ To run without Godot, build a standalone binary with `./build.sh` (see [Developm
 |---|---|
 | Linux, GNOME, Wayland | Tested |
 | Linux, other desktops | The core works. GNOME-only parts stay silent |
-| agy | Linux only, the agy CLI. Tested with agy (language server 1.4) |
+| agy | Linux only, the agy CLI and Antigravity Desktop. Tested with agy (language server 1.4) |
 | Windows | Tested from the sources (Godot 4.7, Git Bash for the hooks, `./test.ps1` for the tests). A PowerShell helper (`windows/`) replaces the GNOME extension: terminal focus, perch, full screen, inactivity, music, battery. No pets on the lock screen, no temperature alert. The sage comes once the answer of the advisor is there, not during the call |
 
 ## Tests

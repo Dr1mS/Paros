@@ -33,6 +33,13 @@ extends Node
 ## Reads local files, none of them documented: may change.
 ## - /proc: each agy process holds the file presence/<conversation id>.lock of
 ##   its conversation open. Linux only: elsewhere no agy session is seen.
+## - Antigravity Desktop and IDE run every conversation of a window in one
+##   language_server process, which keeps files of its data folder open but
+##   holds the presence lock of one conversation only. A conversation of theirs
+##   counts as open while the server holds its lock, while it works, and for
+##   some minutes after its last step (setting agy/desktop_minutes).
+##   Subagents have no annotations file: a conversation needs one, or a peer
+##   file of the agent bridge, which also gives its folder.
 ## - annotations/<conversation id>.pbtxt: the title of the conversation.
 ## - brain/<conversation id>/.system_generated/logs/transcript_full.jsonl: one
 ##   line per step, written once the step is done. The answer of the model with
@@ -52,6 +59,10 @@ const POLL_SECONDS := 0.5
 const SCAN_SECONDS := 2.0
 ## Name of the agy process in /proc/<pid>/comm.
 const PROCESS := "agy"
+## Name of the process of Antigravity Desktop and IDE that runs their conversations.
+const SERVER := "language_server"
+## Data folders of Antigravity Desktop and IDE, under the home folder.
+const SERVER_DIRS: Array[String] = [".gemini/antigravity", ".gemini/antigravity-ide"]
 const TRANSCRIPT := ".system_generated/logs/transcript_full.jsonl"
 ## A Stop of a turn that ended normally: its last answer told it already.
 const NORMAL_END := "NO_TOOL_CALL"
@@ -90,7 +101,8 @@ var _proc_dir := "/proc"
 var _log_path := ""
 var _log_offset := 0
 var _scan_in := 0.0
-## Conversation id -> {pid, cwd}, as of the last scan.
+## Conversation id -> {pid, cwd, dir}, as of the last scan. dir: the data
+## folder of the agy client that runs it.
 var _live := {}
 ## Conversation id -> the SHOWN fields, plus working (true from the start of a
 ## turn to its last answer), phase, transcript_offset, known (false until its
@@ -144,27 +156,84 @@ func _poll() -> void:
 		_update_phase(id)
 
 
-## Conversation id -> {pid, cwd}, for each running agy process.
+## Conversation id -> {pid, cwd, dir}, for each running agy process, and for
+## the open conversations of Antigravity Desktop and IDE when shown.
 func _read_processes() -> Dictionary:
 	var live := {}
 	if not DirAccess.dir_exists_absolute(_proc_dir):
 		return live
 	var presence := _agy_dir.path_join("presence")
+	var desktop: bool = Settings.value("agy", "desktop")
+	var servers := []
 	for pid in DirAccess.get_directories_at(_proc_dir):
 		if not pid.is_valid_int():
 			continue
 		var folder := _proc_dir.path_join(pid)
-		if Desktop.read_kernel_file(folder.path_join("comm")).strip_edges() != PROCESS:
+		var process := Desktop.read_kernel_file(folder.path_join("comm")).strip_edges()
+		if process != PROCESS and not (desktop and process == SERVER):
 			continue
 		var fds := DirAccess.open(folder.path_join("fd"))
 		if fds == null:
+			continue
+		if process == SERVER:
+			var server := _read_server(pid.to_int(), fds)
+			if not server.is_empty():
+				servers.append(server)
 			continue
 		for fd in fds.get_files():
 			var target := fds.read_link(fd)
 			if target.get_base_dir() == presence and target.get_extension() == "lock":
 				var cwd := DirAccess.open(folder)
-				live[target.get_file().get_basename()] = {"pid": pid.to_int(), "cwd": cwd.read_link("cwd") if cwd else ""}
+				live[target.get_file().get_basename()] = {"pid": pid.to_int(), "cwd": cwd.read_link("cwd") if cwd else "", "dir": _agy_dir}
+	for server: Dictionary in servers:
+		_add_server_conversations(server, live)
 	return live
+
+
+## {pid, dir, held: conversation ids whose presence lock it holds} for a
+## language server of Antigravity Desktop or IDE, found by the data folder it
+## keeps files open in. Empty for another program's language_server.
+func _read_server(pid: int, fds: DirAccess) -> Dictionary:
+	var server := {}
+	for fd in fds.get_files():
+		var target := fds.read_link(fd)
+		for name in SERVER_DIRS:
+			var dir := Desktop.home().path_join(name)
+			if not target.begins_with(dir + "/"):
+				continue
+			if server.is_empty():
+				server = {"pid": pid, "dir": dir, "held": []}
+			if target.get_base_dir() == dir.path_join("presence") and target.get_extension() == "lock":
+				server.held.append(target.get_file().get_basename())
+	return server
+
+
+## Adds the open conversations of one language server: the one whose lock it
+## holds, those that work, those with a step in the last minutes.
+func _add_server_conversations(server: Dictionary, live: Dictionary) -> void:
+	var brain: String = server.dir.path_join("brain")
+	var since: float = Time.get_unix_time_from_system() - Settings.value("agy", "desktop_minutes") * 60.0
+	for id in DirAccess.get_directories_at(brain):
+		if live.has(id):
+			continue
+		var open: bool = id in server.held or (_sessions.has(id) and _sessions[id].working)
+		var transcript := brain.path_join(id).path_join(TRANSCRIPT)
+		if not open and (not FileAccess.file_exists(transcript) or FileAccess.get_modified_time(transcript) < since):
+			continue
+		var peer := _read_peer(id)
+		# Subagents have no annotations file, and the agent bridge does not list them.
+		if not open and peer.is_empty() and not FileAccess.file_exists(server.dir.path_join("annotations/%s.pbtxt" % id)):
+			continue
+		live[id] = {"pid": server.pid, "cwd": str(peer.get("workspace", "")), "dir": server.dir}
+
+
+## The peer file of the agent bridge (Diaulos) for an agy conversation, or {}.
+func _read_peer(id: String) -> Dictionary:
+	var path := _bridge_dir.path_join("peers/agy-%s.json" % id)
+	if not FileAccess.file_exists(path):
+		return {}
+	var peer: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	return peer if peer is Dictionary else {}
 
 
 func _update(id: String, process: Dictionary) -> void:
@@ -174,15 +243,17 @@ func _update(id: String, process: Dictionary) -> void:
 			"name": "", "color": "", "cwd": "", "last_prompt": "", "pid": 0, "context": 0, "summary": "", "kind": &"agy",
 			"working": false, "phase": &"", "transcript_offset": 0, "known": false, "calls": [], "tasks": {}, "subagents": {},
 			"background": 0, "servers": 0, "mail": 0, "heard": _now(), "quiet": 0, "origin": &"", "asker": "", "last_step": 0.0,
+			"dir": process.dir,
 		}
 	var session: Dictionary = _sessions[id]
 	var before := _shown(session)
 	session.pid = process.pid
 	session.cwd = process.cwd
 	if _scan_in == SCAN_SECONDS or opened:
-		session.name = _read_title(id)
+		session.name = _read_title(session.dir, id)
 		if session.name in ["", UNTITLED]:
-			session.name = session.cwd.get_file()
+			# A Desktop conversation unknown to the agent bridge has no folder to show.
+			session.name = session.cwd.get_file() if not session.cwd.is_empty() else "Antigravity"
 	_read_transcript(id, session)
 	_read_subagents(id, session)
 	if not session.known:
@@ -213,8 +284,11 @@ func _shown(session: Dictionary) -> Dictionary:
 
 ## Title of the conversation. agy writes it as text protobuf, with C escapes
 ## for quotes and for the bytes of the letters that are not ASCII.
-func _read_title(id: String) -> String:
-	var found := _title.search(FileAccess.get_file_as_string(_agy_dir.path_join("annotations/%s.pbtxt" % id)))
+func _read_title(dir: String, id: String) -> String:
+	var path := dir.path_join("annotations/%s.pbtxt" % id)
+	if not FileAccess.file_exists(path):
+		return ""
+	var found := _title.search(FileAccess.get_file_as_string(path))
 	if found == null:
 		return ""
 	var text := found.get_string(1)
@@ -244,7 +318,7 @@ func _octal(digits: String) -> int:
 
 ## Reads only what was added to the transcript since the last call.
 func _read_transcript(id: String, session: Dictionary) -> void:
-	var file := FileAccess.open(_agy_dir.path_join("brain").path_join(id).path_join(TRANSCRIPT), FileAccess.READ)
+	var file := FileAccess.open(session.dir.path_join("brain").path_join(id).path_join(TRANSCRIPT), FileAccess.READ)
 	if file == null:
 		return
 	file.seek(session.transcript_offset)
@@ -394,7 +468,7 @@ func _add_subagents(session: Dictionary, args: Dictionary, content: String) -> v
 func _read_subagents(id: String, session: Dictionary) -> void:
 	var before := _running(session)
 	for agent: Dictionary in session.subagents.values():
-		var file := FileAccess.open(_agy_dir.path_join("brain").path_join(agent.id).path_join(TRANSCRIPT), FileAccess.READ)
+		var file := FileAccess.open(session.dir.path_join("brain").path_join(agent.id).path_join(TRANSCRIPT), FileAccess.READ)
 		if file == null:
 			continue
 		file.seek(agent.offset)

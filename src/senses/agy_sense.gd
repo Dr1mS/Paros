@@ -96,6 +96,7 @@ const SHOWN: Array[String] = ["name", "color", "cwd", "last_prompt", "pid", "con
 const ClaudeCodeSense := preload("res://src/senses/claude_code_sense.gd")
 
 var _agy_dir := Desktop.home().path_join(".gemini/antigravity-cli")
+var _server_dirs: Array = SERVER_DIRS.map(func(name: String) -> String: return Desktop.home().path_join(name))
 var _bridge_dir := Desktop.home().path_join(".agent-bridge")
 var _proc_dir := "/proc"
 var _log_path := ""
@@ -197,8 +198,7 @@ func _read_server(pid: int, fds: DirAccess) -> Dictionary:
 	var server := {}
 	for fd in fds.get_files():
 		var target := fds.read_link(fd)
-		for name in SERVER_DIRS:
-			var dir := Desktop.home().path_join(name)
+		for dir: String in _server_dirs:
 			if not target.begins_with(dir + "/"):
 				continue
 			if server.is_empty():

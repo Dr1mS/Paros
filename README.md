@@ -2,7 +2,7 @@
 
 **English** · [Français](README.fr.md)
 
-A desktop companion for Claude Code and agy (Google Antigravity CLI). A small pixel pet lives at the bottom of your screen, one per open session. One look tells you what each session is doing: working, waiting for you, or done.
+A desktop companion for Claude Code and agy (Google Antigravity: the agy CLI and Antigravity Desktop). A small pixel pet lives at the bottom of your screen, one per open session. One look tells you what each session is doing: working, waiting for you, or done.
 
 Compatible with [Diaulos](https://github.com/Dr1mS/Diaulos), the bridge between agy and Claude Code sessions: the messages they send each other fly from pet to pet as letters.
 
@@ -19,7 +19,7 @@ Built with Godot 4.7 and GDScript. No image file and no sound file: everything i
 - **It reacts to your work.** Green or red tests, failed commands, a full context window, uncommitted changes, a merge in progress, a clean commit.
 - **Each subagent has its small pet.** It stays near the big one, shows the tool it uses, and plays like a child: it jumps, runs to the others, builds pyramids with them. Sixteen at most per session.
 - **It empties its head when the context is compacted.** It sits by a bin, pulls sheets out of its head, crumples them and throws them in, then shakes its head, lighter.
-- **agy sessions have their pet too.** It is drawn after the agy mascot, an "A" in a gradient, and lives with the Claude pets. It thinks, shows its tool, waves when agy asks you a question, has small pets for its subagents, waits for its background commands, cheers at the end of a turn, and writes letters through Diaulos. See [agy](docs/en/agy.md).
+- **agy sessions have their pet too.** It is drawn after the agy mascot, an "A" in a gradient, and lives with the Claude pets. It thinks, shows its tool, waves when agy asks you a question, has small pets for its subagents, waits for its background commands, cheers at the end of a turn, and writes letters through Diaulos. The sessions of the agy CLI and the conversations of Antigravity Desktop, while the window shows them or they work, all have one. See [agy](docs/en/agy.md).
 - **The sage comes when the session asks the advisor.** Pointy hat, white beard and staff: it reads the letter the pet throws to it, answers, then walks off the screen.
 - **It lives on your desktop.** It walks across your screens, sits, sleeps at night, greets the other pets, can be thrown around, and climbs onto the focused window.
 - **It stays out of the way.** Clicks next to it go through. It leaves a screen that runs a full screen app.
@@ -65,7 +65,7 @@ Three optional steps complete the setup:
 
 Without them, the pets still follow the sessions, their name, their color and their state.
 
-agy sessions need nothing more: Paros finds them on its own, on Linux. An optional hook tells the end of a cancelled turn: see [agy](docs/en/agy.md#the-hook).
+agy sessions need nothing more: Paros finds those of the agy CLI and of Antigravity Desktop on its own, on Linux. The Desktop pets can be turned off in the settings. An optional hook tells the end of a cancelled turn: see [agy](docs/en/agy.md#the-hook).
 
 On Linux, to see the sage while the advisor works, `python3-gi` is needed (present with GNOME): Paros then reads the visible text of the terminals. See [Advisor](docs/en/claude-code.md#advisor) and [Privacy](docs/en/claude-code.md#privacy).
 
@@ -88,7 +88,7 @@ To run without Godot, build a standalone binary with `./build.sh` (see [Developm
 |---|---|
 | [Usage](docs/en/usage.md) | Every behavior, gesture, menu entry and setting |
 | [Claude Code](docs/en/claude-code.md) | What Paros reads from the sessions, subagents, advisor, hook setup, privacy |
-| [agy](docs/en/agy.md) | agy sessions, letters through Diaulos, the optional hook, limits |
+| [agy](docs/en/agy.md) | agy CLI sessions and Antigravity Desktop conversations, letters through Diaulos, the optional hook, limits |
 | [GNOME extension](docs/en/gnome-extension.md) | Terminal focus, perch, lock screen, full screen |
 | [Architecture](docs/en/architecture.md) | Code layout, event reference, how to add a sense or a behavior |
 | [Development](docs/en/development.md) | Tests, binary export, performance, known limits, troubleshooting |
@@ -108,7 +108,7 @@ To run without Godot, build a standalone binary with `./build.sh` (see [Developm
 ./test.sh
 ```
 
-134 unit tests, run without a display in a few seconds.
+135 unit tests, run without a display in a few seconds.
 
 ## License
 

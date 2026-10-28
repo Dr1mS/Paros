@@ -751,6 +751,56 @@ func test_agy_session_opens_works_then_closes() -> void:
 	sense.free()
 
 
+## Antigravity Desktop: one language_server runs every conversation of a
+## window and holds the presence lock of the one the window shows.
+func test_agy_desktop_conversations() -> void:
+	if OS.get_name() != "Linux":
+		return
+	var sense := agy_sense()
+	var desktop := folder.path_join("desktop")
+	sense._server_dirs = [desktop]
+	var shown := "11111111-1111-1111-1111-111111111111"
+	var recent := "22222222-2222-2222-2222-222222222222"
+	var idle := "33333333-3333-3333-3333-333333333333"
+	var subagent := "44444444-4444-4444-4444-444444444444"
+	write(folder.path_join("proc/5555/comm"), "language_server\n")
+	DirAccess.make_dir_recursive_absolute(folder.path_join("proc/5555/fd"))
+	write(desktop.path_join("presence/%s.lock" % shown), "")
+	OS.execute("ln", ["-s", desktop.path_join("presence/%s.lock" % shown), folder.path_join("proc/5555/fd/9")])
+	for id in [shown, recent, idle, subagent]:
+		write(desktop.path_join("brain/%s/.system_generated/logs/transcript_full.jsonl" % id), "")
+	for id in [shown, recent, idle]:
+		write(desktop.path_join("annotations/%s.pbtxt" % id), 'title:"%s"\n' % id.left(4))
+	OS.execute("touch", ["-d", "2 hours ago", desktop.path_join("brain/%s/.system_generated/logs/transcript_full.jsonl" % shown)])
+	OS.execute("touch", ["-d", "2 hours ago", desktop.path_join("brain/%s/.system_generated/logs/transcript_full.jsonl" % idle)])
+	write(folder.path_join("bridge/peers/agy-%s.json" % recent), JSON.stringify({"workspace": folder.path_join("my work")}))
+	sense._poll()
+	var opened := {}
+	for event: Array in _events:
+		if event[0] == &"session_opened":
+			opened[event[1].session] = event[1]
+	check(opened.has(shown), "the conversation the window shows")
+	check(opened.has(recent), "a conversation with a recent step")
+	check(not opened.has(idle), "no pet for a conversation idle for long")
+	check(not opened.has(subagent), "no pet for a subagent: no annotations, unknown to the bridge")
+	check_equal(opened[recent].get("pid"), 5555, "its language server")
+	check_equal(opened[recent].get("cwd"), folder.path_join("my work"), "its folder, from the bridge")
+	check_equal(opened[shown].get("name"), "1111", "named after its title")
+	check(opened.has(CONVERSATION), "the agy CLI session is still seen")
+
+	Settings.set_value("agy", "desktop", false)
+	sense._scan_in = 0.0
+	sense._poll()
+	Settings.set_value("agy", "desktop", true)
+	var closed := []
+	for event: Array in _events:
+		if event[0] == &"session_closed":
+			closed.append(event[1].session)
+	check(shown in closed and recent in closed, "the setting turns the Desktop pets off")
+	check(CONVERSATION not in closed, "not the agy CLI ones")
+	sense.free()
+
+
 func test_agy_background_tasks_letters_and_cancel() -> void:
 	if OS.get_name() != "Linux":
 		return

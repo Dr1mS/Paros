@@ -2,7 +2,7 @@
 
 [English](README.md) · **Français**
 
-Compagnon de bureau pour Claude Code et agy (Google Antigravity CLI). Un petit personnage en pixels vit au bas de l'écran, un par session ouverte. Un coup d'œil suffit pour savoir ce que fait chaque session : elle travaille, elle attend une réponse, elle a fini.
+Compagnon de bureau pour Claude Code et agy (Google Antigravity : la CLI agy et Antigravity Desktop). Un petit personnage en pixels vit au bas de l'écran, un par session ouverte. Un coup d'œil suffit pour savoir ce que fait chaque session : elle travaille, elle attend une réponse, elle a fini.
 
 Compatible avec [Diaulos](https://github.com/Dr1mS/Diaulos), le pont entre sessions agy et Claude Code : les messages qu'elles s'envoient volent d'un personnage à l'autre sous forme de lettres.
 
@@ -16,10 +16,10 @@ Godot 4.7, GDScript. Aucun fichier image ni son : tout est dessiné et synthéti
 
 - **Un personnage par session.** Il porte le nom de la session (`/rename`) et la branche git sous ses pieds, prend la couleur de la session (`/color`) et a son propre accessoire.
 - **Il montre l'état de la session.** Il réfléchit quand Claude travaille, avec l'outil en cours au-dessus de la tête. Il agite les bras quand Claude attend une permission ou une réponse. Il saute quand le tour est fini.
-- **Il réagit à ton travail.** Tests verts ou rouges, commandes échouées, contexte plein, modifications non commitées, fusion en cours, commit propre.
+- **Il réagit à votre travail.** Tests verts ou rouges, commandes échouées, contexte plein, modifications non commitées, fusion en cours, commit propre.
 - **Chaque sous-agent a son petit personnage.** Il reste près du grand, affiche son outil en cours, et joue comme un enfant : il saute, court vers les autres, monte des pyramides avec eux. Seize au plus par session.
 - **Il se vide la tête quand le contexte est compacté.** Assis près d'une corbeille, il sort des feuilles de sa tête, les froisse et les y jette, puis secoue la tête, plus léger.
-- **Les sessions agy ont aussi leur personnage.** Il est dessiné d'après la mascotte d'agy, un « A » en dégradé, et vit avec les personnages Claude. Il réfléchit, montre son outil, fait signe quand agy te pose une question, a des petits personnages pour ses sous-agents, attend ses commandes en arrière-plan, saute de joie en fin de tour, et écrit des lettres par Diaulos. Voir [agy](docs/fr/agy.md).
+- **Les sessions agy ont aussi leur personnage.** Il est dessiné d'après la mascotte d'agy, un « A » en dégradé, et vit avec les personnages Claude. Il réfléchit, montre son outil, fait signe quand agy vous pose une question, a des petits personnages pour ses sous-agents, attend ses commandes en arrière-plan, saute de joie en fin de tour, et écrit des lettres par Diaulos. Les sessions de la CLI agy et les conversations d'Antigravity Desktop, tant que la fenêtre les affiche ou qu'elles travaillent, en ont toutes un. Voir [agy](docs/fr/agy.md).
 - **Le sage vient quand la session consulte l'advisor.** Chapeau pointu, barbe blanche et bâton : il lit la lettre que le personnage lui lance, répond, puis sort de l'écran.
 - **Il vit sur le bureau.** Il traverse les écrans, s'assoit, dort la nuit, salue les autres personnages, se laisse lancer, grimpe sur la fenêtre active.
 - **Il ne gêne pas.** Un clic à côté de lui le traverse. Il quitte l'écran d'une application en plein écran.
@@ -65,7 +65,7 @@ Trois étapes facultatives complètent l'installation :
 
 Sans elles, les personnages suivent quand même les sessions, leur nom, leur couleur et leur état.
 
-Les sessions agy ne demandent rien de plus : Paros les trouve seul, sous Linux. Un hook facultatif signale la fin d'un tour annulé : voir [agy](docs/fr/agy.md#le-hook).
+Les sessions agy ne demandent rien de plus : Paros trouve seul celles de la CLI agy et d'Antigravity Desktop, sous Linux. Les personnages Desktop se désactivent dans les réglages. Un hook facultatif signale la fin d'un tour annulé : voir [agy](docs/fr/agy.md#le-hook).
 
 Sous Linux, pour voir le sage pendant que l'advisor travaille, il faut `python3-gi` (présent avec GNOME) : Paros lit alors le texte visible des terminaux. Voir [Advisor](docs/fr/claude-code.md#advisor) et [Confidentialité](docs/fr/claude-code.md#confidentialité).
 
@@ -88,7 +88,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 |---|---|
 | [Utilisation](docs/fr/utilisation.md) | Tous les comportements, les gestes, le menu, les réglages |
 | [Claude Code](docs/fr/claude-code.md) | Ce que Paros lit des sessions, sous-agents, advisor, installation des hooks, confidentialité |
-| [agy](docs/fr/agy.md) | Sessions agy, lettres par Diaulos, hook facultatif, limites |
+| [agy](docs/fr/agy.md) | Sessions de la CLI agy et conversations d'Antigravity Desktop, lettres par Diaulos, hook facultatif, limites |
 | [Extension GNOME](docs/fr/extension-gnome.md) | Focus du terminal, perchoir, écran de verrouillage, plein écran |
 | [Architecture](docs/fr/architecture.md) | Organisation du code, référence des événements, comment ajouter un sens ou un comportement |
 | [Développement](docs/fr/developpement.md) | Tests, export en binaire, performances, limites connues, dépannage |
@@ -100,7 +100,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 | Linux, GNOME, Wayland | Testé |
 | Linux, autre bureau | Le cœur fonctionne. Les parties propres à GNOME restent muettes |
 | agy | Linux seulement, la CLI agy et Antigravity Desktop. Testé avec agy (serveur de langage 1.4) |
-| Windows | Testé depuis les sources (Godot 4.7, Git Bash pour les hooks, `./test.ps1` pour les tests). Un script PowerShell (`windows/`) remplace l'extension GNOME : focus du terminal, perchoir, plein écran, inactivité, musique, batterie. Pas de pets sur l'écran de verrouillage, pas d'alerte de température. Le sage vient une fois la réponse de l'advisor arrivée, pas pendant l'appel |
+| Windows | Testé depuis les sources (Godot 4.7, Git Bash pour les hooks, `./test.ps1` pour les tests). Un script PowerShell (`windows/`) remplace l'extension GNOME : focus du terminal, perchoir, plein écran, inactivité, musique, batterie. Pas de personnages sur l'écran de verrouillage, pas d'alerte de température. Le sage vient une fois la réponse de l'advisor arrivée, pas pendant l'appel |
 
 ## Tests
 
@@ -108,7 +108,7 @@ Pour lancer sans Godot, construire un binaire autonome avec `./build.sh` (voir [
 ./test.sh
 ```
 
-134 tests unitaires, sans affichage, en quelques secondes.
+135 tests unitaires, sans affichage, en quelques secondes.
 
 ## Licence
 
